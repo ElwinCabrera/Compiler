@@ -1,6 +1,6 @@
 %{   
     #include "define_tokens.h"
-    
+
     int handle_token(int token)
     {
         printf("%d %s\n", token, yytext);
@@ -72,8 +72,8 @@
 ")"                         handle_token(R_PARENTHESIS);
 "["                         handle_token(L_BRACKET);
 "]"                         handle_token(R_BRACKET);
-"{"                         handle_token(R_BRACE);
-"}"                         handle_token(L_BRACE);
+"{"                         handle_token(L_BRACE);
+"}"                         handle_token(R_BRACE);
 ";"                         handle_token(SEMI_COLON);
 ":"                         handle_token(COLON);
 ","                         handle_token(COMMA);
