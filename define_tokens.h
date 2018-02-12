@@ -62,3 +62,5 @@
 #define OR 615
 // comments
 #define COMMENT 700
+
+int handle_token(int *)
