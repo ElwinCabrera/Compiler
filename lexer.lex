@@ -10,6 +10,10 @@
 
 %option yylineno
 
+DIGIT        [0-9]
+INTEGER      ("+"|"-")?{DIGIT}+
+
+
     /* TODO: DEFINE THESE
 
     DIGIT		
