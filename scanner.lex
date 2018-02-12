@@ -5,38 +5,24 @@
 %option yylineno
 
 /* Anything from 0 to 9 */
-DIGIT        [0-9]             
+DIGIT                       [0-9]             
 /* Has either a plus or minus sign, or not, with a sequence of digits */                                     
-INTEGER      ("+"|"-")?{DIGIT}+                              
+INTEGER                     ("+"|"-")?{DIGIT}+                              
 /*Basically INTEGER, followed with "." and a number of digits, followed by e|E with an interger*/       
-REAL         {INTEGER}+"."{DIGIT}+(("e"|"E")" "?{INTEGER}+)?     
-/*newline, tab, backlash, single and double quote*/
-ESC          ["\n""\t""\\"""\"""\'""\r"]               
-/*any alphabet character (CAPS or not), space, or escape character*/             
-CHAR         \"[a-zA-Z {ESC}]\"                                       
+REAL                        {INTEGER}+"."{DIGIT}+(("e"|"E")" "?{INTEGER}+)?           
+/*single ascii character enclosed in single quotations, may or may not be backslashed*/             
+CHAR                        "'"\?."'"                                       
 /*An arbitrary sequence of characters length >0, not inclusing newline*/
-STRING       \"[^\n {CHAR}]+\"                                        
-/*An arbitrary sequence of characters, with length >=0, including whatever escape characters, enclosed with (* *) */
-COMMENT      "(*"{CHAR}*"*)" 
+STRING                      """[^\n]""" 
+
+COMMENT_START               "(*"
+COMMENT_END                 "*)"
+ANYTHING_BUT_STAR           [^*]
+STAR_IF_NO_RPARENTHESIS     "*"[^\)]
+/* Comments start with (* and end with *) and captures everything that isn't a * followed by ) */
+COMMENT                     {COMMENT_START}({ANYTHING_BUT_STAR}|{STAR_IF_NO_RPARENTHESIS})*?{COMMENT_END}
 /*Starts with a lower/upper case/"_" then continue with a lower/upper case/"_"/digit */
-ID           [a-zA-Z_][a-zA-Z {DIGIT}_]*                            
-
-    /* TODO: DEFINE THESE
-
-    DIGIT		-Check
-    INTEGER		-Check
-    REAL        -Check
-    CHAR        -Check
-    STRING      -Check
-    ID          -Check
-    C_START     
-    C_END       
-    C_SIMPLE    
-    C_COMPLEX   
-    COMMENT     -Check
-    ESC         -Check. These are escaped characters    
-
-    */
+ID                          [a-zA-Z_][a-zA-Z {DIGIT}_]*                            
 
 %%
 
