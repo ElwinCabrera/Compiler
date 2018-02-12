@@ -120,8 +120,7 @@ ID           [a-zA-Z_][a-zA-Z {DIGIT}_]*                            /*Starts wit
 [ \t\r\n]                   ;
 
 %%
-/*Should print out output to whatever*/
-int main(void){
-    yylex();
-    return 0;
+
+int yywrap(void){
+    return 1;
 }
