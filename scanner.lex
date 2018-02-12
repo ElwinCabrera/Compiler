@@ -34,84 +34,84 @@ ID           [a-zA-Z_][a-zA-Z {DIGIT}_]*                            /*Starts wit
 
     /* Primitive Values */
 
-{INTEGER}                   handle_token(C_INTEGER);
-{REAL}                      handle_token(C_REAL);
-{CHAR}                      handle_token(C_CHARACTER);
-{STRING}                    handle_token(C_STRING);
-"true"                      handle_token(C_TRUE);
-"false"                     handle_token(C_FALSE);
+{INTEGER}                   return C_INTEGER;
+{REAL}                      return C_REAL;
+{CHAR}                      return C_CHARACTER;
+{STRING}                    return C_STRING;
+"true"                      return C_TRUE;
+"false"                     return C_FALSE;
 
 
     /* Comments */
 
-{COMMENT}                   handle_token(COMMENT);
+{COMMENT}                   return COMMENT;
 
     /* Keywords */
 
-"integer"                   handle_token(T_INTEGER);
-"real"                      handle_token(T_REAL);
-"character"                 handle_token(T_CHARACTER);
-"string"                    handle_token(T_STRING);
-"Boolean"                   handle_token(T_BOOLEAN);
+"integer"                   return T_INTEGER;
+"real"                      return T_REAL;
+"character"                 return T_CHARACTER;
+"string"                    return T_STRING;
+"Boolean"                   return T_BOOLEAN;
 
-"reserve"                   handle_token(RESERVE);
-"release"                   handle_token(RELEASE);
-"for"                       handle_token(FOR);
-"while"                     handle_token(WHILE);
-"if"                        handle_token(IF);
-"then"                      handle_token(THEN);
-"else"                      handle_token(ELSE);
-"switch"                    handle_token(SWITCH);
-"case"                      handle_token(CASE);
-"otherwise"                 handle_token(OTHERWISE);
-"type"                      handle_token(TYPE);
-"function"                  handle_token(FUNCTION);
-"closure"                   handle_token(CLOSURE);
+"reserve"                   return RESERVE;
+"release"                   return RELEASE;
+"for"                       return FOR;
+"while"                     return WHILE;
+"if"                        return IF;
+"then"                      return THEN;
+"else"                      return ELSE;
+"switch"                    return SWITCH;
+"case"                      return CASE;
+"otherwise"                 return OTHERWISE;
+"type"                      return TYPE;
+"function"                  return FUNCTION;
+"closure"                   return CLOSURE;
 
 
     /* Punctuation */
 
 
-"("                         handle_token(L_PARENTHESIS);
-")"                         handle_token(R_PARENTHESIS);
-"["                         handle_token(L_BRACKET);
-"]"                         handle_token(R_BRACKET);
-"{"                         handle_token(L_BRACE);
-"}"                         handle_token(R_BRACE);
-";"                         handle_token(SEMI_COLON);
-":"                         handle_token(COLON);
-","                         handle_token(COMMA);
-"->"                        handle_token(ARROW);
-"'"                         handle_token(S_QUOTE);
-"\""                        handle_token(D_QUOTE);
-"\\"                       handle_token(BACKSLASH);
+"("                         return L_PARENTHESIS;
+")"                         return R_PARENTHESIS;
+"["                         return L_BRACKET;
+"]"                         return R_BRACKET;
+"{"                         return L_BRACE;
+"}"                         return R_BRACE;
+";"                         return SEMI_COLON;
+":"                         return COLON;
+","                         return COMMA;
+"->"                        return ARROW;
+"'"                         return S_QUOTE;
+"\""                        return D_QUOTE;
+"\\"                        return BACKSLASH;
 
 
     /* Operators */
 
-"+"                         handle_token(ADD);
-"-"                         handle_token(SUB_OR_NEG);
-"*"                         handle_token(MUL);
-"/"                         handle_token(DIV);
-"%"                         handle_token(REM);
-"."                         handle_token(DOT);
-"<"                         handle_token(LESS_THAN);
-"="                         handle_token(EQUAL_TO);
-":="                        handle_token(ASSIGN);
-"i2r"                       handle_token(INT2REAL);
-"r2i"                       handle_token(REAL2INT);
-"isNull"                    handle_token(IS_NULL);
-"!"                         handle_token(NOT);
-"&"                         handle_token(AND);
-"|"                         handle_token(OR);
+"+"                         return ADD;
+"-"                         return SUB_OR_NEG;
+"*"                         return MUL;
+"/"                         return DIV;
+"%"                         return REM;
+"."                         return DOT;
+"<"                         return LESS_THAN;
+"="                         return EQUAL_TO;
+":="                        return ASSIGN;
+"i2r"                       return INT2REAL;
+"r2i"                       return REAL2INT;
+"isNull"                    return IS_NULL;
+"!"                         return NOT;
+"&"                         return AND;
+"|"                         return OR;
 
     /* ID */
 
-{ID}                        handle_token(ID);
+{ID}                        return ID;
 
     /* Whitespace and anything else*/
 
-[ \t\r\n]                   ;
+[ \t\r\n]                   return -1;
 .                           printf("Unexpected character");
 
 %%
