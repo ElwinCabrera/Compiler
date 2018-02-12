@@ -9,7 +9,7 @@ DIGIT        [0-9]
 /* Has either a plus or minus sign, or not, with a sequence of digits */                                     
 INTEGER      ("+"|"-")?{DIGIT}+                              
 /*Basically INTEGER, followed with "." and a number of digits, followed by e|E with an interger*/       
-REAL         ("+"|"-")?{DIGIT}+\.{DIGIT}+(("e"|"E"){INTEGER}+)?     
+REAL         {INTEGER}+"."{DIGIT}+(("e"|"E")" "?{INTEGER}+)?     
 /*newline, tab, backlash, single and double quote*/
 ESC          ["\n""\t""\\"""\"""\'""\r"]               
 /*any alphabet character (CAPS or not), space, or escape character*/             
