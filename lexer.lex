@@ -89,8 +89,8 @@ ID           [a-zA-Z "_"][a-zA-Z {DIGIT} "_"]*                      /*Starts wit
 ","                         handle_token(COMMA);
 "->"                        handle_token(ARROW);
 "'"                         handle_token(S_QUOTE);
-"\"                        handle_token(D_QUOTE);
-"\\                        handle_token(BACKSLASH);
+"\""                        handle_token(D_QUOTE);
+"\\"                       handle_token(BACKSLASH);
 
 
     /* Operators */
