@@ -10,8 +10,13 @@
 
 %option yylineno
 
-DIGIT        [0-9]
-INTEGER      ("+"|"-")?{DIGIT}+
+DIGIT        [0-9]                                                  /*Anything from 0 to 9*/
+INTEGER      ("+"|"-")?{DIGIT}+                                     /*Has either a plus or minus sign, or not, with a sequence of digits*/
+REAL         ("+"|"-")?{DIGIT}+\.{DIGIT}+(("e"|"E"){INTEGER}+)?     /*Basically INTEGER, followed with "." and a number of digits, followed by e|E with an interger*/
+ESC          ["\n" "\t" "\\"" "\"" "\'"]                            /*newline, tab, backlash, single and double quote*/
+CHAR         \"[a-zA-Z" "{ESC}]\"                                   /*any alphabet character (CAPS or not), space, or escape character*/
+STRING       \"[^\n {CHAR}]+\"                                      /*An arbitrary sequence of characters length >0, not inclusing newline*/
+COMMENT      "(*"{CHAR}*"*)"                                        /*An arbitrary sequence of characters, with length >=0, including whatever escape characters, enclosed with (* *) */
 
 
     /* TODO: DEFINE THESE
@@ -26,7 +31,8 @@ INTEGER      ("+"|"-")?{DIGIT}+
     C_END       
     C_SIMPLE    
     C_COMPLEX   
-    COMMENT     
+    COMMENT 
+    ESC - These are escaped characters    
 
     */
 
