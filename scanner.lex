@@ -22,7 +22,7 @@ STAR_IF_NO_RPARENTHESIS     "*"[^\)]
 /* Comments start with (* and end with *) and captures everything that isn't a * followed by ) */
 COMMENT                     {COMMENT_START}({ANYTHING_BUT_STAR}|{STAR_IF_NO_RPARENTHESIS})*?{COMMENT_END}
 /*Starts with a lower/upper case/"_" then continue with a lower/upper case/"_"/digit */
-ID                          [a-zA-Z_][a-zA-Z {DIGIT}_]*                            
+ID                          [a-zA-Z_][a-zA-Z{DIGIT}_]*                            
 
 %%
 
