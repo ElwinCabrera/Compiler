@@ -1,5 +1,5 @@
 %{   
-#include "define_tokens.h"
+#include "tokenDef.h"
 %}
 
 %option yylineno
