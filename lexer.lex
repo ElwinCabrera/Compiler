@@ -1,32 +1,33 @@
 %{   
-    #include "define_tokens.h"
-
-    int handle_token(int token)
-    {
-        printf("%d %s\n", token, yytext);
-        return token;
-    }
+#include "define_tokens.h"
 %}
 
 %option yylineno
 
+ID           [_a-zA-Z][_a-zA-Z0-9]*
+COMMENT      "(*"(.|\n)*"*)"
+CHAR         [\40-\176] //matches all printable characters in the ASCII character set, from octal 40 (blank) to octal 176 (tilde)
+STRING       \"(\\.|[^"\\])*\"
+BOOLEAN      ("true"|"false")?
 DIGIT        [0-9]
 INTEGER      ("+"|"-")?{DIGIT}+
+REAL         ("+"|"-")?{DIGIT}+'.'{DIGIT}+(("e","E")INTEGER)?
+
 
 
     /* TODO: DEFINE THESE
 
-    DIGIT		
-    INTEGER		
-    REAL        
-    CHAR        
-    STRING      
-    ID          
+    DIGIT	-	
+    INTEGER	-	
+    REAL    -    
+    CHAR     -   
+    STRING    -  
+    ID         - 
     C_START     
     C_END       
     C_SIMPLE    
     C_COMPLEX   
-    COMMENT     
+    COMMENT     -
 
     */
 
@@ -109,8 +110,20 @@ INTEGER      ("+"|"-")?{DIGIT}+
 
 {ID}                        handle_token(ID);
 
-    /* Whitespace */
+    /* Whitespace and anything else*/
 
-[ \t\r\n]                   ;
+[ \t\r\n]         ;
+
+.                printf("Unexpected character");
+
+
+
 
 %%
+
+int yywrap(void)
+{
+    return 1;
+}
+
+
