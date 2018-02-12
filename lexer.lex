@@ -1,11 +1,5 @@
 %{   
-    #include "define_tokens.h"
-
-    int handle_token(int token)
-    {
-        printf("%d %s %d\n", token, yytext,yylineno);
-        return token;
-    }
+#include "define_tokens.h"
 %}
 
 %option yylineno
@@ -115,9 +109,10 @@ ID           [a-zA-Z_][a-zA-Z {DIGIT}_]*                            /*Starts wit
 
 {ID}                        handle_token(ID);
 
-    /* Whitespace */
+    /* Whitespace and anything else*/
 
 [ \t\r\n]                   ;
+.                           printf("Unexpected character");
 
 %%
 
