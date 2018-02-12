@@ -1,20 +1,20 @@
 #include <stdio.h>
 
-extern int yyleng;
-extern int yylineno;
-extern char* yytext;
-
-extern int yylex();
+//The followuing are defined in a diferent module, why the extern keyword is used.
+extern int yyleng; /* Will give us the length to a token value */
+extern int yylineno; /* Gives us more information (the line number) when we're parsing to generate a helpful error message later.*/  
+extern char* yytext; /* Gives us the actual value of the tokens we're parsing*/
+extern int yylex(); /* Will help us parse our file into tokens (retuns 0 if done)*/
 extern void yyset_in(FILE*);
+
+void update_location(void); /* keeps track of the current row and coulumn we're at in our file*/
+int handle_token(int token); /* Used to output tokens as we are parsing them in a specific format (format is from project description)*/
 
 
 static int row = 1;
 static int column = 1;
 static int end_row = 1;
 static int end_column = 1;
-
-void update_location(void);
-int handle_token(int token);
 
 int main(int argc, char* argv[])
 {
