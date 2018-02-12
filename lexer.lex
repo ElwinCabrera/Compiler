@@ -10,7 +10,7 @@
 
 %option yylineno
 
-DIGIT        [0-9]                                                  /*Anything from 0 to 9*/
+DIGIT        [0-9]                                                  /*Anything from 0 to 9  */
 INTEGER      ("+"|"-")?{DIGIT}+                                     /*Has either a plus or minus sign, or not, with a sequence of digits*/
 REAL         ("+"|"-")?{DIGIT}+\.{DIGIT}+(("e"|"E"){INTEGER}+)?     /*Basically INTEGER, followed with "." and a number of digits, followed by e|E with an interger*/
 ESC          ["\n""\t""\\"""\"""\'""\r"]                            /*newline, tab, backlash, single and double quote*/
