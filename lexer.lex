@@ -17,7 +17,7 @@ ESC          ["\n" "\t" "\\"" "\"" "\'"]                            /*newline, t
 CHAR         \"[a-zA-Z" "{ESC}]\"                                   /*any alphabet character (CAPS or not), space, or escape character*/
 STRING       \"[^\n {CHAR}]+\"                                      /*An arbitrary sequence of characters length >0, not inclusing newline*/
 COMMENT      "(*"{CHAR}*"*)"                                        /*An arbitrary sequence of characters, with length >=0, including whatever escape characters, enclosed with (* *) */
-
+ID           [a-zA-Z "_"][a-zA-Z {DIGIT} "_"]*                      /*Starts with a lower/upper case/"_" then continue with a lower/upper case/"_"/digit */
 
     /* TODO: DEFINE THESE
 
@@ -89,8 +89,8 @@ COMMENT      "(*"{CHAR}*"*)"                                        /*An arbitra
 ","                         handle_token(COMMA);
 "->"                        handle_token(ARROW);
 "'"                         handle_token(S_QUOTE);
-"\\"                        handle_token(D_QUOTE);
-"\""                        handle_token(BACKSLASH);
+"\"                        handle_token(D_QUOTE);
+"\\                        handle_token(BACKSLASH);
 
 
     /* Operators */
