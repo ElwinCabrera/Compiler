@@ -17,5 +17,6 @@
 ### Useful Recources ###
 
 * lex/yacc Documentation:
-	[http://dinosaur.compilertools.net/#flex](http://dinosaur.compilertools.net/#flex)
-	[http://epaperpress.com/lexandyacc/download/LexAndYaccTutorial.pdf](http://epaperpress.com/lexandyacc/download/LexAndYaccTutorial.pdf)
+*
+	-[http://dinosaur.compilertools.net/#flex](http://dinosaur.compilertools.net/#flex)
+	-[http://epaperpress.com/lexandyacc/download/LexAndYaccTutorial.pdf](http://epaperpress.com/lexandyacc/download/LexAndYaccTutorial.pdf)
