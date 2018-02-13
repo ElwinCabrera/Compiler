@@ -1,29 +1,21 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+[Course website](https://www.cse.buffalo.edu/faculty/alphonce/SP18/CSE443/)
 
 ### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* Building a Compiler
 
-### How do I get set up? ###
+### What has been done so far? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+* Lexer 
 
-### Contribution guidelines ###
+### What needs to be done? ###
 
 * Writing tests
-* Code review
-* Other guidelines
 
-### Who do I talk to? ###
+### Useful Recources ###
 
-* Repo owner or admin
-* Other community or team contact
+* lex/yacc Documentation:
+	[http://dinosaur.compilertools.net/#flex](http://dinosaur.compilertools.net/#flex)
+	[http://epaperpress.com/lexandyacc/download/LexAndYaccTutorial.pdf](http://epaperpress.com/lexandyacc/download/LexAndYaccTutorial.pdf)
