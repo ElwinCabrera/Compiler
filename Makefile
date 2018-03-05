@@ -10,13 +10,13 @@ DEP=
 all: compiler_tools $(SRC)
 	gcc -o compiler $(SRC) $(GEN) -Wall
 
-compiler_tools: lexical_analyzer #syntax_analayzer
+compiler_tools: syntax_analayzer lexical_analyzer
 
-lexical_analyzer: lexicalStructure.lex 
+lexical_analyzer: lexicalStructure.lex y.tab.h
 	flex lexicalStructure.lex
 
 syntax_analayzer: grammar.y
-	yacc grammar.y
+	yacc -d grammar.y
 
 clean:
 	rm -f $(GEN) compiler
