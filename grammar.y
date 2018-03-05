@@ -1,11 +1,16 @@
 %{
+#include <stdio.h>
 
+void yyerror(char*);
+int yylex();
+    
 %}
 
 %start program
 
 
 %union {
+    int id;
     int integer; 
     int boolean;
     float real;
@@ -13,13 +18,13 @@
     char* string;
 }
 
-%token <string> ID;
-%token <integer> C_INTEGER;
-%token <float> C_REAL;
-%token <bool> C_TRUE;
-%token <bool> C_FALSE;
-%token <character> C_CHARACTER;
-%token <string> C_STRING;
+%token ID;
+%token C_INTEGER;
+%token C_REAL;
+%token C_TRUE;
+%token C_FALSE;
+%token C_CHARACTER;
+%token C_STRING;
 
 %token T_INTEGER
 %token T_REAL
@@ -81,7 +86,7 @@ program:
     definition_list sblock
     ;
 
-definition_list: 
+definition_list: /* Empty String */
     | definition definition_list
     ;
 
@@ -94,8 +99,8 @@ definition:
     ;
 
 sblock: 
-    L_BRACE statement_list R_BRACE
-    | L_BRACE dblock statement_list R_BRACE
+    L_BRACE dblock statement_list R_BRACE
+    | L_BRACE statement_list R_BRACE
     ;
 
 dblock:
@@ -137,13 +142,33 @@ statement_list:
     ;
 
 statement:
-    FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
-    | WHILE L_PARENTHESIS expression R_PARENTHESIS
-    | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
-    | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
+    basic_statement
+    | if_statement
+    | for_statement
+    | while_statement
+    | switch_statement
     | sblock
-    | assignable assignOp expression SEMI_COLON
+    ;
+
+basic_statement:
+    assignable assignOp expression SEMI_COLON
     | memOp assignable SEMI_COLON
+    ;
+
+if_statement:
+    IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
+    ;
+
+for_statement: 
+    FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
+    ;
+
+while_statement:
+    WHILE L_PARENTHESIS expression R_PARENTHESIS
+    ;
+
+switch_statement:
+    SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     ;
 
 case_list:
@@ -154,7 +179,6 @@ case_list:
 case:
     CASE constant COLON sblock
     ;
-
 
 assignable:
     identifier
@@ -213,7 +237,7 @@ ablock:
     L_PARENTHESIS argument_list R_PARENTHESIS
     ;
 
-argument_list:
+argument_list: /* Empty String */
     | non_empty_argument_list
     ;
 
@@ -255,3 +279,9 @@ binaryOperator:
     | LESS_THAN
     | EQUAL_TO
     ;
+
+%%
+
+void yyerror (char *s) {
+   printf ("%s\n", s);
+ }
