@@ -125,6 +125,15 @@ identifier_list:
 
 identifier:
     ID 
+    | type_specifier
+    ;
+
+type_specifier:
+    T_BOOLEAN
+    | T_CHARACTER
+    | T_INTEGER
+    | T_REAL
+    | T_STRING
     ;
 
 constant:
