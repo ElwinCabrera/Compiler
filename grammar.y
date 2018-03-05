@@ -13,18 +13,18 @@ int yylex();
     int id;
     int integer; 
     int boolean;
-    float real;
+    double real;
     char character;
     char* string;
 }
 
-%token ID;
-%token C_INTEGER;
-%token C_REAL;
-%token C_TRUE;
-%token C_FALSE;
-%token C_CHARACTER;
-%token C_STRING;
+%token <id> ID;
+%token <integer> C_INTEGER;
+%token <real> C_REAL;
+%token <boolean> C_TRUE;
+%token <boolean> C_FALSE;
+%token <character> C_CHARACTER;
+%token <string> C_STRING;
 
 %token T_INTEGER
 %token T_REAL
