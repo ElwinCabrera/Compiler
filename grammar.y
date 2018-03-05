@@ -13,6 +13,7 @@
     char* string;
 }
 
+%token <string> ID;
 %token <integer> C_INTEGER;
 %token <float> C_REAL;
 %token <bool> C_TRUE;
@@ -72,85 +73,185 @@
 %token AND
 %token OR
 
+%token COMMENT;
+
 %%
 
-program:
-    | definition_list sblock
+program: 
+    definition_list sblock
     ;
 
-definition_list:
+definition_list: 
     | definition definition_list
     ;
 
 definition:
-
+    TYPE identifier COLON dblock
+    | TYPE identifier COLON constant ARROW identifier
+    | TYPE identifier COLON constant ARROW identifier COLON L_PARENTHESIS constant R_PARENTHESIS
+    | TYPE identifier COLON pblock ARROW identifier
+    | FUNCTION identifier COLON identifier sblock
     ;
 
-sblock:
+sblock: 
+    L_BRACE statement_list R_BRACE
+    | L_BRACE dblock statement_list R_BRACE
     ;
 
 dblock:
+    L_BRACKET declaration_list R_BRACKET
     ;
 
 declaration_list:
+    declaration SEMI_COLON declaration_list 
+    | declaration 
     ;
 
 declaration:
+    identifier COLON identifier_list
     ;
 
 identifier_list:
+    identifier assignOp constant COMMA identifier_list
+    | identifier COMMA identifier_list
+    | identifier assignOp constant
+    | identifier
     ;
 
 identifier:
+    ID 
+    ;
+
+constant:
+    C_INTEGER
+    | C_REAL
+    | C_CHARACTER
+    | C_STRING
+    | C_TRUE
+    | C_FALSE
     ;
 
 statement_list:
+    statement statement_list
+    | statement
     ;
 
 statement:
+    FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
+    | WHILE L_PARENTHESIS expression R_PARENTHESIS
+    | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
+    | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
+    | sblock
+    | assignable assignOp expression SEMI_COLON
+    | memOp assignable SEMI_COLON
     ;
 
+case_list:
+    case case_list
+    | case
+    ;
+
+case:
+    CASE constant COLON sblock
+    ;
+
+
 assignable:
+    identifier
+    | assignable ablock
+    | assignable recOp identifier
     ;
 
 expression:
+    expression_with_precedence
+    ;
+
+expression_with_precedence:
+    expression_unary;
+
+simple_expression:
+    constant 
+    | assignable
+    ;
+
+/* Parenthesis are highest precedence */
+
+expression_parenthetical:
+    L_PARENTHESIS simple_expression R_PARENTHESIS
+    | simple_expression
+    ;
+
+expression_binary:
+    expression_parenthetical binaryOperator expression_parenthetical
+    | expression_parenthetical
+    ;
+
+expression_unary:
+    preUnaryOperator expression_binary
+    | expression_binary postUnaryOperator
+    | expression_binary
     ;
 
 pblock:
+    L_PARENTHESIS parameter_list R_PARENTHESIS
     ;
 
 parameter_list:
+    | non_empty_parameter_list
     ;
 
 non_empty_parameter_list:
+    parameter_declaration COMMA non_empty_parameter_list
+    | parameter_declaration
     ;
 
 parameter_declaration:
+    identifier COLON identifier
     ;
 
 ablock:
+    L_PARENTHESIS argument_list R_PARENTHESIS
     ;
 
 argument_list:
+    | non_empty_argument_list
     ;
 
 non_empty_argument_list:
+    expression COMMA non_empty_argument_list
+    | expression
     ;
 
 preUnaryOperator:
+    SUB_OR_NEG
+    | NOT
+    | INT2REAL
+    | REAL2INT
     ;
 
 postUnaryOperator:
+    IS_NULL
     ;
 
 memOp:
+    RESERVE
+    | RELEASE
     ;
 
 assignOp:
-    ;
+    ASSIGN;
 
 recOp:
-    ;
+    DOT;
 
 binaryOperator:
+    ADD
+    | SUB_OR_NEG
+    | MUL
+    | DIV
+    | REM
+    | AND
+    | OR
+    | LESS_THAN
+    | EQUAL_TO
     ;
