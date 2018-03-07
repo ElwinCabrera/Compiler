@@ -1,69 +1,6 @@
 %{
-       
-
-#define ID 101
-
-#define T_INTEGER 201
-#define T_REAL 202
-#define T_BOOLEAN 203
-#define T_CHARACTER 204
-#define T_STRING 205
-
-#define C_INTEGER 301
-#define C_REAL 302
-#define C_CHARACTER 303
-#define C_STRING 304
-#define C_TRUE 305
-#define C_FALSE 306
-
-#define NULL_PTR 401
-#define RESERVE 402
-#define RELEASE 403
-#define FOR 404
-#define WHILE 405
-#define IF 406
-#define THEN 407
-#define ELSE 408
-#define SWITCH 409
-#define CASE 410
-#define OTHERWISE 411
-#define TYPE 412
-#define FUNCTION 413
-#define CLOSURE 414
-
-#define L_PARENTHESIS 501
-#define R_PARENTHESIS 502
-#define L_BRACKET 503
-#define R_BRACKET 504
-#define L_BRACE 505
-#define R_BRACE 506
-#define S_QUOTE 507
-#define D_QUOTE 508
-
-#define SEMI_COLON 551
-#define COLON 552
-#define COMMA 553
-#define ARROW 554
-#define BACKSLASH 555
-
-#define ADD 601
-#define SUB_OR_NEG 602
-#define MUL 603
-#define DIV 604
-#define REM 605
-#define DOT 606
-#define LESS_THAN 607
-#define EQUAL_TO 608
-#define ASSIGN 609
-#define INT2REAL 610
-#define REAL2INT 611
-#define IS_NULL 612
-#define NOT 613
-#define AND 614
-#define OR 615
-
-#define COMMENT 700
-
+#include "y.tab.h"
+int handle_token(int);
 %}
 
 %option yylineno
@@ -95,89 +32,131 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Primitive Values */
 
-{INTEGER}                   return C_INTEGER;
-{REAL}                      return C_REAL;
-{CHAR}                      return C_CHARACTER;
-{STRING}                    return C_STRING;
-"true"                      return C_TRUE;
-"false"                     return C_FALSE;
+{INTEGER}                   return handle_token(C_INTEGER);
+{REAL}                      return handle_token(C_REAL);
+{CHAR}                      return handle_token(C_CHARACTER);
+{STRING}                    return handle_token(C_STRING);
+"true"                      return handle_token(C_TRUE);
+"false"                     return handle_token(C_FALSE);
 
 
     /* Comments */
 
-{COMMENT}                   return COMMENT;
+{COMMENT}                   handle_token(COMMENT);
 
     /* Keywords */
 
-"integer"                   return T_INTEGER;
-"real"                      return T_REAL;
-"character"                 return T_CHARACTER;
-"string"                    return T_STRING;
-"Boolean"                   return T_BOOLEAN;
+"integer"                   return handle_token(T_INTEGER);
+"real"                      return handle_token(T_REAL);
+"character"                 return handle_token(T_CHARACTER);
+"string"                    return handle_token(T_STRING);
+"Boolean"                   return handle_token(T_BOOLEAN);
 
-"reserve"                   return RESERVE;
-"release"                   return RELEASE;
-"for"                       return FOR;
-"while"                     return WHILE;
-"if"                        return IF;
-"then"                      return THEN;
-"else"                      return ELSE;
-"switch"                    return SWITCH;
-"case"                      return CASE;
-"otherwise"                 return OTHERWISE;
-"type"                      return TYPE;
-"function"                  return FUNCTION;
-"closure"                   return CLOSURE;
-"null"                      return NULL_PTR;
+"reserve"                   return handle_token(RESERVE);
+"release"                   return handle_token(RELEASE);
+"for"                       return handle_token(FOR);
+"while"                     return handle_token(WHILE);
+"if"                        return handle_token(IF);
+"then"                      return handle_token(THEN);
+"else"                      return handle_token(ELSE);
+"switch"                    return handle_token(SWITCH);
+"case"                      return handle_token(CASE);
+"otherwise"                 return handle_token(OTHERWISE);
+"type"                      return handle_token(TYPE);
+"function"                  return handle_token(FUNCTION);
+"closure"                   return handle_token(CLOSURE);
+"null"                      return handle_token(NULL_PTR);
 
 
     /* Punctuation */
 
 
-"("                         return L_PARENTHESIS;
-")"                         return R_PARENTHESIS;
-"["                         return L_BRACKET;
-"]"                         return R_BRACKET;
-"{"                         return L_BRACE;
-"}"                         return R_BRACE;
-";"                         return SEMI_COLON;
-":"                         return COLON;
-","                         return COMMA;
-"->"                        return ARROW;
-"'"                         return S_QUOTE;
-"\""                        return D_QUOTE;
-"\\"                        return BACKSLASH;
+"("                         return handle_token(L_PARENTHESIS);
+")"                         return handle_token(R_PARENTHESIS);
+"["                         return handle_token(L_BRACKET);
+"]"                         return handle_token(R_BRACKET);
+"{"                         return handle_token(L_BRACE);
+"}"                         return handle_token(R_BRACE);
+";"                         return handle_token(SEMI_COLON);
+":"                         return handle_token(COLON);
+","                         return handle_token(COMMA);
+"->"                        return handle_token(ARROW);
+"'"                         return handle_token(S_QUOTE);
+"\""                        return handle_token(D_QUOTE);
+"\\"                        return handle_token(BACKSLASH);
 
 
     /* Operators */
 
-"+"                         return ADD;
-"-"                         return SUB_OR_NEG;
-"*"                         return MUL;
-"/"                         return DIV;
-"%"                         return REM;
-"."                         return DOT;
-"<"                         return LESS_THAN;
-"="                         return EQUAL_TO;
-":="                        return ASSIGN;
-"i2r"                       return INT2REAL;
-"r2i"                       return REAL2INT;
-"isNull"                    return IS_NULL;
-"!"                         return NOT;
-"&"                         return AND;
-"|"                         return OR;
+"+"                         return handle_token(ADD);
+"-"                         return handle_token(SUB_OR_NEG);
+"*"                         return handle_token(MUL);
+"/"                         return handle_token(DIV);
+"%"                         return handle_token(REM);
+"."                         return handle_token(DOT);
+"<"                         return handle_token(LESS_THAN);
+"="                         return handle_token(EQUAL_TO);
+":="                        return handle_token(ASSIGN);
+"i2r"                       return handle_token(INT2REAL);
+"r2i"                       return handle_token(REAL2INT);
+"isNull"                    return handle_token(IS_NULL);
+"!"                         return handle_token(NOT);
+"&"                         return handle_token(AND);
+"|"                         return handle_token(OR);
 
     /* ID */
 
-{ID}                        return ID;
+{ID}                        return handle_token(ID);
 
     /* Whitespace and anything else*/
 
-[ \t\r\n]                   return -1;
+[ \t\r\n]                   handle_token(-1);
 .                           printf("Unexpected character");
 
 %%
 
+
+static int row = 1;
+static int column = 1;
+static int end_row = 1;
+static int end_column = 1;
+
 int yywrap(void){
     return 1;
+}
+
+/*
+    Helper function for updating the file position as lex processes
+    the character stream.
+*/
+void update_location()
+{
+    row = end_row;           
+    column = end_column;     
+                    
+    if(end_row != yylineno)  
+    {                        
+        end_column = 1;      
+        end_row = yylineno;  
+    }                        
+    else                     
+    {                        
+        end_column += yyleng;
+    }                        
+}
+
+/*
+    A generic handler for tokens. Takes a token, does some processing, and
+    then returns it for use by lex/yacc.
+*/
+int handle_token(int token)
+{
+    update_location();
+    
+    if(token > 0)
+    {
+        printf("%d %s %d %d\n", token, yytext, row, column);
+    }
+
+    return token;
 }

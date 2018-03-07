@@ -12,6 +12,11 @@
 
 ### What needs to be done? ###
 
+* Rules for grammar (getting values and types)
+* Error handling
+* Define add_symbol and find_symbol
+* Write an argument parser
+* Determine how to handle file output
 * Writing tests
 
 ### Useful Recources ###
