@@ -170,18 +170,30 @@ basic_statement:
 
 if_statement:
     IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
+    /* Errors */
+    | IF error         {unexpected_token_error("(", "An expression following if should be enclosed in parentheses");}
+    | IF L_PARENTHESIS expression error         {unexpected_token_error(")", "Unmatched ( in if statement");}
     ;
 
 for_statement: 
     FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
+    /* Errors */
+    | FOR error         {unexpected_token_error("(", "An expression following for should be enclosed in parentheses");}
+    | FOR L_PARENTHESIS expression error         {unexpected_token_error(")", "Unmatched ( in for statement");}
     ;
 
 while_statement:
-    WHILE L_PARENTHESIS expression R_PARENTHESIS
+    WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
+    /* Errors */
+    | WHILE error         {unexpected_token_error("(", "An expression following while should be enclosed in parentheses");}
+    | WHILE L_PARENTHESIS expression error         {unexpected_token_error(")", "Unmatched ( in while statement");}
     ;
 
 switch_statement:
     SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
+    /* Errors */
+    | SWITCH error         {unexpected_token_error("(", "An expression following switch should be enclosed in parentheses");}
+    | SWITCH L_PARENTHESIS expression error         {unexpected_token_error(")", "Unmatched ( in switch statement");}
     ;
 
 case_list:
@@ -191,6 +203,8 @@ case_list:
 
 case:
     CASE constant COLON sblock
+    /* Errors */
+    | CASE constant error           {unexpected_token_error(":", "Colon should follow a case");}
     ;
 
 assignable:
@@ -216,6 +230,9 @@ simple_expression:
 expression_parenthetical:
     L_PARENTHESIS simple_expression R_PARENTHESIS
     | simple_expression
+    /* Errors */
+    | L_PARENTHESIS simple_expression error           {unexpected_token_error(")", "Unmatched ( in expression");}
+
     ;
 
 expression_binary:
@@ -231,6 +248,8 @@ expression_unary:
 
 pblock:
     L_PARENTHESIS parameter_list R_PARENTHESIS
+    /* Errors */
+    | L_PARENTHESIS parameter_list error           {unexpected_token_error(")", "Unmatched ( in parameter list");}
     ;
 
 parameter_list:
@@ -244,10 +263,14 @@ non_empty_parameter_list:
 
 parameter_declaration:
     identifier COLON identifier
+    /* Errors */
+    | identifier error identifier           {unexpected_token_error(":", "Missing colon in paramater declaration"); yyerrok;}
     ;
 
 ablock:
     L_PARENTHESIS argument_list R_PARENTHESIS
+    /* Errors */
+    | L_PARENTHESIS argument_list error           {unexpected_token_error(")", "Unmatched ( in argument list");}
     ;
 
 argument_list: /* Empty String */
@@ -257,6 +280,7 @@ argument_list: /* Empty String */
 non_empty_argument_list:
     expression COMMA non_empty_argument_list
     | expression
+    | expression error         {unexpected_token_error(",", "Expressions in an argument list are comma separated");}
     ;
 
 preUnaryOperator:
