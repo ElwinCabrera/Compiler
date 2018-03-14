@@ -97,6 +97,8 @@ definition:
     | TYPE identifier COLON constant ARROW identifier COLON L_PARENTHESIS constant R_PARENTHESIS
     | TYPE identifier COLON pblock ARROW identifier
     | FUNCTION identifier COLON identifier sblock
+    /* Errors */
+    | FUNCTION identifier error         {unexpected_token_error(":", "Colon follows an identifier in a definition"); yyerrok;}
     ;
 
 sblock: 
