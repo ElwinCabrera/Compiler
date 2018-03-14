@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 
+void unexpected_token_error(char const*, char const*);
 void yyerror(char*);
 int yylex();
     
@@ -162,6 +163,9 @@ statement:
 basic_statement:
     assignable assignOp expression SEMI_COLON
     | memOp assignable SEMI_COLON
+    /* Errors */
+    | assignable assignOp expression error          {unexpected_token_error(";", "Semi-colon follows a statement"); yyerrok;}
+    | memOp assignable error                        {unexpected_token_error(";", "Semi-colon follows a statement"); yyerrok;}
     ;
 
 if_statement:
@@ -290,6 +294,10 @@ binaryOperator:
     ;
 
 %%
+
+void unexpected_token_error(char const* expected, char const* reason) {
+    printf("ERROR: Expected '%s', (%s)\n", expected, reason);
+}
 
 void yyerror (char *s) {
    printf ("%s\n", s);
