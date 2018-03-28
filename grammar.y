@@ -104,6 +104,15 @@ pblock:
 
 parameter_list:
     /* Empty String */
+    | non_empty_parameter_list
+    ;
+
+non_empty_parameter_list:
+    parameter_declaration
+    ;
+
+parameter_declaration:
+    type_specifier COLON identifier
     ;
 
 sblock:

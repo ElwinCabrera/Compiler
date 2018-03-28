@@ -6,6 +6,8 @@ type function1 : () -> string
 type x : 1 -> string 
 type function2 : () -> x
 
+(* A function that takes one int and returns a 1d array of string *)
+type function2 : (int : i) -> x
 
 (* Empty S Block *)
 {
