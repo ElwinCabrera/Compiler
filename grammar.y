@@ -94,7 +94,16 @@ definition_list:
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS
     | TYPE identifier COLON constant ARROW type_specifier
+    | TYPE identifier COLON pblock ARROW type_specifier
     | TYPE identifier COLON dblock
+    ;
+
+pblock:
+    L_PARENTHESIS parameter_list R_PARENTHESIS
+    ;
+
+parameter_list:
+    /* Empty String */
     ;
 
 sblock:

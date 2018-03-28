@@ -1,0 +1,13 @@
+(* A function that takes no args and returns a string *)
+type function1 : () -> string
+
+
+(* A function that takes no args and returns a 1d array of string *)
+type x : 1 -> string 
+type function2 : () -> x
+
+
+(* Empty S Block *)
+{
+
+}
