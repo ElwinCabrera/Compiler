@@ -91,7 +91,15 @@ definition_list:
     ;
 
 sblock:
-    L_BRACE R_BRACE
+    L_BRACE statement_list R_BRACE
+    | L_BRACE dblock statement_list R_BRACE
+    ;
+
+dblock:
+    L_BRACKET R_BRACKET
+    ;
+
+statement_list:
     ;
 
 %%
