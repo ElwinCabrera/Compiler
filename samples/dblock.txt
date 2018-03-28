@@ -4,5 +4,5 @@
 
     [ string : x , y ]
 
-    (* Empty Statement List *)
+    (* Empty Statement List Is A Syntax Error *)
 }

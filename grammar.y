@@ -117,16 +117,9 @@ parameter_declaration:
     type_specifier COLON identifier
     ;
 
-sblock:
-    L_BRACE dblock statement_list R_BRACE
-    | L_BRACE statement_list R_BRACE
-    ;
 
 dblock:
     L_BRACKET declaration_list R_BRACKET
-    ;
-
-statement_list:
     ;
 
 declaration_list:
@@ -144,6 +137,24 @@ identifier_list:
     | identifier assign_op constant
     | identifier COMMA identifier_list
     | identifier
+    ;
+
+sblock:
+    L_BRACE dblock statement_list R_BRACE
+    | L_BRACE statement_list R_BRACE
+    ;
+    
+statement_list:
+    statement statement_list;
+    | statement;
+
+statement:
+    sblock
+    | mem_op assignable SEMI_COLON
+    ;
+
+assignable:
+    identifier
     ;
 
 identifier:
@@ -166,6 +177,11 @@ constant:
     | C_STRING
     | C_TRUE
     | C_FALSE
+    ;
+
+mem_op:
+    RESERVE
+    | RELEASE
     ;
 
 assign_op:

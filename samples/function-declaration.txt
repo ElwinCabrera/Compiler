@@ -15,5 +15,5 @@ type function4 : (int : i, int: j) -> Boolean
 
 (* Empty S Block *)
 {
-
+    (* Empty Statement List Is A Syntax Error *)
 }

@@ -2,5 +2,5 @@
 
 (* Empty S Block *)
 {
-
+    (* Empty Statement List Is A Syntax Error *)
 }

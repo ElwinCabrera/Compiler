@@ -13,5 +13,5 @@ type record4 : [ record3 : x ; int : y := 0 ]
 
 (* Empty S Block *)
 {
-
+    (* Empty Statement List Is A Syntax Error *)
 }
