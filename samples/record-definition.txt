@@ -1,0 +1,17 @@
+
+(* A record with two ints*)
+type record1 : [ int : y, z ]
+
+(* A record with a real and an int *)
+type record2 : [ real: a; int : b ]
+
+(* A record with recursive type *)
+type record3 : [ record3 : x ; int : y ]
+
+(* A record with recursive type and initial value *)
+type record4 : [ record3 : x ; int : y := 0 ]
+
+(* Empty S Block *)
+{
+
+}
