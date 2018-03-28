@@ -3,28 +3,29 @@
 
 void yyerror(char*);
 int yylex();
-    
-%}
 
+%}
+/* Where the grammar starts */
 %start program
 
 
 %union {
     int id;
-    int integer; 
+    int integer;
     int boolean;
     double real;
     char character;
     char* string;
 }
 
-%token <id> ID;
-%token <integer> C_INTEGER;
-%token <real> C_REAL;
-%token <boolean> C_TRUE;
-%token <boolean> C_FALSE;
-%token <character> C_CHARACTER;
-%token <string> C_STRING;
+/* Define types of tokens */
+%type <character> ID; //
+%type <integer> C_INTEGER; //
+%type <real> C_REAL; //
+%type <boolean> C_TRUE; //
+%type <boolean> C_FALSE; //
+%type <character> C_CHARACTER; //
+%type <string> C_STRING; //
 
 %token T_INTEGER
 %token T_REAL
@@ -82,7 +83,7 @@ int yylex();
 
 %%
 
-program: 
+program:
     definition_list sblock
     ;
 
@@ -90,15 +91,15 @@ definition_list: /* Empty String */
     | definition definition_list
     ;
 
-definition:
-    TYPE identifier COLON dblock
-    | TYPE identifier COLON constant ARROW identifier
-    | TYPE identifier COLON constant ARROW identifier COLON L_PARENTHESIS constant R_PARENTHESIS
-    | TYPE identifier COLON pblock ARROW identifier
-    | FUNCTION identifier COLON identifier sblock
+definition: /* Only permitted at top level defines a new type or function*/
+    TYPE identifier COLON dblock /* record type*/
+    | TYPE identifier COLON constant ARROW identifier /* arraytype. first identifier is name of arraytype. constant is the array dimensions. the last identifier is name of element type */
+    | TYPE identifier COLON constant ARROW identifier COLON L_PARENTHESIS constant R_PARENTHESIS /* arraytype. first identifier is name of arraytype. constant is the array dimensions. the last identifier is name of element type. optional constant  for initialization of array */
+    | TYPE identifier COLON pblock ARROW identifier /* function type*/
+    | FUNCTION identifier COLON identifier sblock /* function definition. identifier1 is function name, identifier 2 is function type*/
     ;
 
-sblock: 
+sblock: /* sblock allows local decelerations in optional dblock*/
     L_BRACE dblock statement_list R_BRACE
     | L_BRACE statement_list R_BRACE
     ;
@@ -108,12 +109,12 @@ dblock:
     ;
 
 declaration_list:
-    declaration SEMI_COLON declaration_list 
-    | declaration 
+    declaration SEMI_COLON declaration_list
+    | declaration
     ;
 
 declaration:
-    identifier COLON identifier_list
+    identifier COLON identifier_list /*LHS is type, RHS is list of variable names*/
     ;
 
 identifier_list:
@@ -124,7 +125,7 @@ identifier_list:
     ;
 
 identifier:
-    ID 
+    ID
     | type_specifier
     ;
 
@@ -168,7 +169,7 @@ if_statement:
     IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
     ;
 
-for_statement: 
+for_statement:
     FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
     ;
 
@@ -203,7 +204,7 @@ expression_with_precedence:
     expression_unary;
 
 simple_expression:
-    constant 
+    constant
     | assignable
     ;
 
