@@ -1,0 +1,19 @@
+(* x is a 1 dimensional array of string *)
+type x : 1 -> string 
+
+(* x is a 5 dimensional array of int *)
+type y : 5 -> int
+
+(* z is a 2 dimensional array of x *)
+type z : 2 -> x
+
+(* a is a 1 dimensional array of string with default value "Hello World" *)
+type a : 1 -> string : ("Hello World")
+
+(* b is a 1 dimensional array of Boolean with default value false *)
+type a : 1 -> Boolean : (false)
+
+(* Empty S Block *)
+{
+
+}

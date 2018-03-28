@@ -92,12 +92,14 @@ definition_list:
     ;
 
 definition:
-    TYPE identifier COLON dblock
+    TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS
+    | TYPE identifier COLON constant ARROW type_specifier
+    | TYPE identifier COLON dblock
     ;
 
 sblock:
-    L_BRACE statement_list R_BRACE
-    | L_BRACE dblock statement_list R_BRACE
+    L_BRACE dblock statement_list R_BRACE
+    | L_BRACE statement_list R_BRACE
     ;
 
 dblock:
