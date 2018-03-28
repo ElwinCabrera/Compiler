@@ -1,0 +1,24 @@
+{
+    [ int : x, y ]
+
+    (*
+        We are mostly looking at what happens after the
+        assign op here. That is the "expression" reduction
+    
+
+     *)
+
+    (* An expression can be a constant *)
+    x := 7;
+
+    (* An expression can be any assignable *)
+    x := y;
+
+    (* An expression can be parenthesized *)
+    x := (y);
+
+    (* The parentheses can be nested *)
+    x := ((y));
+
+
+}

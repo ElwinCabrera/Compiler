@@ -150,6 +150,7 @@ statement_list:
 
 statement:
     sblock
+    | assignable assign_op expression SEMI_COLON
     | mem_op assignable SEMI_COLON
     ;
 
@@ -173,7 +174,8 @@ non_empty_argument_list:
 
 expression:
     constant
-    | assignable;
+    | assignable
+    | L_PARENTHESIS expression R_PARENTHESIS;
 
 identifier:
     ID
