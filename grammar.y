@@ -88,7 +88,7 @@ program:
 
 definition_list: 
     /* Empty String */
-    | definition
+    | definition definition_list
     ;
 
 definition:
