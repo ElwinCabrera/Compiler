@@ -88,10 +88,11 @@ program:
 
 definition_list: 
     /* Empty String */
+    | definition
     ;
 
 definition:
-    TYPE
+
     ;
 
 sblock:
@@ -111,20 +112,20 @@ declaration_list:
     | declaration;
 
 declaration:
-    identifier COLON identifier_list;
+    type_specifier COLON identifier_list;
 
-identifier:
-    type_specifier
-    ;
 
 identifier_list:
-    ID ASSIGN_OP CONSTANT COMMA identifier_list;
-    | ID ASSIGN_OP CONSTANT;
-    | ID COMMA identifier_list
+    identifier assign_op constant COMMA identifier;
+    | identifier assign_op constant;
+    | identifier COMMA identifier_list
     | ID
 
+identifier:
+    ID;
+
 type_specifier:
-    | ID
+    | identifier
     | T_BOOLEAN
     | T_CHARACTER
     | T_INTEGER
@@ -132,7 +133,7 @@ type_specifier:
     | T_STRING
     ;
 
-CONSTANT:
+constant:
     C_INTEGER
     | C_REAL
     | C_CHARACTER
@@ -141,7 +142,7 @@ CONSTANT:
     | C_FALSE
     ;
 
-ASSIGN_OP:
+assign_op:
     ASSIGN;
 
 %%
