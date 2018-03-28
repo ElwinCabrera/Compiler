@@ -168,7 +168,8 @@ argument_list:
     | non_empty_argument_list;
 
 non_empty_argument_list:
-    expression;
+    expression COMMA non_empty_argument_list
+    | expression;
 
 expression:
     constant

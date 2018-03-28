@@ -19,5 +19,6 @@
 
     reserve x(true);
     reserve x(y);
+    reserve x(y, 7, x);
 
 }
