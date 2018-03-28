@@ -155,6 +155,7 @@ statement:
 
 assignable:
     identifier
+    | assignable rec_op identifier
     ;
 
 identifier:
@@ -182,6 +183,10 @@ constant:
 mem_op:
     RESERVE
     | RELEASE
+    ;
+
+rec_op:
+    DOT
     ;
 
 assign_op:

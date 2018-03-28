@@ -1,5 +1,7 @@
 
 {
     reserve x;
+    reserve x.ThisIsARecordAccess;
+    release x.ThisIsARecordAccess;
     release x;
 }
