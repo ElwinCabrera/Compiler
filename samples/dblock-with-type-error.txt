@@ -1,0 +1,8 @@
+(* Empty Definition List *)
+
+{
+    (* 'string' is a type but used as a variable *)
+    [ string : x , y, string ]
+
+    (* Empty Statement List *)
+}

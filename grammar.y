@@ -96,10 +96,33 @@ sblock:
     ;
 
 dblock:
-    L_BRACKET R_BRACKET
+    L_BRACKET declaration_list R_BRACKET
     ;
 
 statement_list:
+    ;
+
+declaration_list:
+    declaration;
+
+declaration:
+    identifier COLON identifier_list;
+
+identifier:
+    ID 
+    | type_specifier
+    ;
+
+identifier_list:
+    identifier COMMA identifier_list
+    | identifier;
+
+type_specifier:
+    T_BOOLEAN
+    | T_CHARACTER
+    | T_INTEGER
+    | T_REAL
+    | T_STRING
     ;
 
 %%

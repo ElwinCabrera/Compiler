@@ -1,0 +1,8 @@
+(* Empty Definition List *)
+
+{
+
+    [ string : x , y ]
+
+    (* Empty Statement List *)
+}
