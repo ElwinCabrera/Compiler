@@ -90,6 +90,10 @@ definition_list:
     /* Empty String */
     ;
 
+definition:
+    TYPE
+    ;
+
 sblock:
     L_BRACE statement_list R_BRACE
     | L_BRACE dblock statement_list R_BRACE
@@ -110,18 +114,18 @@ declaration:
     identifier COLON identifier_list;
 
 identifier:
-    ID 
-    | type_specifier
+    type_specifier
     ;
 
 identifier_list:
-    identifier ASSIGN_OP CONSTANT COMMA identifier_list;
-    | identifier ASSIGN_OP CONSTANT;
-    | identifier COMMA identifier_list
-    | identifier
+    ID ASSIGN_OP CONSTANT COMMA identifier_list;
+    | ID ASSIGN_OP CONSTANT;
+    | ID COMMA identifier_list
+    | ID
 
 type_specifier:
-    T_BOOLEAN
+    | ID
+    | T_BOOLEAN
     | T_CHARACTER
     | T_INTEGER
     | T_REAL
