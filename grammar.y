@@ -164,7 +164,15 @@ ablock:
     ;
 
 argument_list:
-    ;
+    /* Empty String */
+    | non_empty_argument_list;
+
+non_empty_argument_list:
+    expression;
+
+expression:
+    constant
+    | assignable;
 
 identifier:
     ID
