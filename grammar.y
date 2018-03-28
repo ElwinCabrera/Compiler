@@ -103,7 +103,8 @@ statement_list:
     ;
 
 declaration_list:
-    declaration;
+    declaration SEMI_COLON declaration_list
+    | declaration;
 
 declaration:
     identifier COLON identifier_list;

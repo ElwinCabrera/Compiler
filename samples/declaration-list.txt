@@ -1,0 +1,15 @@
+(* Empty Definition List *)
+
+{
+
+    [ 
+        (* A semi colon separates declaration entries*)
+        string : x , y , z := "lol" ; 
+        real : myReal, mySecondReal := 4.6;
+        int : myInt, mySecondInt := 2
+        (* But there is no semi-colon at the end *)
+
+    ]
+
+    (* Empty Statement List *)
+}
