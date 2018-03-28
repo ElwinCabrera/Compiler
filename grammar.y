@@ -108,7 +108,8 @@ parameter_list:
     ;
 
 non_empty_parameter_list:
-    parameter_declaration
+    parameter_declaration COMMA non_empty_parameter_list
+    | parameter_declaration
     ;
 
 parameter_declaration:

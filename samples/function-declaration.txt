@@ -7,7 +7,11 @@ type x : 1 -> string
 type function2 : () -> x
 
 (* A function that takes one int and returns a 1d array of string *)
-type function2 : (int : i) -> x
+type function3 : (int : i) -> x
+
+(* A function that takes two ints and returns a Boolean *)
+type function4 : (int : i, int: j) -> Boolean
+
 
 (* Empty S Block *)
 {
