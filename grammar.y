@@ -175,6 +175,7 @@ non_empty_argument_list:
 expression:
     constant
     | assignable
+    | expression binary_operator expression
     | L_PARENTHESIS expression R_PARENTHESIS;
 
 identifier:
@@ -210,6 +211,18 @@ rec_op:
 
 assign_op:
     ASSIGN;
+
+binary_operator:
+    ADD
+    | SUB_OR_NEG
+    | MUL
+    | DIV
+    | REM
+    | AND
+    | OR
+    | LESS_THAN
+    | EQUAL_TO
+    ;
 
 %%
 

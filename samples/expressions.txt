@@ -4,8 +4,6 @@
     (*
         We are mostly looking at what happens after the
         assign op here. That is the "expression" reduction
-    
-
      *)
 
     (* An expression can be a constant *)
@@ -19,6 +17,24 @@
 
     (* The parentheses can be nested *)
     x := ((y));
+
+    (* All binary operations on expressions are expressions *)
+    x := 7 + 7;
+    x := 7 - 7;
+    x := 7 * 7;
+    x := 7 / 7;
+    x := 7 % 7;
+    x := 7 & 7;
+    x := 7 | 7;
+    x := 7 < 7;
+    x := 7 = 7;
+
+    (* Even when they are parenthesized *)
+    x := (7 = (7));
+    x := ((7 + 7) = (7 + (7 + 7)));
+
+    (* Or laid out in sequence *)
+    x := 7 = 7 = 7 = 7;
 
 
 }
