@@ -92,7 +92,7 @@ definition_list:
     ;
 
 definition:
-
+    TYPE identifier COLON dblock
     ;
 
 sblock:
@@ -109,20 +109,24 @@ statement_list:
 
 declaration_list:
     declaration SEMI_COLON declaration_list
-    | declaration;
+    | declaration
+    ;
 
 declaration:
-    type_specifier COLON identifier_list;
+    type_specifier COLON identifier_list
+    ;
 
 
 identifier_list:
-    identifier assign_op constant COMMA identifier;
-    | identifier assign_op constant;
+    | identifier assign_op constant COMMA identifier_list
+    | identifier assign_op constant
     | identifier COMMA identifier_list
-    | ID
+    | identifier
+    ;
 
 identifier:
-    ID;
+    ID
+    ;
 
 type_specifier:
     | identifier
