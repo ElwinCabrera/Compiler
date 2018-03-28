@@ -1,0 +1,22 @@
+
+{
+    (* 
+        The 'reserve <assignable>;' pattern here is just used 
+        as the easiest way to reach an "assignable" reduction for testing. 
+        It may or may not represent meaningful program flow. However, the 
+        grammar is valid.
+    *)
+
+    (* The simplest assignable is an identifier, eg x *)
+    reserve x;
+
+    (* 
+        A function call is "assignable" but it CANNOT be assigned to 
+        This is assignable because the syntax represents array access as well
+    *)
+
+    reserve x();
+
+    reserve x(1);
+
+}

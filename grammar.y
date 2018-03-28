@@ -156,6 +156,14 @@ statement:
 assignable:
     identifier
     | assignable rec_op identifier
+    | assignable ablock
+    ;
+
+ablock:
+    L_PARENTHESIS argument_list R_PARENTHESIS
+    ;
+
+argument_list:
     ;
 
 identifier:
