@@ -114,8 +114,10 @@ identifier:
     ;
 
 identifier_list:
-    identifier COMMA identifier_list
-    | identifier;
+    identifier ASSIGN_OP CONSTANT COMMA identifier_list;
+    | identifier ASSIGN_OP CONSTANT;
+    | identifier COMMA identifier_list
+    | identifier
 
 type_specifier:
     T_BOOLEAN
@@ -124,6 +126,18 @@ type_specifier:
     | T_REAL
     | T_STRING
     ;
+
+CONSTANT:
+    C_INTEGER
+    | C_REAL
+    | C_CHARACTER
+    | C_STRING
+    | C_TRUE
+    | C_FALSE
+    ;
+
+ASSIGN_OP:
+    ASSIGN;
 
 %%
 

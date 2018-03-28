@@ -1,0 +1,8 @@
+(* Empty Definition List *)
+
+{
+
+    [ string : x , y := true , z , x := "lol" ]
+
+    (* Empty Statement List *)
+}
