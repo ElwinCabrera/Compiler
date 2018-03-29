@@ -46,6 +46,14 @@ void initialize_types();
 int try_add_symbol(SYMTYPE*, char*, int, char*);
 SYMTAB* try_find_symbol(char*);
 
+/*
+    Expressions
+*/
+
+EXPR* try_expression(void*);
+EXPR* try_binary_expression(void*, char*, void*);
+EXPR* try_post_unary_expression(void*, char*);
+EXPR* try_pre_unary_expression(char*, void*);
 
 struct Node {
   int id;
@@ -69,6 +77,7 @@ struct Node {
     struct scope* scope;
     struct symtab* symbol;
     struct expr* expression;
+    struct Node* node;
 }
 
 %token <string> ID;
@@ -84,6 +93,7 @@ struct Node {
 %type <scope> open_scope close_scope;
 %type <symbol> assignable;
 %type <expression> expression;
+%type <node> constant;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -351,13 +361,13 @@ non_empty_argument_list:
 
 expression:
     expression binary_operator expression {
-        try_binary_expression($1, $2, $3);
+        $$ = try_binary_expression($1, $2, $3);
     }
     | expression post_unary_operator {
-        try_post_unary_expression($1, $2);
+        $$ = try_post_unary_expression($1, $2);
     }
     | pre_unary_operator expression %prec pre_unary_prec {
-        try_pre_unary_expression($1, $2);
+        $$ = try_pre_unary_expression($1, $2);
     }
     | L_PARENTHESIS expression R_PARENTHESIS {
         $$ = $2;
@@ -385,13 +395,12 @@ type_specifier:
     ;
 
 constant:
-    C_INTEGER
-    | C_REAL
-    | C_CHARACTER
-    | C_STRING
-    | C_TRUE
-    | C_FALSE
-    ;
+    C_INTEGER             { $$ = NULL; }
+    | C_REAL              { $$ = NULL; }
+    | C_CHARACTER         { $$ = NULL; }
+    | C_STRING            { $$ = NULL; }
+    | C_TRUE              { $$ = NULL; }
+    | C_FALSE             { $$ = NULL; }
 
 mem_op:
     RESERVE
@@ -542,6 +551,27 @@ SYMTAB* try_find_symbol(char* name) {
     return find_in_scope(symbols, name);
 }
 
+
+EXPR* try_expression(void* n) {
+    return NULL;
+}
+
+EXPR* try_binary_expression(void* lhs, char* op, void* rhs) {
+    return NULL;
+}
+
+EXPR* try_post_unary_expression(void* lhs, char* op) {
+    return NULL;
+}
+
+EXPR* try_pre_unary_expression(char* op, void* rhs) {
+    return NULL;
+}
+
+
+/*
+    Error Handling
+*/
 void type_as_var_error(char* name) {
     const char format[] = "LINE %d:%d - ERROR: %s, a type, is used here as a variable\n";
     
