@@ -5,12 +5,10 @@
 extern char* yytext;
 void yyerror(char*);
 int yylex();
-int symbol_id = 0;
 
 %}
 
 %start program
-
 
 %union {
     int integer; 
@@ -91,15 +89,17 @@ int symbol_id = 0;
 %%
 
 open_scope:
-    { SYMBOL_TABLE = new_scope(SYMBOL_TABLE); }
+    { symbols = new_scope(symbols); }
     ;
 
 close_scope:
-    { SYMBOL_TABLE = exit_scope(SYMBOL_TABLE); }
+    { symbols = exit_scope(symbols); }
     ;
 
 add_symbol_inline: 
-    { add_entry(SYMBOL_TABLE, NULL, yytext, NULL); }
+    { 
+        add_entry(symbols, NULL, yytext, NULL); 
+    }
     ;
 
 program: 
@@ -113,19 +113,19 @@ definition_list:
 
 definition:
     TYPE identifier add_symbol_inline COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
-        printf("TYPE:: %s\n", $2);
+
     }
     | TYPE identifier add_symbol_inline COLON constant ARROW type_specifier {
-        printf("TYPE:: %s\n", $2);
+
     }
     | TYPE identifier add_symbol_inline COLON pblock ARROW type_specifier {
-        printf("TYPE:: %s\n", $2);
+
     }
     | FUNCTION identifier COLON type_specifier sblock {
-        printf("TYPE:: %s\n", $2);
+
     }
     | TYPE identifier add_symbol_inline COLON dblock  {
-        printf("TYPE:: %s\n", $2);
+
     }
     ;
 
