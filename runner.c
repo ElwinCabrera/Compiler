@@ -8,7 +8,11 @@ FILE *inputFile;
 int main(int argc, char* argv[])
 {
    //printf("yyparse exit code: %d\n", yyparse());
-   SYMTAB *table = malloc(sizeof(SYMTAB));
+   
+   //test
+   //TYPE t;
+   //SYMTAB *table = malloc(sizeof(SYMTAB));
+   //table = add_entry(table, t=T_INTEGER, "someName", "extraStuff");
    
  if (argc == 1){
      printf("No program to compile\n");
