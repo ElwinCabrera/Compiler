@@ -1,8 +1,18 @@
 %{
 #include <stdio.h>
+#include "symbolTable.h"
 
 void yyerror(char*);
 int yylex();
+
+struct Node {
+  int id;
+  int integer;
+  int boolean;
+  double real;
+  char character;
+  char* string;
+};
     
 %}
 
@@ -16,7 +26,12 @@ int yylex();
     double real;
     char character;
     char* string;
+    struct Node n;
 }
+
+%type <n> constant
+%type <n> type_specifier
+%type <string> identifier
 
 %token <id> ID;
 %token <integer> C_INTEGER;
@@ -214,14 +229,13 @@ type_specifier:
     ;
 
 constant:
-    C_INTEGER
-    | C_REAL
-    | C_CHARACTER
-    | C_STRING
-    | C_TRUE
-    | C_FALSE
+    C_INTEGER             {$$.integer=$1; printf("%d", $1);}
+    | C_REAL              {$$.real=$1; printf("%f", $1);}
+    | C_CHARACTER         {$$.character=$1; printf("%c", $1);}
+    | C_STRING            {$$.string=$1; printf("%s", $1);}
+    | C_TRUE              {$$.boolean=$1; printf("%d", $1);}
+    | C_FALSE             {$$.boolean=$1; printf("%d", $1);}
     ;
-
 mem_op:
     RESERVE
     | RELEASE
