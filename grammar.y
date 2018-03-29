@@ -154,8 +154,9 @@ statement_list:
 
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
-    | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
+    | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
+    | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | assignable assign_op expression SEMI_COLON
     | mem_op assignable SEMI_COLON
     | sblock

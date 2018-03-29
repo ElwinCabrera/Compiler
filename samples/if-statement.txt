@@ -1,0 +1,28 @@
+
+{
+    if (x) then
+    {
+        x := false;
+    }
+    else
+    {
+        x := true;
+    }
+
+    (* 
+        Robustness check:
+
+        Since in a for statement for(X, Y, Z), X and Z are statements,
+        and an if statement is a statement, we can throw an arbitrary if
+        statement in the place of X and Z even though it looks awful
+        
+    *)
+
+    for (
+        if (x) then { x := false; } else { x := true; } ;
+        true ;
+        if (x) then { x := false; } else { x := true; } 
+     ) {
+         y := false;
+     }
+}
