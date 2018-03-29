@@ -3,27 +3,29 @@
 
 extern int yyparse();
 extern void yyset_in(FILE *);
+extern SCOPE* symbols;
 
 FILE *inputFile;
+
 int main(int argc, char* argv[])
 {
-   //printf("yyparse exit code: %d\n", yyparse());
+    // "symbols" global var is defined in symbolTable.h
+    // It mainins the pointer to the current symbol table entry
+    // for use by yacc/bison
+
+    symbols = new_scope(NULL);
    
-   //test
-   //TYPE t;
-   //SYMTAB *table = malloc(sizeof(SYMTAB));
-   //table = add_entry(table, t=T_INTEGER, "someName", "extraStuff");
-   
- if (argc == 1){
-     printf("No program to compile\n");
-     return 1;
- }
- else{
-     const char* program = argv[1];
-     inputFile = fopen(program, "r");
-     yyset_in(inputFile);
-     yyparse();
-     return 0;
- }
-   return 0;
+    if (argc == 1) {
+        printf("No program to compile\n");
+        return 1;
+    }
+    else {
+        const char* program = argv[1];
+        inputFile = fopen(program, "r");
+        yyset_in(inputFile);
+        printf("yyparse exit code: %d\n", yyparse());
+        return 0;
+    }
+
+    return 0;
 }
