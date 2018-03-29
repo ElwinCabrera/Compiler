@@ -3,9 +3,9 @@
 #include <string.h>
 #include "symbolTable.h"
 
-struct scope * new_scope(struct scope * parent)
+SCOPE *new_scope(SCOPE *parent)
 {
-  struct scope * new = malloc(sizeof(struct scope));
+  SCOPE *new = malloc(sizeof(struct scope));
 
   new->children = NULL;
   new->parent = parent;
@@ -20,7 +20,7 @@ struct scope * new_scope(struct scope * parent)
   return new;
 }
 
-struct scope * exit_scope(struct scope * current) 
+SCOPE *exit_scope(SCOPE *current) 
 {
   if(!current) {
     return NULL;
@@ -34,7 +34,7 @@ struct scope * exit_scope(struct scope * current)
     something exists in a scope, we have to check the symbol table of
     every parent if it doesn't exist in the current scope.
 */
-struct symtab * find_in_scope(struct scope * s, char* target) {
+struct symtab * find_in_scope(SCOPE *s, char* target) {
 
   if(s == NULL) {
     return NULL;
@@ -52,7 +52,7 @@ struct symtab * find_in_scope(struct scope * s, char* target) {
 /*
   Searches down a symbol table from a parent node
 */
-struct symtab * find_in_children(struct scope * s, char* target)
+struct symtab * find_in_children(SCOPE *s, char* target)
 {
 
   if(s == NULL) {
@@ -85,7 +85,7 @@ struct symtab *last_entry(struct symtab *start)
   return p;
 }
 
-struct symtab * add_entry(struct scope *start, int type, char* name, char *extra)
+struct symtab * add_entry(SCOPE *start, int type, char* name, char *extra)
 {
   struct symtab *insertNew  = malloc(sizeof(struct symtab));
 
