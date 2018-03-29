@@ -1,0 +1,36 @@
+
+{
+    for ( x := 0; ; true ; x := y;) 
+    {
+        x := 7;
+    }
+
+    while ( true )
+    {
+        x := false;
+    }
+
+    (* Single case *)
+    switch(x)
+        case 1: {
+            y := 1;
+        }
+        otherwise: {
+            y := 0;
+        }
+
+    (* Many cases *)
+    switch(x)
+        case 1: {
+            y := 1;
+        }
+        case 2: {
+            y := 2;
+        }
+        case 3: {
+            y := 3;
+        }
+        otherwise: {
+            y := 0;
+        }
+}

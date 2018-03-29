@@ -26,6 +26,10 @@ int yylex();
 %token <character> C_CHARACTER;
 %token <string> C_STRING;
 
+%right pre_unary_prec
+%left binary_prec
+%left post_unary_prec
+
 %token T_INTEGER
 %token T_REAL
 %token T_BOOLEAN
@@ -149,9 +153,21 @@ statement_list:
     | statement;
 
 statement:
-    sblock
+    FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
+    | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
+    | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     | assignable assign_op expression SEMI_COLON
     | mem_op assignable SEMI_COLON
+    | sblock
+    ;
+
+case_list:
+    case case_list
+    | case
+    ;
+
+case:
+    CASE constant COLON sblock
     ;
 
 assignable:
@@ -170,13 +186,14 @@ argument_list:
 
 non_empty_argument_list:
     expression COMMA non_empty_argument_list
-    | expression;
+    | expression
+    ;
 
 expression:
     constant
     | assignable
-    | expression binary_operator expression
-    | L_PARENTHESIS expression R_PARENTHESIS;
+    | L_PARENTHESIS expression R_PARENTHESIS
+    ;
 
 identifier:
     ID
@@ -211,6 +228,17 @@ rec_op:
 
 assign_op:
     ASSIGN;
+
+post_unary_operator:
+    IS_NULL
+    ;
+
+pre_unary_operator:
+    SUB_OR_NEG
+    | NOT
+    | INT2REAL
+    | REAL2INT
+    ;
 
 binary_operator:
     ADD
