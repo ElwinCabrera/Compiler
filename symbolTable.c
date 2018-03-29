@@ -42,7 +42,7 @@ struct symtab * find_in_scope(struct scope * s, char* target) {
 
   struct symtab * sym = find_entry(s->symbols, target);
 
-  if(sym == NULL && s->parent != NULL) {
+  if(sym == NULL) {
     sym = find_in_scope(s->parent, target);
   }
 
@@ -54,7 +54,6 @@ struct symtab * find_in_scope(struct scope * s, char* target) {
 */
 struct symtab * find_in_children(struct scope * s, char* target)
 {
-
   if(s == NULL) {
     return NULL;
   }
@@ -85,21 +84,27 @@ struct symtab *last_entry(struct symtab *start)
   return p;
 }
 
-struct symtab * add_entry(struct scope *start, int type, char* name, char *extra)
+struct symtab * add_entry(struct scope *start, char* type, char* name, char *extra)
 {
+  if(!name) { return NULL; }
+  
   struct symtab *insertNew  = malloc(sizeof(struct symtab));
-
+  printf("Adding to symbol table: %s\n", name);
+  
+  
   insertNew->id = 1;
-  insertNew->type = type;
-  insertNew->extra = extra;
-  insertNew->name = name;
+
+  if(type) { insertNew->type = strdup(type); }
+  if(extra) { insertNew->extra = strdup(extra); }
+  
+  insertNew->name = strdup(name);
   insertNew->next = start->symbols;
 
   start->symbols = insertNew;
   return insertNew;
 }
 
-struct symtab *find_entry(struct symtab *start, char* name)
+struct symtab * find_entry(struct symtab *start, char* name)
 {
   //if the first node will never have any data then I need to skip the first node
   struct symtab *p = start;

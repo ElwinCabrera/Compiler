@@ -32,12 +32,12 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Primitive Values */
 
-{INTEGER}                   return handle_token(C_INTEGER);
-{REAL}                      return handle_token(C_REAL);
-{CHAR}                      return handle_token(C_CHARACTER);
-{STRING}                    return handle_token(C_STRING);
-"true"                      return handle_token(C_TRUE);
-"false"                     return handle_token(C_FALSE);
+{INTEGER}                   yylval.integer = atoi(yytext); return handle_token(C_INTEGER);
+{REAL}                      yylval.real = atof(yytext); return handle_token(C_REAL);
+{CHAR}                      yylval.character = yytext[0]; return handle_token(C_CHARACTER);
+{STRING}                    yylval.string = strdup(yytext); return handle_token(C_STRING);
+"true"                      yylval.boolean = 1; return handle_token(C_TRUE);
+"false"                     yylval.boolean = 0; return handle_token(C_FALSE);
 
 
     /* Comments */
@@ -106,7 +106,7 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* ID */
 
-{ID}                        return handle_token(ID);
+{ID}                        yylval.string = strdup(yytext); return handle_token(ID);
 
     /* Whitespace and anything else*/
 

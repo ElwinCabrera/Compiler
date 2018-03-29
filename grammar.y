@@ -1,16 +1,18 @@
 %{
 #include <stdio.h>
+#include "symbolTable.h"
 
+extern char* yytext;
 void yyerror(char*);
 int yylex();
-    
+int symbol_id = 0;
+
 %}
 
 %start program
 
 
 %union {
-    int id;
     int integer; 
     int boolean;
     double real;
@@ -18,13 +20,15 @@ int yylex();
     char* string;
 }
 
-%token <id> ID;
+%token <string> ID;
 %token <integer> C_INTEGER;
 %token <real> C_REAL;
 %token <boolean> C_TRUE;
 %token <boolean> C_FALSE;
 %token <character> C_CHARACTER;
 %token <string> C_STRING;
+
+%type <string> identifier;
 
 %left '+' '-'
 %left '*' '/' '%'
@@ -86,6 +90,18 @@ int yylex();
 
 %%
 
+open_scope:
+    { SYMBOL_TABLE = new_scope(SYMBOL_TABLE); }
+    ;
+
+close_scope:
+    { SYMBOL_TABLE = exit_scope(SYMBOL_TABLE); }
+    ;
+
+add_symbol_inline: 
+    { add_entry(SYMBOL_TABLE, NULL, yytext, NULL); }
+    ;
+
 program: 
     definition_list sblock
     ;
@@ -96,15 +112,25 @@ definition_list:
     ;
 
 definition:
-    TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS
-    | TYPE identifier COLON constant ARROW type_specifier
-    | TYPE identifier COLON pblock ARROW type_specifier
-    | FUNCTION identifier COLON type_specifier sblock
-    | TYPE identifier COLON dblock
+    TYPE identifier add_symbol_inline COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
+        printf("TYPE:: %s\n", $2);
+    }
+    | TYPE identifier add_symbol_inline COLON constant ARROW type_specifier {
+        printf("TYPE:: %s\n", $2);
+    }
+    | TYPE identifier add_symbol_inline COLON pblock ARROW type_specifier {
+        printf("TYPE:: %s\n", $2);
+    }
+    | FUNCTION identifier COLON type_specifier sblock {
+        printf("TYPE:: %s\n", $2);
+    }
+    | TYPE identifier add_symbol_inline COLON dblock  {
+        printf("TYPE:: %s\n", $2);
+    }
     ;
 
 pblock:
-    L_PARENTHESIS parameter_list R_PARENTHESIS
+    L_PARENTHESIS open_scope parameter_list close_scope R_PARENTHESIS
     ;
 
 parameter_list:
@@ -120,7 +146,6 @@ non_empty_parameter_list:
 parameter_declaration:
     type_specifier COLON identifier
     ;
-
 
 dblock:
     L_BRACKET declaration_list R_BRACKET
@@ -144,8 +169,8 @@ identifier_list:
     ;
 
 sblock:
-    L_BRACE dblock statement_list R_BRACE
-    | L_BRACE statement_list R_BRACE
+    L_BRACE open_scope dblock statement_list close_scope R_BRACE
+    | L_BRACE open_scope statement_list close_scope R_BRACE
     ;
     
 statement_list:

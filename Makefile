@@ -38,7 +38,7 @@ syntax_analayzer: grammar.y
 	yacc -d -v grammar.y
 
 tests: $(TEST_SRC) $(TESTS)
-	$(CC) $(CFLAGS) -lm -L $(CUNIT_PATH_PREFIX)lib -I $(CUNIT_PATH_PREFIX)include/$(CUNIT_DIRECTORY) $^ -o tests -lcunit -lgcov 
+	$(CC) $(CFLAGS) -lm -L $(CUNIT_PATH_PREFIX)lib -I $(CUNIT_PATH_PREFIX)include/$(CUNIT_DIRECTORY) -g $^ -o tests -lcunit -lgcov 
 
 clean:
 	rm -f $(GEN) compiler tests
