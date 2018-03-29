@@ -3,6 +3,24 @@
 #include <string.h>
 #include "symbolTable.h"
 
+struct scope * new_scope(struct scope * parent)
+{
+  struct scope * new = malloc(sizeof(struct scope));
+
+  new->parent = parent;
+
+  return new;
+}
+
+struct scope * exit_scope(struct scope * current) 
+{
+  if(!current) {
+    return NULL;
+  }
+
+  return current->parent;
+}
+
 struct symtab *last_entry(struct symtab *start)
 {
    struct symtab *p;
@@ -13,26 +31,18 @@ struct symtab *last_entry(struct symtab *start)
    return p;
 }
 
-struct symtab * add_entry(struct symtab *start, int type, char* name, char *extra)
+void add_entry(struct scope *start, int type, char* name, char *extra)
 {
-   struct symtab *insertNew;
-   insertNew = last_entry(start);
-   int id=0;
-   if(insertNew == start) { //do i need this since the first node will not have any symbol table data?
-      insertNew = start;
-   }
-   else {
-      insertNew = malloc(sizeof(struct symtab));
-      id = last_entry(start)->id;
-      last_entry(start)->next = insertNew;
-   }
-   insertNew->id = id + 1;
+   struct symtab *insertNew  = malloc(sizeof(struct symtab));;
+
+   insertNew->id = 1;
    insertNew->extra = extra;
    insertNew->name = name;
    insertNew->type = type;
-   insertNew->next = NULL;
+   insertNew->next = start->symbols;
 
-   return insertNew;
+   start->symbols = insertNew;
+   
 }
 
 struct symtab *find_entry(struct symtab *start, char* name)
