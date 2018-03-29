@@ -22,6 +22,15 @@ typedef struct scope_list {
     struct scope_list * next;
 } SCOPE_LIST;
 
+enum types {
+   KEYWORD = 1,
+   T_INTEGER,
+   T_REAL,
+   T_BOOLEAN,
+   T_CHARACTER,
+   T_STRING
+} TYPE;
+
 SCOPE *new_scope(SCOPE *);
 SCOPE *exit_scope(SCOPE *);
 
