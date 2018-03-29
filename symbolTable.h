@@ -3,32 +3,32 @@
 
 #include <stddef.h>
 
-struct symtab {
+typedef struct symtab {
    int id;
    char *name;
    int type;
    char *extra;
    struct symtab *next;
-};
+} SYMTAB;
 
-struct scope {
+typedef struct scope {
     struct symtab * symbols;
     struct scope_list * children;
     struct scope * parent;
-};
+} SCOPE;
 
-struct scope_list {
+typedef struct scope_list {
     struct scope * node;
     struct scope_list * next;
-};
+} SCOPE_LIST;
 
-struct scope * new_scope(struct scope *);
-struct scope * exit_scope(struct scope *);
+SCOPE *new_scope(SCOPE *);
+SCOPE *exit_scope(SCOPE *);
 
-struct symtab * last_entry(struct symtab *);
-struct symtab * find_in_scope(struct scope *, char*);
-struct symtab * find_in_children(struct scope *, char*);
-struct symtab * find_entry(struct symtab *, char*);
-struct symtab * add_entry(struct scope *, int, char*, char*);
+SYMTAB *last_entry(SYMTAB *);
+SYMTAB *find_in_scope(SCOPE *, char*);
+SYMTAB *find_in_children(SCOPE *, char*);
+SYMTAB *find_entry(SYMTAB *, char*);
+SYMTAB *add_entry(SCOPE *, int, char*, char*);
 
 #endif
