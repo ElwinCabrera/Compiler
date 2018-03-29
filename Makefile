@@ -27,7 +27,7 @@ ifeq ($(OS), CYGWIN_NT-10.0)
 endif
 
 all: compiler_tools $(SRC)
-	gcc -o compiler $(SRC) $(GEN) -Wall
+	gcc -g -o compiler $(SRC) $(GEN) -Wall
 
 compiler_tools: syntax_analayzer lexical_analyzer
 
