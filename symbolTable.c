@@ -5,13 +5,13 @@
 
 SCOPE *new_scope(SCOPE *parent)
 {
-  SCOPE *new = malloc(sizeof(struct scope));
+  SCOPE *new = malloc(sizeof(SCOPE));
 
   new->children = NULL;
   new->parent = parent;
   
   if(parent != NULL) {
-    struct scope_list * child = malloc(sizeof(struct scope_list));
+    SCOPE_LIST *child = malloc(sizeof(SCOPE_LIST));
     child->node = new;
     child->next = parent->children;
     parent->children = child;
