@@ -34,13 +34,13 @@ SCOPE *exit_scope(SCOPE *current)
     something exists in a scope, we have to check the symbol table of
     every parent if it doesn't exist in the current scope.
 */
-struct symtab * find_in_scope(SCOPE *s, char* target) {
+SYMTAB *find_in_scope(SCOPE *s, char* target) {
 
   if(s == NULL) {
     return NULL;
   }
 
-  struct symtab * sym = find_entry(s->symbols, target);
+  SYMTAB *sym = find_entry(s->symbols, target);
 
   if(sym == NULL && s->parent != NULL) {
     sym = find_in_scope(s->parent, target);
@@ -52,17 +52,17 @@ struct symtab * find_in_scope(SCOPE *s, char* target) {
 /*
   Searches down a symbol table from a parent node
 */
-struct symtab * find_in_children(SCOPE *s, char* target)
+SYMTAB *find_in_children(SCOPE *s, char* target)
 {
 
   if(s == NULL) {
     return NULL;
   }
 
-  struct symtab * sym = find_entry(s->symbols, target);
+  SYMTAB *sym = find_entry(s->symbols, target);
 
   if(sym == NULL) {
-    struct scope_list * child = s->children;
+    SCOPE_LIST *child = s->children;
     while(child != NULL) {
       sym = find_in_children(child->node, target);
       if (sym != NULL) {
@@ -75,9 +75,9 @@ struct symtab * find_in_children(SCOPE *s, char* target)
   return sym;
 }
 
-struct symtab *last_entry(struct symtab *start)
+SYMTAB *last_entry(SYMTAB *start)
 {
-  struct symtab *p;
+  SYMTAB *p;
   p = start;
   while(p->next != NULL) {
     p = p->next;
@@ -85,9 +85,9 @@ struct symtab *last_entry(struct symtab *start)
   return p;
 }
 
-struct symtab * add_entry(SCOPE *start, int type, char* name, char *extra)
+SYMTAB *add_entry(SCOPE *start, int type, char* name, char *extra)
 {
-  struct symtab *insertNew  = malloc(sizeof(struct symtab));
+  SYMTAB *insertNew  = malloc(sizeof(SYMTAB));
 
   insertNew->id = 1;
   insertNew->type = type;
@@ -99,10 +99,10 @@ struct symtab * add_entry(SCOPE *start, int type, char* name, char *extra)
   return insertNew;
 }
 
-struct symtab *find_entry(struct symtab *start, char* name)
+SYMTAB *find_entry(SYMTAB *start, char* name)
 {
   //if the first node will never have any data then I need to skip the first node
-  struct symtab *p = start;
+  SYMTAB *p = start;
   while(p  != NULL) {
     if(strcmp(p->name, name) == 0) {
       return p; 
