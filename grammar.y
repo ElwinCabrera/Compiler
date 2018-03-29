@@ -88,19 +88,9 @@ int yylex();
 
 %%
 
-open_scope:
-    { symbols = new_scope(symbols); }
-    ;
-
-close_scope:
-    { symbols = exit_scope(symbols); }
-    ;
-
-add_symbol_inline: 
-    { 
-        add_entry(symbols, NULL, yytext, NULL); 
-    }
-    ;
+open_scope: { symbols = new_scope(symbols); } ;
+close_scope: { symbols = exit_scope(symbols); } ;
+add_symbol_inline: { add_entry(symbols, NULL, yytext, NULL); } ;
 
 program: 
     definition_list sblock
