@@ -1,24 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-struct symtab {
-   int id;
-   int scope;
-   char *name;
-   int type;
-   char *extra
-   struct symtab *next;
-};
-
-enum types {
-   KEYWORD = 1,
-   T_INTEGER,
-   T_REAL,
-   T_REAL,
-   T_BOOLEAN,
-   T_STRING
-};
+#include "symbolTable.h"
 
 struct symtab *last_entry(struct symtab *start)
 {
@@ -30,7 +13,7 @@ struct symtab *last_entry(struct symtab *start)
    return p;
 }
 
-void add_entry(char* name, int type, int scope, char *extra, struct symtab *start)
+struct symtab * add_entry(struct symtab *start, int type, char* name, char *extra)
 {
    struct symtab *insertNew;
    insertNew = last_entry(start);
@@ -44,14 +27,15 @@ void add_entry(char* name, int type, int scope, char *extra, struct symtab *star
       last_entry(start)->next = insertNew;
    }
    insertNew->id = id + 1;
-   insertNew->scope= scope
-   insertNew->extra=extra;
+   insertNew->extra = extra;
    insertNew->name = name;
    insertNew->type = type;
    insertNew->next = NULL;
+
+   return insertNew;
 }
 
-struct symtab *find_entry(char* name, struct symtab *start)
+struct symtab *find_entry(struct symtab *start, char* name)
 {
   //if the first node will never have any data then I need to skip the first node
    struct symtab *p;
@@ -63,4 +47,5 @@ struct symtab *find_entry(char* name, struct symtab *start)
       p = p->next;
    }
 
+  return NULL;
 }
