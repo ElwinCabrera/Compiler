@@ -18,7 +18,16 @@
     (* The parentheses can be nested *)
     x := ((y));
 
+    (* Unary operators applied to expression are expression 
+    x := -7;
+    x := y isNull;
+    x := (y isNull);
+    x := (((-7) isNull));
+
+    *)
+
     (* All binary operations on expressions are expressions *)
+
     x := 7 + 7;
     x := 7 - 7;
     x := 7 * 7;
@@ -27,14 +36,22 @@
     x := 7 & 7;
     x := 7 | 7;
     x := 7 < 7;
-    x := 7 = 7;
+    x := (7) = 7;
+    x := -(7) = 7;
+    x := (-x) = 7;
+    x := -(4 * 4);
 
     (* Even when they are parenthesized *)
+    
     x := (7 = (7));
-    x := ((7 + 7) = (7 + (7 + 7)));
+
 
     (* Or laid out in sequence *)
     x := 7 = 7 = 7 = 7;
+
+    x := y isNull = z isNull;
+    x := (y isNull = z isNull);
+    x := (!(y isNull) = ((!(z) isNull))) = true | false & true;
 
 
 }

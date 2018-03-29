@@ -26,9 +26,9 @@ int yylex();
 %token <character> C_CHARACTER;
 %token <string> C_STRING;
 
+%left '+' '-'
+%left '*' '/' '%'
 %right pre_unary_prec
-%left binary_prec
-%left post_unary_prec
 
 %token T_INTEGER
 %token T_REAL
@@ -191,10 +191,14 @@ non_empty_argument_list:
     ;
 
 expression:
-    constant
-    | assignable
+    expression binary_operator expression
+    | expression post_unary_operator
+    | pre_unary_operator expression %prec pre_unary_prec
     | L_PARENTHESIS expression R_PARENTHESIS
+    | constant
+    | assignable
     ;
+
 
 identifier:
     ID
