@@ -21,6 +21,22 @@ struct scope * exit_scope(struct scope * current)
   return current->parent;
 }
 
+/*
+    When we add to a scope, we're nesting inward. However, to check if
+    something exists in a scope, we have to check the symbol table of
+    every parent if it doesn't exist in the current scope.
+*/
+struct symtab * find_in_scope(struct scope * s, char* target) {
+
+  struct symtab * sym = find_entry(s->symbols, target);
+
+  if(sym == NULL && s->parent != NULL) {
+    sym = find_in_scope(s->parent, target);
+  }
+
+  return sym;
+}
+
 struct symtab *last_entry(struct symtab *start)
 {
    struct symtab *p;
@@ -42,7 +58,7 @@ void add_entry(struct scope *start, int type, char* name, char *extra)
    insertNew->next = start->symbols;
 
    start->symbols = insertNew;
-   
+
 }
 
 struct symtab *find_entry(struct symtab *start, char* name)
