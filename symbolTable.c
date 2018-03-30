@@ -17,7 +17,7 @@ SCOPE *new_scope(SCOPE *parent)
     child->next = parent->children;
     parent->children = child;
   }
-
+  //printf("New scope %p is a child of %p\n", new, parent);
   return new;
 }
 
@@ -26,7 +26,7 @@ SCOPE *exit_scope(SCOPE *current)
   if(!current) {
     return NULL;
   }
-
+  //printf("Leaving scope %p to %p\n", current, current->parent);
   return current->parent;
 }
 
@@ -98,6 +98,10 @@ SYMTAB *add_entry(SCOPE *start, char* type, char* name, char *extra)
   insertNew->next = start->symbols;
 
   start->symbols = insertNew;
+
+  // printf("Adding symbol to scope %p :", start);
+  // print_symbol(insertNew);
+
   return insertNew;
 }
 
