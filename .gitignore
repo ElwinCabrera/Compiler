@@ -1,0 +1,7 @@
+
+y.tab.h
+y.output
+y.tab.c
+*.exe
+lex.yy.c
+*.stackdump
