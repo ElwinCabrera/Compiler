@@ -155,7 +155,7 @@ int handle_token(int token)
     
     if(token > 0)
     {
-        printf("%d %s %d %d\n", token, yytext, row, column);
+        //printf("%d %s %d %d\n", token, yytext, row, column);
     }
 
     return token;

@@ -8,8 +8,9 @@ SCOPE *new_scope(SCOPE *parent)
   SCOPE *new = malloc(sizeof(SCOPE));
 
   new->children = NULL;
+  new->symbols = NULL;
   new->parent = parent;
-  
+
   if(parent != NULL) {
     SCOPE_LIST *child = malloc(sizeof(SCOPE_LIST));
     child->node = new;
@@ -112,4 +113,33 @@ SYMTAB *find_entry(SYMTAB *start, char* name)
   }
 
   return NULL;
+}
+
+void print_symbol_table(SCOPE * symbol_table) {
+  
+  if(!symbol_table) {
+    return;
+  }
+
+  SYMTAB * s = symbol_table->symbols;
+  
+  while(s) {
+    print_symbol(s);
+    s = s->next;
+  }
+  
+  SCOPE_LIST * children = symbol_table->children;
+
+  while(children) {
+    print_symbol_table(children->node);
+    children = children->next;
+  }
+}
+
+void print_symbol(SYMTAB * symbol) {
+  if(!symbol) {
+    return;
+  }
+
+  printf("%s : %d : %s : %s\n", symbol->name, 0, symbol->type, symbol->extra);
 }

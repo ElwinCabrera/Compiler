@@ -18,6 +18,8 @@ int yylex();
     char* string;
 }
 
+
+
 %token <string> ID;
 %token <integer> C_INTEGER;
 %token <real> C_REAL;
@@ -28,15 +30,19 @@ int yylex();
 
 %type <string> identifier;
 
+// Operator precedence conflicts, but the generated state machine
+// chooses the correct state, we just need to handle precedence
+%expect 20
+
 %left '+' '-'
 %left '*' '/' '%'
 %right pre_unary_prec
 
-%token T_INTEGER
-%token T_REAL
-%token T_BOOLEAN
-%token T_CHARACTER
-%token T_STRING
+%token <string> T_INTEGER
+%token <string> T_REAL
+%token <string> T_BOOLEAN
+%token <string> T_CHARACTER
+%token <string> T_STRING
 
 %token NULL_PTR
 %token RESERVE
@@ -90,7 +96,13 @@ int yylex();
 
 open_scope: { symbols = new_scope(symbols); } ;
 close_scope: { symbols = exit_scope(symbols); } ;
-add_symbol_inline: { add_entry(symbols, NULL, yytext, NULL); } ;
+
+/* 
+    We may need to know certain types exist even if they haven't been defined
+    yet. It may be useful to have a separate "type lookup" structure for fast
+    checking to see if they exist
+*/
+add_type_inline: { } ;
 
 program: 
     definition_list sblock
@@ -102,20 +114,20 @@ definition_list:
     ;
 
 definition:
-    TYPE identifier add_symbol_inline COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
-
+    TYPE identifier add_type_inline COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
+        add_entry(symbols, NULL, $2, NULL);
     }
-    | TYPE identifier add_symbol_inline COLON constant ARROW type_specifier {
-
+    | TYPE identifier add_type_inline COLON constant ARROW type_specifier {
+        add_entry(symbols, NULL, $2, NULL);
     }
-    | TYPE identifier add_symbol_inline COLON pblock ARROW type_specifier {
-
+    | TYPE identifier add_type_inline COLON pblock ARROW type_specifier {
+        add_entry(symbols, NULL, $2, NULL);
     }
-    | FUNCTION identifier COLON type_specifier sblock {
-
+    | FUNCTION identifier add_type_inline COLON type_specifier sblock {
+        add_entry(symbols, NULL, $2, NULL);
     }
-    | TYPE identifier add_symbol_inline COLON dblock  {
-
+    | TYPE identifier add_type_inline COLON open_scope dblock close_scope  {
+        add_entry(symbols, NULL, $2, NULL);
     }
     ;
 
@@ -134,7 +146,9 @@ non_empty_parameter_list:
     ;
 
 parameter_declaration:
-    type_specifier COLON identifier
+    type_specifier COLON identifier {
+        add_entry(symbols, NULL, $3, NULL);
+    }
     ;
 
 dblock:
@@ -152,10 +166,18 @@ declaration:
 
 
 identifier_list:
-    | identifier assign_op constant COMMA identifier_list
-    | identifier assign_op constant
-    | identifier COMMA identifier_list
-    | identifier
+    identifier assign_op constant COMMA identifier_list {
+        add_entry(symbols, NULL, $1, NULL);
+    }
+    | identifier assign_op constant {
+        add_entry(symbols, NULL, $1, NULL);
+    }
+    | identifier COMMA identifier_list {
+        add_entry(symbols, NULL, $1, NULL);
+    }
+    | identifier {
+        add_entry(symbols, NULL, $1, NULL);
+    }
     ;
 
 sblock:
