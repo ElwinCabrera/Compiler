@@ -115,13 +115,7 @@ SYMTAB *find_entry(SYMTAB *start, char* name)
   return NULL;
 }
 
-
 void print_symbol_table(SCOPE * symbol_table) {
-  
-
-}
-
-void print_symbol_table_impl(SCOPE * symbol_table) {
   if(!symbol_table) {
     return;
   }
