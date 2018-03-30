@@ -137,12 +137,12 @@ type_specifier:
     ;
 
 constant:
-    C_INTEGER
-    | C_REAL
-    | C_CHARACTER
-    | C_STRING
-    | C_TRUE
-    | C_FALSE
+    C_INTEGER       {$$ = $1}
+    | C_REAL        {$$ = $1}
+    | C_CHARACTER   {$$ = $1}
+    | C_STRING      {$$ = $1}
+    | C_TRUE        {$$ = $1}
+    | C_FALSE       {$$ = $1}
     ;
 
 statement_list:
@@ -190,9 +190,9 @@ case:
     ;
 
 assignable:
-    identifier
+    identifier                          {$$ =  $1}
     | assignable ablock
-    | assignable recOp identifier
+    | assignable recOp identifier       
     ;
 
 expression:
@@ -203,15 +203,15 @@ expression_with_precedence:
     expression_unary;
 
 simple_expression:
-    constant 
-    | assignable
+    constant        {$$ = $1}
+    | assignable    {$$ = $1}
     ;
 
 /* Parenthesis are highest precedence */
 
 expression_parenthetical:
-    L_PARENTHESIS simple_expression R_PARENTHESIS
-    | simple_expression
+    L_PARENTHESIS simple_expression R_PARENTHESIS       {$$ = $2}
+    | simple_expression                                 {$$ = $1}
     ;
 
 expression_binary:
