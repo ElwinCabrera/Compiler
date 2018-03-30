@@ -24,6 +24,8 @@ int main(int argc, char* argv[])
         inputFile = fopen(program, "r");
         yyset_in(inputFile);
         printf("yyparse exit code: %d\n", yyparse());
+
+        print_symbol_table(symbols);
         return 0;
     }
 

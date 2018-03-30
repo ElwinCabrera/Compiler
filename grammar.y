@@ -115,19 +115,19 @@ definition_list:
 
 definition:
     TYPE identifier add_type_inline COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
-        add_entry(symbols, NULL, $2, NULL);
+        add_entry(symbols, NULL, $2, "type");
     }
     | TYPE identifier add_type_inline COLON constant ARROW type_specifier {
-        add_entry(symbols, NULL, $2, NULL);
+        add_entry(symbols, NULL, $2, "type");
     }
     | TYPE identifier add_type_inline COLON pblock ARROW type_specifier {
-        add_entry(symbols, NULL, $2, NULL);
+        add_entry(symbols, NULL, $2, "type");
     }
     | FUNCTION identifier add_type_inline COLON type_specifier sblock {
-        add_entry(symbols, NULL, $2, NULL);
+        add_entry(symbols, NULL, $2, "function");
     }
     | TYPE identifier add_type_inline COLON open_scope dblock close_scope  {
-        add_entry(symbols, NULL, $2, NULL);
+        add_entry(symbols, NULL, $2, "type");
     }
     ;
 
@@ -147,7 +147,7 @@ non_empty_parameter_list:
 
 parameter_declaration:
     type_specifier COLON identifier {
-        add_entry(symbols, NULL, $3, NULL);
+        add_entry(symbols, NULL, $3, "parameter");
     }
     ;
 
@@ -167,16 +167,16 @@ declaration:
 
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
-        add_entry(symbols, NULL, $1, NULL);
+        add_entry(symbols, NULL, $1, "local");
     }
     | identifier assign_op constant {
-        add_entry(symbols, NULL, $1, NULL);
+        add_entry(symbols, NULL, $1, "local");
     }
     | identifier COMMA identifier_list {
-        add_entry(symbols, NULL, $1, NULL);
+        add_entry(symbols, NULL, $1, "local");
     }
     | identifier {
-        add_entry(symbols, NULL, $1, NULL);
+        add_entry(symbols, NULL, $1, "local");
     }
     ;
 
