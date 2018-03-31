@@ -20,12 +20,38 @@ int main(int argc, char* argv[])
         return 1;
     }
     else {
-        const char* program = argv[1];
+        const char* program;
+        bool asc = false;
+        bool st = false;
+        bool read_program = false;
+
+        for(int i = 1;i< argc;i++){
+            if(argv[i]=="-asc"){
+                asc = true;
+                //DO annotated source code
+            }
+            else if(argv[i]=="-st"){
+                st = true;
+                //Print symbol table
+            }
+            else{
+                program = argv[i]
+                read_program = true;
+            }
+        }
+        if(!read_program){
+            printf("No program to compile\n");
+            return 1;
+        }
+
         inputFile = fopen(program, "r");
         yyset_in(inputFile);
-        printf("yyparse exit code: %d\n", yyparse());
 
-        print_symbol_table(symbols);
+
+        printf("yyparse exit code: %d\n", yyparse());
+        if(st){//specify to print symbol table
+            print_symbol_table(symbols);
+        }
         return 0;
     }
 
