@@ -199,6 +199,7 @@ declaration:
         SYMTYPE* t = try_find_type($1);
         if(!t) {
             type_not_found_error($1);
+            yyerrok;
         }
         push_context(t);
     } COLON identifier_list {
@@ -440,8 +441,7 @@ SYMTYPE * try_find_type(char* name) {
 int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
     
     if(find_entry(symbols->symbols, name)) {
-        yyerror("Type redfinition:");
-        printf("%s already exists in this scope.\n", name);
+        // Symbol redefined in the same table
         return 0;
     }
     
@@ -452,12 +452,13 @@ int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
 
 
 void type_not_found_error(char* type) {
-    static const char format[] = "\nERROR: %s, used here as a type, has not been declared at this point in the program.\n";
+    static const char format[] = "ERROR: %s, used here as a type, has not been declared at this point in the program.\n";
 
     char dest[strlen(format) + strlen(type) + 1];
 
     sprintf(dest, format, type);
     errors = push_error(errors, dest);
+    yyerror("Type Not Found Error");
 }
 
 void yyerror (char *s) {

@@ -169,15 +169,14 @@ int update_location()
 */
 int handle_token(int token)
 {
+    //Printing to console for now, but this can just go to ASC.
+    printf("%s", yytext);
+
     // Returns 1 on new line
     if(update_location()) {
         display_errors();
     }
-    printf("%s", yytext);
-    if(token > 0)
-    {
-        //printf("%d %s %d %d\n", token, yytext, row, column);
-    }
+
 
     return token;
 }
