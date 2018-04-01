@@ -1,12 +1,15 @@
 %{
 #include <stdio.h>
+#include <string.h>
 #include "symbolTable.h"
 #include "types.h"
+#include "errors.h"
 
 extern char* yytext;
 void yyerror(char*);
 int yylex();
 
+void type_not_found_error(char*);
 void initialize_types();
 SCOPE* open_scope();
 SCOPE* close_scope();
@@ -146,7 +149,11 @@ definition:
     }
     | FUNCTION identifier COLON type_specifier sblock {
         SYMTYPE* type = try_find_type($4);
-        try_add_symbol(type, $2, "function");
+        if(!type) {
+            yyerrok;
+        } else {
+            try_add_symbol(type, $2, "function");
+        }
     }
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
@@ -190,6 +197,9 @@ declaration_list:
 declaration:
     type_specifier {
         SYMTYPE* t = try_find_type($1);
+        if(!t) {
+            type_not_found_error($1);
+        }
         push_context(t);
     } COLON identifier_list {
         pop_context();
@@ -335,7 +345,26 @@ binary_operator:
 
 static SCOPE* symbols;
 static SYMTYPE* types;
+static ERROR* errors;
 
+extern int get_row();
+extern int get_column();
+
+/*
+    Accessors for parts of the program
+    Makes compiling the compiler a bit easier
+*/
+SCOPE** get_symbol_table() {
+    return &symbols;
+}
+
+ERROR** get_errors() {
+    return &errors;
+}
+
+/*
+    Simple stack to pass information between productions
+*/
 struct context {
     void* node;
     struct context* next;
@@ -379,10 +408,6 @@ SCOPE* close_scope() {
     return symbols;
 }
 
-SCOPE* get_symbol_table() {
-    return symbols;
-}
-
 void initialize_types() {
     try_add_type(T_STRING, "string");
     try_add_type(T_REAL, "real");
@@ -402,7 +427,14 @@ SYMTYPE * try_add_type(int type, char* name) {
 }
 
 SYMTYPE * try_find_type(char* name) {
-    return find_type(types, name);
+
+    SYMTYPE * t = find_type(types, name);
+
+    if(!t) {
+        return NULL;
+    }
+
+    return t;
 }
 
 int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
@@ -419,6 +451,15 @@ int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
 }
 
 
+void type_not_found_error(char* type) {
+    static const char format[] = "\nERROR: %s, used here as a type, has not been declared at this point in the program.\n";
+
+    char dest[strlen(format) + strlen(type) + 1];
+
+    sprintf(dest, format, type);
+    errors = push_error(errors, dest);
+}
+
 void yyerror (char *s) {
-   printf ("%s\n", s);
+
  }

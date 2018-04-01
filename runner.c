@@ -6,7 +6,7 @@ extern void yyset_in(FILE *);
 
 // Defined in grammar.y
 // Returns the symbol table the parser uses
-extern SCOPE* get_symbol_table();
+extern SCOPE** get_symbol_table();
 
 FILE *inputFile;
 
@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
         inputFile = fopen(program, "r");
         yyset_in(inputFile);
         printf("yyparse exit code: %d\n", yyparse());
-        print_symbol_table(get_symbol_table());
+        print_symbol_table(*get_symbol_table());
         return 0;
     }
 

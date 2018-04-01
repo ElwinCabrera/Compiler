@@ -1,5 +1,6 @@
 %{
 #include "y.tab.h"
+#include "errors.h"
 int handle_token(int);
 %}
 
@@ -124,11 +125,27 @@ static int column = 1;
 static int end_row = 1;
 static int end_column = 1;
 
+int get_row() { return row; }
+int get_column() { return column; }
+
+extern ERROR** get_errors();
+
+void display_errors() {
+    ERROR** err = get_errors();
+
+    while(*err) {
+        ERROR* temp = *err;
+        printf("%s", temp->e);
+        *err = pop_error(temp);
+        free_error(temp);
+    }
+}
+
 /*
     Helper function for updating the file position as lex processes
     the character stream.
 */
-void update_location()
+int update_location()
 {
     row = end_row;           
     column = end_column;     
@@ -137,10 +154,12 @@ void update_location()
     {                        
         end_column = 1;      
         end_row = yylineno;  
+        return 1;
     }                        
     else                     
     {                        
         end_column += yyleng;
+        return 0;
     }                        
 }
 
@@ -150,8 +169,11 @@ void update_location()
 */
 int handle_token(int token)
 {
-    update_location();
-    
+    // Returns 1 on new line
+    if(update_location()) {
+        display_errors();
+    }
+    printf("%s", yytext);
     if(token > 0)
     {
         //printf("%d %s %d %d\n", token, yytext, row, column);
