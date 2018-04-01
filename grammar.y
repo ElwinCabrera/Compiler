@@ -199,7 +199,6 @@ declaration:
         SYMTYPE* t = try_find_type($1);
         if(!t) {
             type_not_found_error($1);
-            yyerrok;
         }
         push_context(t);
     } COLON identifier_list {
@@ -347,6 +346,7 @@ binary_operator:
 static SCOPE* symbols;
 static SYMTYPE* types;
 static ERROR* errors;
+static int yyerrstatus;
 
 extern int get_row();
 extern int get_column();
@@ -452,15 +452,16 @@ int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
 
 
 void type_not_found_error(char* type) {
-    static const char format[] = "ERROR: %s, used here as a type, has not been declared at this point in the program.\n";
+    static const char format[] = "LINE %d:%d - ERROR: %s, used here as a type, has not been declared at this point in the program.\n";
 
-    char dest[strlen(format) + strlen(type) + 1];
+    char dest[strlen(format) + strlen(type) + 21];
 
-    sprintf(dest, format, type);
-    errors = push_error(errors, dest);
-    yyerror("Type Not Found Error");
+    sprintf(dest, format, get_row(), get_column(), type);
+    
+    yyerror(dest);
+    yyerrok;
 }
 
 void yyerror (char *s) {
-
+    errors = push_error(errors, s);
  }
