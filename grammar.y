@@ -28,7 +28,6 @@ int try_add_symbol(SYMTYPE*, char*, char*);
     char character;
     char* string;
     struct scope* scope;
-    void * context;
 }
 
 %token <string> ID;
@@ -377,6 +376,10 @@ SCOPE* open_scope() {
 
 SCOPE* close_scope() {
     symbols =  exit_scope(symbols);
+    return symbols;
+}
+
+SCOPE* get_symbol_table() {
     return symbols;
 }
 
