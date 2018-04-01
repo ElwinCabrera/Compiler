@@ -9,7 +9,7 @@ extern char* yytext;
 void yyerror(char*);
 int yylex();
 
-void type_not_found_error(char*);
+void symbol_not_found_error(char*, char*);
 void initialize_types();
 SCOPE* open_scope();
 SCOPE* close_scope();
@@ -19,6 +19,7 @@ void* peek_context();
 SYMTYPE* try_add_type(int, char*);
 SYMTYPE* try_find_type(char*);
 int try_add_symbol(SYMTYPE*, char*, char*);
+SYMTAB* try_find_symbol(char*);
 
 %}
 
@@ -31,6 +32,7 @@ int try_add_symbol(SYMTYPE*, char*, char*);
     char character;
     char* string;
     struct scope* scope;
+    struct symtab* symbol;
 }
 
 %token <string> ID;
@@ -44,6 +46,7 @@ int try_add_symbol(SYMTYPE*, char*, char*);
 %type <string> identifier;
 %type <string> type_specifier;
 %type <scope> open_scope close_scope;
+%type <symbol> assignable;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -198,7 +201,7 @@ declaration:
     type_specifier {
         SYMTYPE* t = try_find_type($1);
         if(!t) {
-            type_not_found_error($1);
+            symbol_not_found_error($1, "type");
         }
         push_context(t);
     } COLON identifier_list {
@@ -255,7 +258,13 @@ case:
     ;
 
 assignable:
-    identifier
+    identifier { 
+        SYMTAB* s = try_find_symbol($1); 
+        if (!s) {
+            symbol_not_found_error($1, "variable");
+        }
+        $$ = s;
+    }
     | assignable rec_op identifier
     | assignable ablock
     ;
@@ -450,13 +459,16 @@ int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
     return 1;
 }
 
+SYMTAB* try_find_symbol(char* name) {
+    return find_in_scope(symbols, name);
+}
 
-void type_not_found_error(char* type) {
-    static const char format[] = "LINE %d:%d - ERROR: %s, used here as a type, has not been declared at this point in the program.\n";
+void symbol_not_found_error(char* name, char* style) {
+    static const char format[] = "LINE %d:%d - ERROR: %s, used here as a %s, has not been declared at this point in the program.\n";
 
-    char dest[strlen(format) + strlen(type) + 21];
+    char dest[strlen(format) + strlen(name) + strlen(style)  + 21];
 
-    sprintf(dest, format, get_row(), get_column(), type);
+    sprintf(dest, format, get_row(), get_column(), name, style);
     
     yyerror(dest);
     yyerrok;
