@@ -34,6 +34,5 @@ SYMTAB *find_entry(SYMTAB *, char*);
 SYMTAB *add_entry(SCOPE *, struct type *, char*, char*);
 void print_symbol(SYMTAB *);
 void print_symbol_table(SCOPE *);
-void print_symbol_table_impl(SCOPE *);
 
 #endif
