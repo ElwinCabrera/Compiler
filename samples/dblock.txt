@@ -5,4 +5,6 @@
     [ string : x , y ]
 
     (* Empty Statement List Is A Syntax Error *)
+
+    x := "Hello World";
 }

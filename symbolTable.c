@@ -89,7 +89,7 @@ SYMTAB *add_entry(SCOPE *start, SYMTYPE* type, char* name, char *extra)
 {
   SYMTAB *insertNew  = malloc(sizeof(SYMTAB));
   
-  if(extra) { insertNew->extra = strdup(extra); }
+  if(extra) { insertNew->extra = strdup(extra); } 
   
   insertNew->name = strdup(name);
   insertNew->scope = start;
@@ -97,7 +97,7 @@ SYMTAB *add_entry(SCOPE *start, SYMTYPE* type, char* name, char *extra)
   insertNew->next = start->symbols;
 
   start->symbols = insertNew;
-
+  
   return insertNew;
 }
 

@@ -1,0 +1,13 @@
+(* line 01 *)    type int2int: (integer: x) -> integer
+(* line 02 *)    type applier: (int2int: f, integer: v) -> integer
+(* line 03 *)    function g : applier {
+(* line 04 *)      g := f(v);
+(* line 05 *)    }
+(* line 06 *)    function f : int2int {
+(* line 07 *)      if ( x = 0 )
+(* line 08 *)      then { f := 1; }
+(* line 09 *)      else { f := x * f( x-1 ); }  
+(* line 10 *)    }
+(* line 11 *)    { [integer: a := 5]
+(* line 12 *)      a := g(f,a);
+(* line 13 *)    }
