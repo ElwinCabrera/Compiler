@@ -46,11 +46,11 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Keywords */
 
-"integer"                   return handle_token(T_INTEGER);
-"real"                      return handle_token(T_REAL);
-"character"                 return handle_token(T_CHARACTER);
-"string"                    return handle_token(T_STRING);
-"Boolean"                   return handle_token(T_BOOLEAN);
+"integer"                   yylval.string = strdup(yytext); return handle_token(T_INTEGER);
+"real"                      yylval.string = strdup(yytext); return handle_token(T_REAL);
+"character"                 yylval.string = strdup(yytext); return handle_token(T_CHARACTER);
+"string"                    yylval.string = strdup(yytext); return handle_token(T_STRING);
+"Boolean"                   yylval.string = strdup(yytext); return handle_token(T_BOOLEAN);
 
 "reserve"                   return handle_token(RESERVE);
 "release"                   return handle_token(RELEASE);

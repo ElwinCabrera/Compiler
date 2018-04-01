@@ -1,10 +1,22 @@
 %{
 #include <stdio.h>
 #include "symbolTable.h"
+#include "types.h"
 
 extern char* yytext;
 void yyerror(char*);
 int yylex();
+
+void initialize_types();
+SCOPE* get_scope();
+void open_scope();
+void close_scope();
+void push_context(void*);
+void* pop_context();
+void* peek_context();
+SYMTYPE* try_add_type(int, char*);
+SYMTYPE* try_find_type(char*);
+int try_add_symbol(SYMTYPE*, char*, char*);
 
 %}
 
@@ -16,9 +28,8 @@ int yylex();
     double real;
     char character;
     char* string;
+    struct scope* scope;
 }
-
-
 
 %token <string> ID;
 %token <integer> C_INTEGER;
@@ -29,6 +40,7 @@ int yylex();
 %token <string> C_STRING;
 
 %type <string> identifier;
+%type <string> type_specifier;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -43,6 +55,9 @@ int yylex();
 %token <string> T_BOOLEAN
 %token <string> T_CHARACTER
 %token <string> T_STRING
+
+%token ARRAY
+%token RECORD
 
 %token NULL_PTR
 %token RESERVE
@@ -94,18 +109,19 @@ int yylex();
 
 %%
 
-open_scope: { symbols = new_scope(symbols); } ;
-close_scope: { symbols = exit_scope(symbols); } ;
+open_scope: { open_scope(); } ;
+close_scope: { close_scope(); } ;
 
 /* 
     We may need to know certain types exist even if they haven't been defined
     yet. It may be useful to have a separate "type lookup" structure for fast
     checking to see if they exist
 */
-add_type_inline: { } ;
 
 program: 
-    definition_list sblock
+    open_scope {
+        initialize_types();
+    } definition_list sblock
     ;
 
 definition_list: 
@@ -114,25 +130,36 @@ definition_list:
     ;
 
 definition:
-    TYPE identifier add_type_inline COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
-        add_entry(symbols, NULL, $2, "type");
+    TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
+        SYMTYPE* type = try_add_type(ARRAY, $2);
+        try_add_symbol(type, $2, "type");
     }
-    | TYPE identifier add_type_inline COLON constant ARROW type_specifier {
-        add_entry(symbols, NULL, $2, "type");
+    | TYPE identifier COLON constant ARROW type_specifier {
+        SYMTYPE* type = try_add_type(ARRAY, $2);
+        try_add_symbol(type, $2, "type");
     }
-    | TYPE identifier add_type_inline COLON pblock ARROW type_specifier {
-        add_entry(symbols, NULL, $2, "type");
+    | TYPE identifier COLON pblock ARROW type_specifier {
+        SYMTYPE* type = try_add_type(FUNCTION, $2);
+        type->details.function->parameters = (SCOPE*) pop_context();
+        type->details.function->return_type = try_find_type($6);
+        try_add_symbol(type, $2, "type");
     }
-    | FUNCTION identifier add_type_inline COLON type_specifier sblock {
-        add_entry(symbols, NULL, $2, "function");
+    | FUNCTION identifier COLON type_specifier sblock {
+        SYMTYPE* type = try_find_type($4);
+        try_add_symbol(type, $2, "function");
     }
-    | TYPE identifier add_type_inline COLON open_scope dblock close_scope  {
-        add_entry(symbols, NULL, $2, "type");
+    | TYPE identifier COLON open_scope {
+        try_add_type(RECORD, $2);
+    } dblock close_scope  {
+        SYMTYPE* type = try_find_type($2);
+        try_add_symbol(type, $2, "type");
     }
     ;
 
 pblock:
-    L_PARENTHESIS open_scope parameter_list close_scope R_PARENTHESIS
+    L_PARENTHESIS open_scope {
+        push_context(get_scope());
+    } parameter_list close_scope R_PARENTHESIS
     ;
 
 parameter_list:
@@ -147,7 +174,8 @@ non_empty_parameter_list:
 
 parameter_declaration:
     type_specifier COLON identifier {
-        add_entry(symbols, NULL, $3, "parameter");
+        SYMTYPE* type = try_find_type($1);
+        try_add_symbol(type, $3, "parameter");
     }
     ;
 
@@ -161,22 +189,31 @@ declaration_list:
     ;
 
 declaration:
-    type_specifier COLON identifier_list
+    type_specifier {
+        SYMTYPE* t = try_find_type($1);
+        push_context(t);
+    } COLON identifier_list {
+        pop_context();
+    }
     ;
 
 
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
-        add_entry(symbols, NULL, $1, "local");
+        SYMTYPE* type = (SYMTYPE*) peek_context();
+        try_add_symbol(type, $1, "local");
     }
     | identifier assign_op constant {
-        add_entry(symbols, NULL, $1, "local");
+        SYMTYPE* type = (SYMTYPE*) peek_context();
+        try_add_symbol(type, $1, "local");
     }
     | identifier COMMA identifier_list {
-        add_entry(symbols, NULL, $1, "local");
+        SYMTYPE* type = (SYMTYPE*) peek_context();
+        try_add_symbol(type, $1, "local");
     }
     | identifier {
-        add_entry(symbols, NULL, $1, "local");
+        SYMTYPE* type = (SYMTYPE*) peek_context();
+        try_add_symbol(type, $1, "local");
     }
     ;
 
@@ -242,7 +279,7 @@ identifier:
     ;
 
 type_specifier:
-    | identifier
+    identifier
     | T_BOOLEAN
     | T_CHARACTER
     | T_INTEGER
@@ -295,6 +332,91 @@ binary_operator:
     ;
 
 %%
+
+
+static SCOPE* symbols;
+static SYMTYPE* types;
+
+struct context {
+    void* node;
+    struct context* next;
+} * context_stack = NULL;
+
+void push_context(void* context) {
+    struct context * c = malloc(sizeof(struct context));
+    c->node = context;
+    c->next = context_stack;
+    context_stack = c;
+}
+
+void* pop_context() {
+    
+    if(!context_stack) {
+        return NULL;
+    }
+
+    struct context * c = context_stack;
+    void* r = c->node;
+    context_stack = c->next;
+    free(c);
+
+    return r;
+}
+
+void* peek_context() {
+    if(!context_stack) {
+        return NULL;
+    }
+    return context_stack->node;
+}
+
+void open_scope() {
+    symbols = new_scope(symbols);
+}
+
+void close_scope() {
+    symbols =  exit_scope(symbols);
+}
+
+SCOPE* get_scope() {
+    return symbols;
+}
+
+void initialize_types() {
+    try_add_type(T_STRING, "string");
+    try_add_type(T_REAL, "real");
+    try_add_type(T_BOOLEAN, "Boolean");
+    try_add_type(T_INTEGER, "integer");
+    try_add_type(T_CHARACTER, "character");
+}
+
+SYMTYPE * try_add_type(int type, char* name) {
+    
+    if (find_type(types, name)) {
+        return NULL;
+    }
+    
+    types = add_type(types, type, name);
+    return types;
+}
+
+SYMTYPE * try_find_type(char* name) {
+    return find_type(types, name);
+}
+
+int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
+    
+    if(find_entry(symbols->symbols, name)) {
+        yyerror("Type redfinition:");
+        printf("%s already exists in this scope.\n", name);
+        return 0;
+    }
+    
+    add_entry(symbols, type, name, ext);
+
+    return 1;
+}
+
 
 void yyerror (char *s) {
    printf ("%s\n", s);

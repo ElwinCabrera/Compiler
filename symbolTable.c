@@ -85,22 +85,22 @@ SYMTAB *last_entry(SYMTAB *start)
   return p;
 }
 
-SYMTAB *add_entry(SCOPE *start, char* type, char* name, char *extra)
+SYMTAB *add_entry(SCOPE *start, SYMTYPE* type, char* name, char *extra)
 {
   SYMTAB *insertNew  = malloc(sizeof(SYMTAB));
 
   insertNew->id = 1;
-
-  if(type) { insertNew->type = strdup(type); }
+  
   if(extra) { insertNew->extra = strdup(extra); }
   
   insertNew->name = strdup(name);
+  insertNew->scope = start;
+  insertNew->type = type;
   insertNew->next = start->symbols;
 
   start->symbols = insertNew;
 
-  // printf("Adding symbol to scope %p :", start);
-  // print_symbol(insertNew);
+  print_symbol(insertNew);
 
   return insertNew;
 }
@@ -144,5 +144,5 @@ void print_symbol(SYMTAB * symbol) {
     return;
   }
 
-  printf("%s : %d : %s : %s\n", symbol->name, 0, symbol->type, symbol->extra);
+  printf("%s : %p : %p : %s\n", symbol->name, symbol->scope, symbol->type, symbol->extra);
 }

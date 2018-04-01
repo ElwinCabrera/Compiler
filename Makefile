@@ -1,5 +1,5 @@
 #Source files
-SRC=runner.c symbolTable.c
+SRC=runner.c symbolTable.c types.c
 TEST_SRC=$(filter-out runner.c, $(SRC))
 TESTS= cunit/tests.c \
 	cunit/symbolTableTests.c
