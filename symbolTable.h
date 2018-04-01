@@ -5,7 +5,6 @@
 #include "types.h"
 
 typedef struct symtab {
-   int id;
    char *name;
    struct type *type;
    char *extra;
