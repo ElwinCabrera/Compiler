@@ -4,6 +4,9 @@ int handle_token(int);
 %}
 
 %option yylineno
+%option noyywrap
+%option noinput
+%option nounput
 
 /* Anything from 0 to 9 */
 DIGIT                       [0-9]             
@@ -120,10 +123,6 @@ static int row = 1;
 static int column = 1;
 static int end_row = 1;
 static int end_column = 1;
-
-int yywrap(void){
-    return 1;
-}
 
 /*
     Helper function for updating the file position as lex processes

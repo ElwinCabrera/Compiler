@@ -8,9 +8,8 @@ void yyerror(char*);
 int yylex();
 
 void initialize_types();
-SCOPE* get_scope();
-void open_scope();
-void close_scope();
+SCOPE* open_scope();
+SCOPE* close_scope();
 void push_context(void*);
 void* pop_context();
 void* peek_context();
@@ -29,6 +28,7 @@ int try_add_symbol(SYMTYPE*, char*, char*);
     char character;
     char* string;
     struct scope* scope;
+    void * context;
 }
 
 %token <string> ID;
@@ -41,6 +41,7 @@ int try_add_symbol(SYMTYPE*, char*, char*);
 
 %type <string> identifier;
 %type <string> type_specifier;
+%type <scope> open_scope close_scope;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -109,8 +110,8 @@ int try_add_symbol(SYMTYPE*, char*, char*);
 
 %%
 
-open_scope: { open_scope(); } ;
-close_scope: { close_scope(); } ;
+open_scope: { $$ = open_scope(); } ;
+close_scope: { $$ = close_scope(); } ;
 
 /* 
     We may need to know certain types exist even if they haven't been defined
@@ -138,10 +139,10 @@ definition:
         SYMTYPE* type = try_add_type(ARRAY, $2);
         try_add_symbol(type, $2, "type");
     }
-    | TYPE identifier COLON pblock ARROW type_specifier {
+    | TYPE identifier COLON open_scope pblock close_scope ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
-        type->details.function->parameters = (SCOPE*) pop_context();
-        type->details.function->return_type = try_find_type($6);
+        type->details.function->parameters = $4;
+        type->details.function->return_type = try_find_type($8);
         try_add_symbol(type, $2, "type");
     }
     | FUNCTION identifier COLON type_specifier sblock {
@@ -152,14 +153,13 @@ definition:
         try_add_type(RECORD, $2);
     } dblock close_scope  {
         SYMTYPE* type = try_find_type($2);
+        type->details.record->members = $4;
         try_add_symbol(type, $2, "type");
     }
     ;
 
 pblock:
-    L_PARENTHESIS open_scope {
-        push_context(get_scope());
-    } parameter_list close_scope R_PARENTHESIS
+    L_PARENTHESIS parameter_list R_PARENTHESIS
     ;
 
 parameter_list:
@@ -370,15 +370,13 @@ void* peek_context() {
     return context_stack->node;
 }
 
-void open_scope() {
+SCOPE* open_scope() {
     symbols = new_scope(symbols);
+    return symbols;
 }
 
-void close_scope() {
+SCOPE* close_scope() {
     symbols =  exit_scope(symbols);
-}
-
-SCOPE* get_scope() {
     return symbols;
 }
 
