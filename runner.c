@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
         if(asc) {
             char asc_file_path[strlen(program) + 5];
             strcpy(asc_file_path, program);
-            strcat(symbol_file_path, ".asc");
+            strcat(asc_file_path, ".asc");
             FILE* asc_file = fopen(asc_file_path, "w");
             set_asc_file(asc_file);
         }
