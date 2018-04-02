@@ -209,6 +209,7 @@ definition:
         SYMTYPE* type = try_find_type($4);  
         if(!type) {
             open_scope();
+            try_add_symbol(NULL, $2, RETURN, "return");
             symbol_not_found_error($4, "type");
         } else {
             insert_scope(type->details.function->parameters);
