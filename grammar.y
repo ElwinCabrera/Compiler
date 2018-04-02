@@ -198,7 +198,11 @@ definition:
     | TYPE identifier COLON open_scope pblock close_scope ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
         type->details.function->parameters = $4;
-        type->details.function->return_type = try_find_type($8);
+        SYMTYPE* return_type = try_find_type($8);
+        if(!return_type) { 
+            symbol_not_found_error($8, "type");
+        }
+        type->details.function->return_type = return_type;
         try_add_symbol(type, $2, TYPE, "type");
     }
     | FUNCTION identifier COLON type_specifier {
@@ -328,22 +332,29 @@ assignable:
         $$ = s;
     }
     | assignable rec_op {
-        if(!check_type($1->type, RECORD, NULL)) {
-            incorrect_type_error($1->name, "record");
+        
+        if($1) {
+            if(!check_type($1->type, RECORD, NULL)) {
+                incorrect_type_error($1->name, "record");
+            } 
         } 
+
     } identifier 
     | assignable ablock {
-        if(check_type($1->type, FUNCTION, NULL)) {
-            /* 
-                TODO: FUNCTION CALL
-            */
-        } else if(check_type($1->type, ARRAY, NULL)) {
-            /* 
-                TODO: ARRAY ACCESS
-            */
-        } else {
-            incorrect_type_error($1->name, "array or function");
-        }
+
+        if($1) {
+            if(check_type($1->type, FUNCTION, NULL)) {
+                /* 
+                    TODO: FUNCTION CALL
+                */
+            } else if(check_type($1->type, ARRAY, NULL)) {
+                /* 
+                    TODO: ARRAY ACCESS
+                */
+            } else {
+                incorrect_type_error($1->name, "array or function");
+            }
+        } 
     }
     ;
 
@@ -543,6 +554,10 @@ SYMTYPE * try_find_type(char* name) {
 
 int try_add_symbol(SYMTYPE* type, char* name, int meta, char* ext) {
     
+    if(!symbols) {
+        return 0;
+    }
+
     if(find_entry(symbols->symbols, name)) {
         // Symbol redefined in the same table
         return 0;

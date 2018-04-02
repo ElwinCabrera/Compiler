@@ -92,21 +92,21 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Operators */
 
-"+"                         return handle_token(ADD);
-"-"                         return handle_token(SUB_OR_NEG);
-"*"                         return handle_token(MUL);
-"/"                         return handle_token(DIV);
-"%"                         return handle_token(REM);
-"."                         return handle_token(DOT);
-"<"                         return handle_token(LESS_THAN);
-"="                         return handle_token(EQUAL_TO);
-":="                        return handle_token(ASSIGN);
-"i2r"                       return handle_token(INT2REAL);
-"r2i"                       return handle_token(REAL2INT);
-"isNull"                    return handle_token(IS_NULL);
-"!"                         return handle_token(NOT);
-"&"                         return handle_token(AND);
-"|"                         return handle_token(OR);
+"+"                         yylval.string = strdup(yytext); return handle_token(ADD);
+"-"                         yylval.string = strdup(yytext); return handle_token(SUB_OR_NEG);
+"*"                         yylval.string = strdup(yytext); return handle_token(MUL);
+"/"                         yylval.string = strdup(yytext); return handle_token(DIV);
+"%"                         yylval.string = strdup(yytext); return handle_token(REM);
+"."                         yylval.string = strdup(yytext); return handle_token(DOT);
+"<"                         yylval.string = strdup(yytext); return handle_token(LESS_THAN);
+"="                         yylval.string = strdup(yytext); return handle_token(EQUAL_TO);
+":="                        yylval.string = strdup(yytext); return handle_token(ASSIGN);
+"i2r"                       yylval.string = strdup(yytext); return handle_token(INT2REAL);
+"r2i"                       yylval.string = strdup(yytext); return handle_token(REAL2INT);
+"isNull"                    yylval.string = strdup(yytext); return handle_token(IS_NULL);
+"!"                         yylval.string = strdup(yytext); return handle_token(NOT);
+"&"                         yylval.string = strdup(yytext); return handle_token(AND);
+"|"                         yylval.string = strdup(yytext); return handle_token(OR);
 
     /* ID */
 
@@ -124,21 +124,22 @@ static int row = 1;
 static int column = 1;
 static int end_row = 1;
 static int end_column = 1;
+static FILE* asc_file = 0;
 
 int get_row() { return row; }
 int get_column() { return column; }
 
 extern ERROR** get_errors();
 
-void display_errors() {
-    ERROR** err = get_errors();
-
-    while(*err) {
-        ERROR* temp = *err;
-        printf("%s", temp->e);
-        *err = pop_error(temp);
-        free_error(temp);
+void print_asc(const char* c) {
+    char* new = malloc(strlen(c) + 5);
+    strcpy(new, c);
+    strcat(new, ".asc");
+    asc_file = fopen(new, "w");
+    if(!asc_file) {
+        printf("(ERROR CODE: %d) Unable to open %s\n", errno, new);
     }
+    free(new);
 }
 
 /*
@@ -169,14 +170,26 @@ int update_location()
 */
 int handle_token(int token)
 {
-    //Printing to console for now, but this can just go to ASC.
-    printf("%s", yytext);
+    if(asc_file) {
+        fprintf(asc_file, "%s", yytext);
+    }
 
     // Returns 1 on new line
     if(update_location()) {
-        display_errors();
-    }
+        ERROR** err = get_errors();
 
+        while(*err) {
+            ERROR* temp = *err;
+            if(asc_file) {
+                fprintf(asc_file, "%s", temp->e);
+            }
+
+            printf("%s", temp->e);
+
+            *err = pop_error(temp);
+            free_error(temp);
+        }
+    }
 
     return token;
 }

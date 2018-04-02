@@ -35,7 +35,7 @@ lexical_analyzer: lexicalStructure.lex y.tab.h
 	flex lexicalStructure.lex
 
 syntax_analayzer: grammar.y
-	yacc -d -v grammar.y
+	bison -d -v -y grammar.y
 
 tests: $(TEST_SRC) $(TESTS)
 	$(CC) $(CFLAGS) -lm -L $(CUNIT_PATH_PREFIX)lib -I $(CUNIT_PATH_PREFIX)include/$(CUNIT_DIRECTORY) -g $^ -o tests -lcunit -lgcov 
