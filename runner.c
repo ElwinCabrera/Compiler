@@ -57,7 +57,11 @@ int main(int argc, char* argv[])
         printf("yyparse exit code: %d\n", yyparse());
 
         if(st) { //specify to print symbol table
-            print_symbol_table(*get_symbol_table());
+            char symbol_file_path[strlen(program) + 3];
+            strcpy(symbol_file_path, program);
+            strcat(symbol_file_path, ".t");
+            FILE* symbol_file = fopen(symbol_file_path, "w");
+            print_symbol_table(*get_symbol_table(), symbol_file);
         }
 
 

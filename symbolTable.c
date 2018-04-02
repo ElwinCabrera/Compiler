@@ -131,7 +131,7 @@ SYMTAB* find_entry(SYMTAB* start, char* name)
   return NULL;
 }
 
-void print_symbol_table(SCOPE* symbol_table) {
+void print_symbol_table(SCOPE* symbol_table, FILE* f) {
   if(!symbol_table) {
     return;
   }
@@ -139,22 +139,27 @@ void print_symbol_table(SCOPE* symbol_table) {
   SYMTAB* s = symbol_table->symbols;
   
   while(s) {
-    print_symbol(s);
+    print_symbol(s, f);
     s = s->next;
   }
   
   SCOPE_LIST * children = symbol_table->children;
 
   while(children) {
-    print_symbol_table(children->node);
+    print_symbol_table(children->node, f);
     children = children->next;
   }
 }
 
-void print_symbol(SYMTAB * symbol) {
+void print_symbol(SYMTAB * symbol, FILE* f) {
   if(!symbol) {
     return;
   }
 
-  printf("%s : %p : %p : %s\n", symbol->name, symbol->scope, symbol->type, symbol->extra);
+  if(f) {
+    fprintf(f, "%s : %p : %p : %s\n", symbol->name, symbol->scope, symbol->type, symbol->extra);
+  } else {
+    printf("%s : %p : %p : %s\n", symbol->name, symbol->scope, symbol->type, symbol->extra);
+  }
+
 }

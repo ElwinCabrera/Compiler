@@ -32,7 +32,7 @@ SYMTAB* find_in_scope(SCOPE*, char*);
 SYMTAB* find_in_children(SCOPE *, char*);
 SYMTAB* find_entry(SYMTAB*, char*);
 SYMTAB* add_entry(SCOPE*, struct type *, char*, int, char*);
-void print_symbol(SYMTAB*);
-void print_symbol_table(SCOPE *);
+void print_symbol(SYMTAB*, FILE*);
+void print_symbol_table(SCOPE *, FILE*);
 
 #endif
