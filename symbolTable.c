@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "types.h"
 #include "symbolTable.h"
 
-SCOPE *new_scope(SCOPE *parent)
+SCOPE* new_scope(SCOPE* parent)
 {
   SCOPE *new = malloc(sizeof(SCOPE));
 
@@ -21,7 +22,21 @@ SCOPE *new_scope(SCOPE *parent)
   return new;
 }
 
-SCOPE *exit_scope(SCOPE *current) 
+SCOPE* insert_and_enter_scope(SCOPE* from, SCOPE* into) {
+  if(!from || !into) {
+    return NULL;
+  }
+
+  SCOPE_LIST* child = malloc(sizeof(SCOPE_LIST));
+  SCOPE* s = malloc(sizeof(SCOPE));
+  memcpy(s, from, sizeof(SCOPE));
+  child->node = s;
+  child->next = into->children;
+  into->children = child;
+  return s;
+}
+
+SCOPE* exit_scope(SCOPE* current) 
 {
   if(!current) {
     return NULL;
@@ -35,13 +50,13 @@ SCOPE *exit_scope(SCOPE *current)
     something exists in a scope, we have to check the symbol table of
     every parent if it doesn't exist in the current scope.
 */
-SYMTAB *find_in_scope(SCOPE *s, char* target) {
+SYMTAB* find_in_scope(SCOPE* s, char* target) {
 
   if(s == NULL) {
     return NULL;
   }
 
-  SYMTAB *sym = find_entry(s->symbols, target);
+  SYMTAB* sym = find_entry(s->symbols, target);
 
   if(sym == NULL) {
     sym = find_in_scope(s->parent, target);
@@ -53,13 +68,13 @@ SYMTAB *find_in_scope(SCOPE *s, char* target) {
 /*
   Searches down a symbol table from a parent node
 */
-SYMTAB *find_in_children(SCOPE *s, char* target)
+SYMTAB* find_in_children(SCOPE* s, char* target)
 {
   if(s == NULL) {
     return NULL;
   }
 
-  SYMTAB *sym = find_entry(s->symbols, target);
+  SYMTAB* sym = find_entry(s->symbols, target);
 
   if(sym == NULL) {
     SCOPE_LIST *child = s->children;
@@ -75,9 +90,9 @@ SYMTAB *find_in_children(SCOPE *s, char* target)
   return sym;
 }
 
-SYMTAB *last_entry(SYMTAB *start)
+SYMTAB* last_entry(SYMTAB* start)
 {
-  SYMTAB *p;
+  SYMTAB* p;
   p = start;
   while(p->next != NULL) {
     p = p->next;
@@ -85,13 +100,14 @@ SYMTAB *last_entry(SYMTAB *start)
   return p;
 }
 
-SYMTAB *add_entry(SCOPE *start, SYMTYPE* type, char* name, char *extra)
+SYMTAB* add_entry(SCOPE* start, SYMTYPE* type, char* name, int meta, char* extra)
 {
   SYMTAB *insertNew  = malloc(sizeof(SYMTAB));
   
   if(extra) { insertNew->extra = strdup(extra); } 
   
   insertNew->name = strdup(name);
+  insertNew->meta = meta;
   insertNew->scope = start;
   insertNew->type = type;
   insertNew->next = start->symbols;
@@ -101,7 +117,7 @@ SYMTAB *add_entry(SCOPE *start, SYMTYPE* type, char* name, char *extra)
   return insertNew;
 }
 
-SYMTAB *find_entry(SYMTAB *start, char* name)
+SYMTAB* find_entry(SYMTAB* start, char* name)
 {
   //if the first node will never have any data then I need to skip the first node
   SYMTAB *p = start;
@@ -115,12 +131,12 @@ SYMTAB *find_entry(SYMTAB *start, char* name)
   return NULL;
 }
 
-void print_symbol_table(SCOPE * symbol_table) {
+void print_symbol_table(SCOPE* symbol_table) {
   if(!symbol_table) {
     return;
   }
 
-  SYMTAB * s = symbol_table->symbols;
+  SYMTAB* s = symbol_table->symbols;
   
   while(s) {
     print_symbol(s);

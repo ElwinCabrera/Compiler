@@ -50,3 +50,21 @@ SYMTYPE * find_type(SYMTYPE* start, char* name) {
 
     return NULL;
 }
+
+int check_type(SYMTYPE* t, int subtype, char* name) {
+
+    if (!t) {
+        return 0;
+    }
+
+    if(t->subtype == subtype) {
+
+        if (!name || strcmp(name, t->name) == 0) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    return 0;
+}

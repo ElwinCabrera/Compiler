@@ -1,8 +1,6 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include "symbolTable.h"
-
 struct function_details {
     struct scope * parameters;
     struct type * return_type;
@@ -29,9 +27,10 @@ typedef struct type {
     struct type * next;
 } SYMTYPE;
 
-SYMTYPE * type_list;
+SYMTYPE* type_list;
 
-SYMTYPE * add_type(SYMTYPE *, int, char*);
-SYMTYPE * find_type(SYMTYPE *, char*);
+SYMTYPE* add_type(SYMTYPE*, int, char*);
+SYMTYPE* find_type(SYMTYPE*, char*);
+int check_type(SYMTYPE*,int,char*);
 
 #endif

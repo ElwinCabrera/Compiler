@@ -21,6 +21,7 @@ void type_as_var_error(char*);
 */
 SCOPE* open_scope();
 SCOPE* close_scope();
+SCOPE* insert_scope(SCOPE*);
 
 /*
     Helpers for passing type or expression information
@@ -113,6 +114,7 @@ struct Node {
 %token RECORD
 %token PARAMETER
 %token LOCAL
+%token RETURN
 
 %token NULL_PTR
 %token RESERVE
@@ -199,18 +201,17 @@ definition:
         type->details.function->return_type = try_find_type($8);
         try_add_symbol(type, $2, TYPE, "type");
     }
-    | FUNCTION identifier COLON type_specifier open_scope sblock close_scope {
-        SYMTYPE* type = try_find_type($4);
-        /*
-            TODO: This type information contains the return type of the function
-            as well as any parameters.
+    | FUNCTION identifier COLON type_specifier {
+        SYMTYPE* type = try_find_type($4);  
+        if(!type) {
+            symbol_not_found_error($4, "type");
+        } else {
+            insert_scope(type->details.function->parameters);
+            try_add_symbol(type->details.function->return_type, $2, RETURN, "return");
+        }
 
-            This needs to be available inside the sblock {}
-            - The params already exist as symbols, but two separate functions using the
-            same type shouldn't have pointers to the same params, maybe create new symbols?
-            - Also, the return type needs to be a new symbol because it's essentially a local
-            with type constricted to the return type of the type specifier
-        */
+    }  open_scope sblock close_scope close_scope {
+        SYMTYPE* type = try_find_type($4);
         if(!type) {
             symbol_not_found_error($4, "type");
         } else {
@@ -503,6 +504,11 @@ SCOPE* open_scope() {
 
 SCOPE* close_scope() {
     symbols =  exit_scope(symbols);
+    return symbols;
+}
+
+SCOPE* insert_scope(SCOPE* s) {
+    symbols =  insert_and_enter_scope(s, symbols);
     return symbols;
 }
 
