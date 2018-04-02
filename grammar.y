@@ -4,22 +4,57 @@
 #include "symbolTable.h"
 #include "types.h"
 #include "errors.h"
+#include "expressions.h"
 
-extern char* yytext;
-void yyerror(char*);
 int yylex();
 
+/*
+    Error Handling
+*/
+void yyerror(char*);
 void symbol_not_found_error(char*, char*);
-void initialize_types();
+void incorrect_type_error(char*, char*);
+void type_as_var_error(char*);
+
+/*
+    Used by rule actions for manipulating and accessing scope
+*/
 SCOPE* open_scope();
 SCOPE* close_scope();
+
+/*
+    Helpers for passing type or expression information
+*/
 void push_context(void*);
 void* pop_context();
 void* peek_context();
+
+/*
+    Wrappers to access types in static type linked list
+*/
 SYMTYPE* try_add_type(int, char*);
 SYMTYPE* try_find_type(char*);
-int try_add_symbol(SYMTYPE*, char*, char*);
+
+/*
+    Adds primitive types to the type linked list
+*/
+void initialize_types();
+
+/*
+    Wrappers to access types in static symbol table 
+*/
+int try_add_symbol(SYMTYPE*, char*, int, char*);
 SYMTAB* try_find_symbol(char*);
+
+
+struct Node {
+  int id;
+  int integer;
+  int boolean;
+  double real;
+  char character;
+  char* string;
+};
 
 %}
 
@@ -33,6 +68,7 @@ SYMTAB* try_find_symbol(char*);
     char* string;
     struct scope* scope;
     struct symtab* symbol;
+    struct expr* expression;
 }
 
 %token <string> ID;
@@ -43,10 +79,11 @@ SYMTAB* try_find_symbol(char*);
 %token <character> C_CHARACTER;
 %token <string> C_STRING;
 
-%type <string> identifier;
-%type <string> type_specifier;
+%type <string> identifier type_specifier;
+%type <string> binary_operator post_unary_operator pre_unary_operator;
 %type <scope> open_scope close_scope;
 %type <symbol> assignable;
+%type <expression> expression;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -64,6 +101,8 @@ SYMTAB* try_find_symbol(char*);
 
 %token ARRAY
 %token RECORD
+%token PARAMETER
+%token LOCAL
 
 %token NULL_PTR
 %token RESERVE
@@ -95,21 +134,21 @@ SYMTAB* try_find_symbol(char*);
 %token ARROW
 %token BACKSLASH
 
-%token ADD
-%token SUB_OR_NEG
-%token MUL
-%token DIV
-%token REM
-%token DOT
-%token LESS_THAN
-%token EQUAL_TO
-%token ASSIGN
-%token INT2REAL
-%token REAL2INT
-%token IS_NULL
-%token NOT
-%token AND
-%token OR
+%token <string> ADD
+%token <string> SUB_OR_NEG
+%token <string> MUL
+%token <string> DIV
+%token <string> REM
+%token <string> DOT
+%token <string> LESS_THAN
+%token <string> EQUAL_TO
+%token <string> ASSIGN
+%token <string> INT2REAL
+%token <string> REAL2INT
+%token <string> IS_NULL
+%token <string> NOT
+%token <string> AND
+%token <string> OR
 
 %token COMMENT;
 
@@ -138,24 +177,34 @@ definition_list:
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        try_add_symbol(type, $2, "type");
+        try_add_symbol(type, $2, TYPE, "type");
     }
     | TYPE identifier COLON constant ARROW type_specifier {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        try_add_symbol(type, $2, "type");
+        try_add_symbol(type, $2, TYPE, "type");
     }
     | TYPE identifier COLON open_scope pblock close_scope ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
         type->details.function->parameters = $4;
         type->details.function->return_type = try_find_type($8);
-        try_add_symbol(type, $2, "type");
+        try_add_symbol(type, $2, TYPE, "type");
     }
-    | FUNCTION identifier COLON type_specifier sblock {
+    | FUNCTION identifier COLON type_specifier open_scope sblock close_scope {
         SYMTYPE* type = try_find_type($4);
+        /*
+            TODO: This type information contains the return type of the function
+            as well as any parameters.
+
+            This needs to be available inside the sblock {}
+            - The params already exist as symbols, but two separate functions using the
+            same type shouldn't have pointers to the same params, maybe create new symbols?
+            - Also, the return type needs to be a new symbol because it's essentially a local
+            with type constricted to the return type of the type specifier
+        */
         if(!type) {
-            yyerrok;
+            symbol_not_found_error($4, "type");
         } else {
-            try_add_symbol(type, $2, "function");
+            try_add_symbol(type, $2, FUNCTION, "function");
         }
     }
     | TYPE identifier COLON open_scope {
@@ -163,7 +212,7 @@ definition:
     } dblock close_scope  {
         SYMTYPE* type = try_find_type($2);
         type->details.record->members = $4;
-        try_add_symbol(type, $2, "type");
+        try_add_symbol(type, $2, TYPE, "type");
     }
     ;
 
@@ -184,7 +233,7 @@ non_empty_parameter_list:
 parameter_declaration:
     type_specifier COLON identifier {
         SYMTYPE* type = try_find_type($1);
-        try_add_symbol(type, $3, "parameter");
+        try_add_symbol(type, $3, PARAMETER, "parameter");
     }
     ;
 
@@ -213,25 +262,25 @@ declaration:
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, "local");
+        try_add_symbol(type, $1, LOCAL, "local");
     }
     | identifier assign_op constant {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, "local");
+        try_add_symbol(type, $1, LOCAL, "local");
     }
     | identifier COMMA identifier_list {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, "local");
+        try_add_symbol(type, $1, LOCAL, "local");
     }
     | identifier {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, "local");
+        try_add_symbol(type, $1, LOCAL, "local");
     }
     ;
 
 sblock:
-    L_BRACE open_scope dblock statement_list close_scope R_BRACE
-    | L_BRACE open_scope statement_list close_scope R_BRACE
+    L_BRACE dblock statement_list R_BRACE
+    | L_BRACE statement_list R_BRACE
     ;
     
 statement_list:
@@ -245,7 +294,7 @@ statement:
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | assignable assign_op expression SEMI_COLON
     | mem_op assignable SEMI_COLON
-    | sblock
+    | open_scope sblock close_scope
     ;
 
 case_list:
@@ -262,11 +311,29 @@ assignable:
         SYMTAB* s = try_find_symbol($1); 
         if (!s) {
             symbol_not_found_error($1, "variable");
+        } else if (s->meta == TYPE) {
+            type_as_var_error(s->name);
         }
         $$ = s;
     }
-    | assignable rec_op identifier
-    | assignable ablock
+    | assignable rec_op {
+        if(!check_type($1->type, RECORD, NULL)) {
+            incorrect_type_error($1->name, "record");
+        } 
+    } identifier 
+    | assignable ablock {
+        if(check_type($1->type, FUNCTION, NULL)) {
+            /* 
+                TODO: FUNCTION CALL
+            */
+        } else if(check_type($1->type, ARRAY, NULL)) {
+            /* 
+                TODO: ARRAY ACCESS
+            */
+        } else {
+            incorrect_type_error($1->name, "array or function");
+        }
+    }
     ;
 
 ablock:
@@ -283,12 +350,24 @@ non_empty_argument_list:
     ;
 
 expression:
-    expression binary_operator expression
-    | expression post_unary_operator
-    | pre_unary_operator expression %prec pre_unary_prec
-    | L_PARENTHESIS expression R_PARENTHESIS
-    | constant
-    | assignable
+    expression binary_operator expression {
+        try_binary_expression($1, $2, $3);
+    }
+    | expression post_unary_operator {
+        try_post_unary_expression($1, $2);
+    }
+    | pre_unary_operator expression %prec pre_unary_prec {
+        try_pre_unary_expression($1, $2);
+    }
+    | L_PARENTHESIS expression R_PARENTHESIS {
+        $$ = $2;
+    }
+    | constant {
+        $$ = try_expression($1);
+    }
+    | assignable {
+        $$ = try_expression($1);
+    }
     ;
 
 
@@ -447,14 +526,14 @@ SYMTYPE * try_find_type(char* name) {
     return t;
 }
 
-int try_add_symbol(SYMTYPE* type, char* name, char* ext) {
+int try_add_symbol(SYMTYPE* type, char* name, int meta, char* ext) {
     
     if(find_entry(symbols->symbols, name)) {
         // Symbol redefined in the same table
         return 0;
     }
     
-    add_entry(symbols, type, name, ext);
+    add_entry(symbols, type, name, meta, ext);
 
     return 1;
 }
@@ -463,8 +542,28 @@ SYMTAB* try_find_symbol(char* name) {
     return find_in_scope(symbols, name);
 }
 
+void type_as_var_error(char* name) {
+    const char format[] = "LINE %d:%d - ERROR: %s, a type, is used here as a variable\n";
+    
+    char dest[strlen(format) + strlen(name) + 21];
+
+    sprintf(dest, format, get_row(), get_column(), name);
+    yyerror(dest);
+    yyerrok;
+}
+
+void incorrect_type_error(char* name, char* type) {
+    const char format[] = "LINE %d:%d - ERROR: %s is not of type %s\n";
+    
+    char dest[strlen(format) + strlen(name) + strlen(type)  + 21];
+
+    sprintf(dest, format, get_row(), get_column(), name, type);
+    yyerror(dest);
+    yyerrok;
+}
+
 void symbol_not_found_error(char* name, char* style) {
-    static const char format[] = "LINE %d:%d - ERROR: %s, used here as a %s, has not been declared at this point in the program.\n";
+    const char format[] = "LINE %d:%d - ERROR: %s, used here as a %s, has not been declared at this point in the program.\n";
 
     char dest[strlen(format) + strlen(name) + strlen(style)  + 21];
 
