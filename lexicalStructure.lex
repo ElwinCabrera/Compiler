@@ -131,15 +131,8 @@ int get_column() { return column; }
 
 extern ERROR** get_errors();
 
-void print_asc(const char* c) {
-    char* new = malloc(strlen(c) + 5);
-    strcpy(new, c);
-    strcat(new, ".asc");
-    asc_file = fopen(new, "w");
-    if(!asc_file) {
-        printf("(ERROR CODE: %d) Unable to open %s\n", errno, new);
-    }
-    free(new);
+void set_asc_file(FILE* f) {
+    asc_file = f;
 }
 
 /*

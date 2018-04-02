@@ -9,7 +9,7 @@ extern void yyset_in(FILE *);
 // Defined in grammar.y
 // Returns the symbol table the parser uses
 extern SCOPE** get_symbol_table();
-extern void* print_asc(const char*);
+extern void* set_asc_file(FILE*);
 
 FILE *inputFile;
 
@@ -50,7 +50,11 @@ int main(int argc, char* argv[])
         }
 
         if(asc) {
-            print_asc(program);
+            char asc_file_path[strlen(program) + 5];
+            strcpy(asc_file_path, program);
+            strcat(symbol_file_path, ".asc");
+            FILE* asc_file = fopen(asc_file_path, "w");
+            set_asc_file(asc_file);
         }
 
         yyset_in(inputFile);
