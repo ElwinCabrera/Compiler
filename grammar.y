@@ -208,6 +208,7 @@ definition:
     | FUNCTION identifier COLON type_specifier {
         SYMTYPE* type = try_find_type($4);  
         if(!type) {
+            open_scope();
             symbol_not_found_error($4, "type");
         } else {
             insert_scope(type->details.function->parameters);
@@ -216,11 +217,7 @@ definition:
 
     }  open_scope sblock close_scope close_scope {
         SYMTYPE* type = try_find_type($4);
-        if(!type) {
-            symbol_not_found_error($4, "type");
-        } else {
-            try_add_symbol(type, $2, FUNCTION, "function");
-        }
+        try_add_symbol(type, $2, FUNCTION, "function");
     }
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
