@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <string.h>
 #include "symbolTable.h"
@@ -50,10 +52,13 @@ int main(int argc, char* argv[])
         }
 
         if(asc) {
-            char asc_file_path[strlen(program) + 5];
-            strcpy(asc_file_path, program);
-            strcat(asc_file_path, ".asc");
+            char* asc_file_path = malloc(strlen(program) + 5);
+            sprintf(asc_file_path, "%s%s", program, ".asc");
             FILE* asc_file = fopen(asc_file_path, "w");
+            if(!asc_file) {
+                printf("ERROR(%d): Could not open file %s for writing\n", errno, asc_file_path);
+            }
+            free(asc_file_path);
             set_asc_file(asc_file);
         }
 
@@ -61,10 +66,13 @@ int main(int argc, char* argv[])
         printf("yyparse exit code: %d\n", yyparse());
 
         if(st) { //specify to print symbol table
-            char symbol_file_path[strlen(program) + 3];
-            strcpy(symbol_file_path, program);
-            strcat(symbol_file_path, ".t");
+            char* symbol_file_path = malloc(strlen(program) + 4);
+            sprintf(symbol_file_path, "%s%s", program, ".st");
             FILE* symbol_file = fopen(symbol_file_path, "w");
+            if(!symbol_file) {
+                printf("ERROR(%d): Could not open file %s for writing\n", errno, symbol_file_path);
+            }
+            free(symbol_file_path);
             print_symbol_table(*get_symbol_table(), symbol_file);
         }
 
