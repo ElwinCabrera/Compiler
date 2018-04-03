@@ -115,6 +115,7 @@ struct Node {
 %token PARAMETER
 %token LOCAL
 %token RETURN
+%token ASSIGNABLE_FUNCTION
 
 %token NULL_PTR
 %token RESERVE
@@ -208,17 +209,19 @@ definition:
     | FUNCTION identifier COLON type_specifier {
         SYMTYPE* type = try_find_type($4);  
         if(!type) {
+            try_add_symbol(NULL, $2, FUNCTION, "function");
             open_scope();
-            try_add_symbol(NULL, $2, RETURN, "return");
+            try_add_symbol(NULL, $2, ASSIGNABLE_FUNCTION, "function");
             symbol_not_found_error($4, "type");
         } else {
+            try_add_symbol(type, $2, FUNCTION, "function");
             insert_scope(type->details.function->parameters);
-            try_add_symbol(type->details.function->return_type, $2, RETURN, "return");
+            try_add_symbol(type, $2, ASSIGNABLE_FUNCTION, "function");
         }
 
     }  open_scope sblock close_scope close_scope {
-        SYMTYPE* type = try_find_type($4);
-        try_add_symbol(type, $2, FUNCTION, "function");
+        // SYMTYPE* type = try_find_type($4);
+        // try_add_symbol(type, $2, FUNCTION, "function");
     }
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
@@ -246,6 +249,9 @@ non_empty_parameter_list:
 parameter_declaration:
     type_specifier COLON identifier {
         SYMTYPE* type = try_find_type($1);
+        if(!type) {
+            symbol_not_found_error($1, "type");
+        }
         try_add_symbol(type, $3, PARAMETER, "parameter");
     }
     ;
@@ -305,7 +311,20 @@ statement:
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
-    | assignable assign_op expression SEMI_COLON
+    | assignable assign_op expression SEMI_COLON {
+        if($1) {
+            switch($1->meta) {
+                case FUNCTION: {
+                    // Assigning to a function outside of its scope
+                    break;
+                }
+                case ASSIGNABLE_FUNCTION: {
+                    //Valid assign
+                    break;
+                }
+            }
+        }
+    }
     | mem_op assignable SEMI_COLON
     | open_scope sblock close_scope
     ;
@@ -341,17 +360,22 @@ assignable:
     | assignable ablock {
 
         if($1) {
-            if(check_type($1->type, FUNCTION, NULL)) {
+            if(check_type($1->type, FUNCTION, NULL) ||
+                check_type($1->type, ASSIGNABLE_FUNCTION, NULL)) {
                 /* 
                     TODO: FUNCTION CALL
                 */
+                // printf("Function call: %s\n", $1->name);
             } else if(check_type($1->type, ARRAY, NULL)) {
                 /* 
                     TODO: ARRAY ACCESS
                 */
+                // printf("Array access: %s", $1->name);
             } else {
                 incorrect_type_error($1->name, "array or function");
             }
+        } else {
+            printf("Huh\n");
         } 
     }
     ;
