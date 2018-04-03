@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include "symbolTable.h"
 
+typedef int bool;
+#define true 1
+#define false 0
+
 extern int yyparse();
 extern void yyset_in(FILE *);
 extern SCOPE* symbols;
