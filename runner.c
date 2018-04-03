@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
                 //Print symbol table
             }
             else{
-                program = argv[i]
+                program = argv[i];
                 read_program = true;
             }
         }
