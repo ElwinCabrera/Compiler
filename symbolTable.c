@@ -22,20 +22,6 @@ SCOPE* new_scope(SCOPE* parent)
   return new;
 }
 
-SCOPE* insert_and_enter_scope(SCOPE* from, SCOPE* into) {
-  if(!from || !into) {
-    return NULL;
-  }
-
-  SCOPE_LIST* child = malloc(sizeof(SCOPE_LIST));
-  SCOPE* s = malloc(sizeof(SCOPE));
-  memcpy(s, from, sizeof(SCOPE));
-  child->node = s;
-  child->next = into->children;
-  into->children = child;
-  return s;
-}
-
 SCOPE* exit_scope(SCOPE* current) 
 {
   if(!current) {
@@ -92,29 +78,41 @@ SYMTAB* find_in_children(SCOPE* s, char* target)
 
 SYMTAB* last_entry(SYMTAB* start)
 {
-  SYMTAB* p;
-  p = start;
+  if(!start) {
+    return start;
+  }
+
+  SYMTAB* p = start;
   while(p->next != NULL) {
     p = p->next;
   }
   return p;
 }
 
-SYMTAB* add_entry(SCOPE* start, SYMTYPE* type, char* name, int meta, char* extra)
-{
+SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src) {
+  SYMTAB* last = last_entry(dest);
+  if(last) {
+    last->next = src;
+  }
+  return dest;
+}
+
+SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
   SYMTAB *insertNew  = malloc(sizeof(SYMTAB));
   
   if(extra) { insertNew->extra = strdup(extra); } 
-  
+
   insertNew->name = strdup(name);
   insertNew->meta = meta;
-  insertNew->scope = start;
   insertNew->type = type;
-  insertNew->next = start->symbols;
+  insertNew->next = NULL;
 
-  start->symbols = insertNew;
-  
   return insertNew;
+}
+
+SYMTAB* add_symbols_to_scope(SCOPE* scope, SYMTAB* symbols)
+{
+  return add_symbols(scope->symbols, symbols);
 }
 
 SYMTAB* find_entry(SYMTAB* start, char* name)

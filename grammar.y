@@ -21,8 +21,6 @@ void type_as_var_error(char*);
 */
 SCOPE* open_scope();
 SCOPE* close_scope();
-SCOPE* insert_scope(SCOPE*);
-
 /*
     Helpers for passing type or expression information
 */
@@ -41,10 +39,6 @@ SYMTYPE* try_find_type(char*);
 */
 void initialize_types();
 
-/*
-    Wrappers to access types in static symbol table 
-*/
-int try_add_symbol(SYMTYPE*, char*, int, char*);
 SYMTAB* try_find_symbol(char*);
 
 /*
@@ -78,6 +72,7 @@ struct Node {
     struct scope* scope;
     struct symtab* symbol;
     struct expr* expression;
+    struct symtype* type;
     struct Node* node;
 }
 
@@ -91,7 +86,11 @@ struct Node {
 
 %type <string> identifier type_specifier;
 %type <string> binary_operator post_unary_operator pre_unary_operator;
-%type <scope> open_scope close_scope;
+%type <scope> open_scope close_scope program sblock pblock;
+%type <symbol> definition definition_list;
+%type <symbol> dblock declaration_list declaration;
+%type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
+%type <symbol> identifier_list;
 %type <symbol> assignable;
 %type <expression> expression;
 %type <node> constant;
@@ -115,7 +114,6 @@ struct Node {
 %token PARAMETER
 %token LOCAL
 %token RETURN
-%token ASSIGNABLE_FUNCTION
 
 %token NULL_PTR
 %token RESERVE
@@ -170,79 +168,68 @@ struct Node {
 open_scope: { $$ = open_scope(); } ;
 close_scope: { $$ = close_scope(); } ;
 
-/* 
-    We may need to know certain types exist even if they haven't been defined
-    yet. It may be useful to have a separate "type lookup" structure for fast
-    checking to see if they exist
-*/
-
 program: 
     open_scope {
         initialize_types();
-    } definition_list sblock
+    } definition_list { $1->symbols = $3; } sblock
     ;
 
 definition_list: 
-    /* Empty String */
-    | definition definition_list
+    /* Empty String */  { $$ = NULL; }
+    | definition definition_list {
+        $$ = add_symbols($1, $2);
+    }
     ;
 
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        try_add_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "type");
     }
     | TYPE identifier COLON constant ARROW type_specifier {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        try_add_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "type");
     }
-    | TYPE identifier COLON open_scope pblock close_scope ARROW type_specifier {
+    | TYPE identifier COLON pblock ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
         type->details.function->parameters = $4;
-        SYMTYPE* return_type = try_find_type($8);
+        SYMTYPE* return_type = try_find_type($6);
         if(!return_type) { 
-            symbol_not_found_error($8, "type");
+            symbol_not_found_error($6, "type");
         }
         type->details.function->return_type = return_type;
-        try_add_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "type");
     }
-    | FUNCTION identifier COLON type_specifier {
-        SYMTYPE* type = try_find_type($4);  
-        if(!type) {
-            try_add_symbol(NULL, $2, FUNCTION, "function");
-            open_scope();
-            try_add_symbol(NULL, $2, ASSIGNABLE_FUNCTION, "function");
-            symbol_not_found_error($4, "type");
-        } else {
-            try_add_symbol(type, $2, FUNCTION, "function");
-            insert_scope(type->details.function->parameters);
-            try_add_symbol(type, $2, ASSIGNABLE_FUNCTION, "function");
-        }
-
-    }  open_scope sblock close_scope close_scope {
-        // SYMTYPE* type = try_find_type($4);
-        // try_add_symbol(type, $2, FUNCTION, "function");
+    | FUNCTION identifier COLON type_specifier sblock {
+        SYMTYPE* type = try_find_type($4);
+        $$ = new_symbol(type, $2, FUNCTION, "function");
     }
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
     } dblock close_scope  {
         SYMTYPE* type = try_find_type($2);
+        $4->symbols = $6;
         type->details.record->members = $4;
-        try_add_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "type");
     }
     ;
 
 pblock:
-    L_PARENTHESIS parameter_list R_PARENTHESIS
+    L_PARENTHESIS open_scope parameter_list close_scope R_PARENTHESIS {
+        $2->symbols = $3;
+        $$ = $2;
+    }
     ;
 
 parameter_list:
-    /* Empty String */
-    | non_empty_parameter_list
+    /* Empty String */ { $$ = NULL; }
+    | non_empty_parameter_list 
     ;
 
 non_empty_parameter_list:
-    parameter_declaration COMMA non_empty_parameter_list
+    parameter_declaration COMMA non_empty_parameter_list {
+        $$ = add_symbols($1, $3);
+    }
     | parameter_declaration
     ;
 
@@ -252,16 +239,20 @@ parameter_declaration:
         if(!type) {
             symbol_not_found_error($1, "type");
         }
-        try_add_symbol(type, $3, PARAMETER, "parameter");
+        $$ = new_symbol(type, $3, PARAMETER, "parameter");
     }
     ;
 
 dblock:
-    L_BRACKET declaration_list R_BRACKET
+    L_BRACKET declaration_list R_BRACKET {
+        $$ = $2;
+    }
     ;
 
 declaration_list:
-    declaration SEMI_COLON declaration_list
+    declaration SEMI_COLON declaration_list {
+        $$ = add_symbols($1, $3);
+    }
     | declaration
     ;
 
@@ -273,6 +264,7 @@ declaration:
         }
         push_context(t);
     } COLON identifier_list {
+        $$ = $4;
         pop_context();
     }
     ;
@@ -281,25 +273,32 @@ declaration:
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, LOCAL, "local");
+        $$ = add_symbols($5, new_symbol(type, $1, LOCAL, "local"));
     }
     | identifier assign_op constant {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, LOCAL, "local");
+        $$ = new_symbol(type, $1, LOCAL, "local");
     }
     | identifier COMMA identifier_list {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, LOCAL, "local");
+        $$ = add_symbols($3, new_symbol(type, $1, LOCAL, "local"));
+
     }
     | identifier {
         SYMTYPE* type = (SYMTYPE*) peek_context();
-        try_add_symbol(type, $1, LOCAL, "local");
+        $$ = new_symbol(type, $1, LOCAL, "local");
     }
     ;
 
 sblock:
-    L_BRACE dblock statement_list R_BRACE
-    | L_BRACE statement_list R_BRACE
+    L_BRACE open_scope dblock {
+        $2->symbols = $3;
+    } statement_list close_scope R_BRACE {
+        $$ = $2;
+    }
+    | L_BRACE open_scope statement_list close_scope R_BRACE {
+        $$ = $2;
+    }
     ;
     
 statement_list:
@@ -312,18 +311,7 @@ statement:
     | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | assignable assign_op expression SEMI_COLON {
-        if($1) {
-            switch($1->meta) {
-                case FUNCTION: {
-                    // Assigning to a function outside of its scope
-                    break;
-                }
-                case ASSIGNABLE_FUNCTION: {
-                    //Valid assign
-                    break;
-                }
-            }
-        }
+
     }
     | mem_op assignable SEMI_COLON
     | open_scope sblock close_scope
@@ -358,10 +346,8 @@ assignable:
 
     } identifier 
     | assignable ablock {
-
         if($1) {
-            if(check_type($1->type, FUNCTION, NULL) ||
-                check_type($1->type, ASSIGNABLE_FUNCTION, NULL)) {
+            if(check_type($1->type, FUNCTION, NULL)) {
                 /* 
                     TODO: FUNCTION CALL
                 */
@@ -375,7 +361,7 @@ assignable:
                 incorrect_type_error($1->name, "array or function");
             }
         } else {
-            printf("Huh\n");
+
         } 
     }
     ;
@@ -540,11 +526,6 @@ SCOPE* close_scope() {
     return symbols;
 }
 
-SCOPE* insert_scope(SCOPE* s) {
-    symbols =  insert_and_enter_scope(s, symbols);
-    return symbols;
-}
-
 void initialize_types() {
     try_add_type(T_STRING, "string");
     try_add_type(T_REAL, "real");
@@ -572,22 +553,6 @@ SYMTYPE * try_find_type(char* name) {
     }
 
     return t;
-}
-
-int try_add_symbol(SYMTYPE* type, char* name, int meta, char* ext) {
-    
-    if(!symbols) {
-        return 0;
-    }
-
-    if(find_entry(symbols->symbols, name)) {
-        // Symbol redefined in the same table
-        return 0;
-    }
-    
-    add_entry(symbols, type, name, meta, ext);
-
-    return 1;
 }
 
 SYMTAB* try_find_symbol(char* name) {

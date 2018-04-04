@@ -25,13 +25,14 @@ typedef struct scope_list {
 
 SCOPE* new_scope(SCOPE *);
 SCOPE* exit_scope(SCOPE *);
-SCOPE* insert_and_enter_scope(SCOPE*, SCOPE*);
 
 SYMTAB* last_entry(SYMTAB*);
 SYMTAB* find_in_scope(SCOPE*, char*);
 SYMTAB* find_in_children(SCOPE *, char*);
 SYMTAB* find_entry(SYMTAB*, char*);
-SYMTAB* add_entry(SCOPE*, struct type *, char*, int, char*);
+SYMTAB* add_symbols_to_scope(SCOPE*, SYMTAB*);
+SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src);
+SYMTAB* new_symbol(struct type *, char*, int, char*);
 void print_symbol(SYMTAB*, FILE*);
 void print_symbol_table(SCOPE *, FILE*);
 

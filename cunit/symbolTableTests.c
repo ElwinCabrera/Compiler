@@ -6,7 +6,7 @@ void test00() {
 
   struct scope * s = new_scope(NULL);
 
-  struct symtab * expected = add_entry(s, 0, "testFunction", NULL);
+  struct symtab * expected = add_symbols_to_scope(s, new_symbol(NULL, "testFunction", 0, NULL));
 
   CU_ASSERT_PTR_EQUAL(expected, find_in_scope(s, "testFunction"));
 }
@@ -28,7 +28,7 @@ void test02() {
   struct scope * s = new_scope(NULL);
   struct scope * s2 = new_scope(s);
 
-  struct symtab * expected = add_entry(s, 0, "testFunction", NULL);
+  struct symtab * expected = add_symbols_to_scope(s, new_symbol(NULL, "testFunction", 0, NULL));
 
   CU_ASSERT_PTR_EQUAL(expected, find_in_scope(s2, "testFunction"));
 }
@@ -41,7 +41,7 @@ void test03() {
   struct scope * s = new_scope(NULL);
   struct scope * s2 = new_scope(s);
 
-  struct symtab * expected = add_entry(s2, 0, "testFunction", NULL);
+  struct symtab * expected = add_symbols_to_scope(s2, new_symbol(NULL, "testFunction", 0, NULL));
 
   CU_ASSERT_PTR_NULL(find_in_scope(s, "testFunction"));
 }
@@ -54,7 +54,7 @@ void test04() {
   struct scope * s = new_scope(NULL);
   struct scope * s2 = new_scope(s);
 
-  struct symtab * expected = add_entry(s2, 0, "testFunction", NULL);
+  struct symtab * expected = add_symbols_to_scope(s2, new_symbol(NULL, "testFunction", 0, NULL));
 
   CU_ASSERT_PTR_EQUAL(expected, find_in_children(s, "testFunction"));
 }
@@ -67,7 +67,7 @@ void test05() {
   struct scope * s = new_scope(NULL);
   struct scope * s2 = new_scope(s);
 
-  struct symtab * expected = add_entry(s, 0, "testFunction", NULL);
+  struct symtab * expected = add_symbols_to_scope(s, new_symbol(NULL, "testFunction", 0, NULL));
 
   CU_ASSERT_PTR_NULL(find_in_children(s2, "testFunction"));
 }
