@@ -21,6 +21,8 @@ void type_as_var_error(char*);
 */
 SCOPE* open_scope();
 SCOPE* close_scope();
+
+
 /*
     Helpers for passing type or expression information
 */
@@ -171,7 +173,9 @@ close_scope: { $$ = close_scope(); } ;
 program: 
     open_scope {
         initialize_types();
-    } definition_list { $1->symbols = $3; } sblock
+    } definition_list { 
+        add_symbols_to_scope($1, $3); 
+    } sblock
     ;
 
 definition_list: 
@@ -208,7 +212,7 @@ definition:
         try_add_type(RECORD, $2);
     } dblock close_scope  {
         SYMTYPE* type = try_find_type($2);
-        $4->symbols = $6;
+        add_symbols_to_scope($4, $6);
         type->details.record->members = $4;
         $$ = new_symbol(type, $2, TYPE, "type");
     }
@@ -216,7 +220,7 @@ definition:
 
 pblock:
     L_PARENTHESIS open_scope parameter_list close_scope R_PARENTHESIS {
-        $2->symbols = $3;
+        add_symbols_to_scope($2, $3);
         $$ = $2;
     }
     ;
@@ -292,7 +296,7 @@ identifier_list:
 
 sblock:
     L_BRACE open_scope dblock {
-        $2->symbols = $3;
+        add_symbols_to_scope($2, $3);
     } statement_list close_scope R_BRACE {
         $$ = $2;
     }

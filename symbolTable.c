@@ -79,7 +79,7 @@ SYMTAB* find_in_children(SCOPE* s, char* target)
 SYMTAB* last_entry(SYMTAB* start)
 {
   if(!start) {
-    return start;
+    return NULL;
   }
 
   SYMTAB* p = start;
@@ -92,9 +92,12 @@ SYMTAB* last_entry(SYMTAB* start)
 SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src) {
   SYMTAB* last = last_entry(dest);
   if(last) {
+    // dest has valid contents
     last->next = src;
+    return dest;
   }
-  return dest;
+  // nothing found in dest
+  return src;
 }
 
 SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
@@ -112,7 +115,13 @@ SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
 
 SYMTAB* add_symbols_to_scope(SCOPE* scope, SYMTAB* symbols)
 {
-  return add_symbols(scope->symbols, symbols);
+  if(!scope) {
+    return NULL;
+  }
+
+  scope->symbols = add_symbols(scope->symbols, symbols);
+  
+  return scope->symbols;
 }
 
 SYMTAB* find_entry(SYMTAB* start, char* name)
