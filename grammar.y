@@ -41,6 +41,7 @@ SYMTYPE* try_find_type(char*);
 void initialize_types();
 
 SYMTAB* try_find_symbol(char*);
+void insert_new_symbol(SYMTYPE*, char*, int, char*);
 
 /*
     Expressions
@@ -89,9 +90,8 @@ struct Node {
 %type <string> binary_operator post_unary_operator pre_unary_operator;
 %type <scope> open_scope close_scope program sblock pblock;
 %type <type> type_specifier;
-%type <symbol> definition definition_list;
 %type <symbol> dblock declaration_list declaration;
-%type <symbol> declare_function parameter_list non_empty_parameter_list parameter_declaration;
+%type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
 %type <symbol> assignable;
 %type <expression> expression;
@@ -173,51 +173,39 @@ close_scope: { $$ = close_scope(); } ;
 program: 
     open_scope {
         initialize_types();
-    } definition_list { 
-        add_symbols_to_scope($1, $3); 
-    } sblock
+    } definition_list sblock
     ;
 
 definition_list: 
-    /* Empty String */  { $$ = NULL; }
-    | definition definition_list {
-        $$ = add_symbols($1, $2);
-    }
+    /* Empty String */
+    | definition definition_list
     ;
 
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        $$ = new_symbol(type, $2, TYPE, "atype");
+        insert_new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON constant ARROW type_specifier {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        $$ = new_symbol(type, $2, TYPE, "atype");
+        insert_new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON pblock ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
         type->details.function->parameters = $4;
         type->details.function->return_type = $6;
-        $$ = new_symbol(type, $2, TYPE, "ftype");
+        insert_new_symbol(type, $2, TYPE, "ftype");
     }
-    | FUNCTION identifier COLON type_specifier { push_context($2); push_context($4); } declare_function sblock {
-        $$ = $6;
-    } 
+    | FUNCTION identifier COLON type_specifier {
+        insert_new_symbol($4, $2, FUNCTION, "function");  
+    } sblock 
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
     } dblock close_scope  {
         SYMTYPE* t = try_find_type($2);
         add_symbols_to_scope($4, $6);
         t->details.record->members = $4;
-        $$ = new_symbol(t, $2, TYPE, "rtype");
-    }
-    ;
-
-declare_function: 
-    { 
-        SYMTYPE* t = (SYMTYPE*) pop_context();
-        char* name = (char*) pop_context();
-        $$ = new_symbol(t, name, FUNCTION, "function"); 
+        insert_new_symbol(t, $2, TYPE, "rtype");
     }
     ;
 
@@ -434,6 +422,7 @@ constant:
     | C_STRING              { $$ = NULL; }
     | C_TRUE                { $$ = NULL; }
     | C_FALSE               { $$ = NULL; }
+    | NULL_PTR              { $$ = NULL; }
     ;
 
 mem_op:
@@ -538,6 +527,11 @@ SCOPE* open_scope() {
 SCOPE* close_scope() {
     symbols =  exit_scope(symbols);
     return symbols;
+}
+
+void insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
+    SYMTAB* s = new_symbol(type, name, meta, char* extra);
+    add_symbols_to_scope(symbols, s);
 }
 
 void initialize_types() {
