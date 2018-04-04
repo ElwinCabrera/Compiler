@@ -13,6 +13,7 @@ typedef struct symtab {
 } SYMTAB;
 
 typedef struct scope {
+    int id;
     struct symtab * symbols;
     struct scope_list * children;
     struct scope * parent;
@@ -23,7 +24,7 @@ typedef struct scope_list {
     struct scope_list * next;
 } SCOPE_LIST;
 
-SCOPE* new_scope(SCOPE *);
+SCOPE* new_scope(SCOPE *, int);
 SCOPE* exit_scope(SCOPE *);
 
 SYMTAB* last_entry(SYMTAB*);
@@ -33,7 +34,7 @@ SYMTAB* find_entry(SYMTAB*, char*);
 SYMTAB* add_symbols_to_scope(SCOPE*, SYMTAB*);
 SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src);
 SYMTAB* new_symbol(struct symtype *, char*, int, char*);
-void print_symbol(SYMTAB*, FILE*);
+void print_symbol(SYMTAB*, int, FILE*);
 void print_symbol_table(SCOPE *, FILE*);
 
 #endif

@@ -4,10 +4,11 @@
 #include "types.h"
 #include "symbolTable.h"
 
-SCOPE* new_scope(SCOPE* parent)
+SCOPE* new_scope(SCOPE* parent, int id)
 {
   SCOPE *new = malloc(sizeof(SCOPE));
 
+  new->id = id;
   new->children = NULL;
   new->symbols = NULL;
   new->parent = parent;
@@ -108,6 +109,7 @@ SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
   insertNew->name = strdup(name);
   insertNew->meta = meta;
   insertNew->type = type;
+  insertNew->scope = NULL;
   insertNew->next = NULL;
 
   return insertNew;
@@ -146,7 +148,7 @@ void print_symbol_table(SCOPE* symbol_table, FILE* f) {
   SYMTAB* s = symbol_table->symbols;
   
   while(s) {
-    print_symbol(s, f);
+    print_symbol(s, symbol_table->id, f);
     s = s->next;
   }
   
@@ -158,15 +160,15 @@ void print_symbol_table(SCOPE* symbol_table, FILE* f) {
   }
 }
 
-void print_symbol(SYMTAB * symbol, FILE* f) {
+void print_symbol(SYMTAB * symbol, int scope, FILE* f) {
   if(!symbol) {
     return;
   }
 
   if(f) {
-    fprintf(f, "%s : %p : %p : %s\n", symbol->name, symbol->scope, symbol->type, symbol->extra);
+    fprintf(f, "%s : %d : %p : %s\n", symbol->name, scope, symbol->type, symbol->extra);
   } else {
-    printf("%s : %p : %p : %s\n", symbol->name, symbol->scope, symbol->type, symbol->extra);
+    printf("%s : %d : %p : %s\n", symbol->name, scope, symbol->type, symbol->extra);
   }
 
 }

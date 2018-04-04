@@ -91,7 +91,7 @@ struct Node {
 %type <type> type_specifier;
 %type <symbol> definition definition_list;
 %type <symbol> dblock declaration_list declaration;
-%type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
+%type <symbol> declare_function parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
 %type <symbol> assignable;
 %type <expression> expression;
@@ -188,28 +188,36 @@ definition_list:
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        $$ = new_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON constant ARROW type_specifier {
         SYMTYPE* type = try_add_type(ARRAY, $2);
-        $$ = new_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON pblock ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
         type->details.function->parameters = $4;
         type->details.function->return_type = $6;
-        $$ = new_symbol(type, $2, TYPE, "type");
+        $$ = new_symbol(type, $2, TYPE, "ftype");
     }
-    | FUNCTION identifier COLON type_specifier sblock {
-        $$ = new_symbol($4, $2, FUNCTION, "function");
-    }
+    | FUNCTION identifier COLON type_specifier { push_context($2); push_context($4); } declare_function sblock {
+        $$ = $6;
+    } 
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
     } dblock close_scope  {
-        SYMTYPE* type = try_find_type($2);
+        SYMTYPE* t = try_find_type($2);
         add_symbols_to_scope($4, $6);
-        type->details.record->members = $4;
-        $$ = new_symbol(type, $2, TYPE, "type");
+        t->details.record->members = $4;
+        $$ = new_symbol(t, $2, TYPE, "rtype");
+    }
+    ;
+
+declare_function: 
+    { 
+        SYMTYPE* t = (SYMTYPE*) pop_context();
+        char* name = (char*) pop_context();
+        $$ = new_symbol(t, name, FUNCTION, "function"); 
     }
     ;
 
@@ -303,7 +311,7 @@ statement:
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | assignable assign_op expression SEMI_COLON
     | mem_op assignable SEMI_COLON
-    | open_scope sblock close_scope
+    | sblock
     ;
 
 case_list:
@@ -465,7 +473,7 @@ binary_operator:
 
 %%
 
-
+static int scope_counter = 0;
 static SCOPE* symbols;
 static SYMTYPE* types;
 static ERROR* errors;
@@ -523,7 +531,7 @@ void* peek_context() {
 }
 
 SCOPE* open_scope() {
-    symbols = new_scope(symbols);
+    symbols = new_scope(symbols, scope_counter++);
     return symbols;
 }
 

@@ -15,7 +15,7 @@ SYMTYPE * add_type(SYMTYPE* start, int type, char* name) {
 
     switch(type) {
         case FUNCTION:
-            new->details.record = malloc(sizeof(struct function_details));
+            new->details.function = malloc(sizeof(struct function_details));
             break;
         case RECORD:
             new->details.record = malloc(sizeof(struct record_details));
