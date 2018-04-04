@@ -3,19 +3,19 @@
 
 struct function_details {
     struct scope * parameters;
-    struct type * return_type;
+    struct symtype * return_type;
 };
 
 struct array_details {
     int dimensions;
-    struct type * element_type;
+    struct symtype * element_type;
 };
 
 struct record_details {
     struct scope * members;
 };
 
-typedef struct type {
+typedef struct symtype {
     int subtype;
     char * name;
     union {
@@ -24,7 +24,7 @@ typedef struct type {
         struct record_details * record;
         void * primitive;
     } details;
-    struct type * next;
+    struct symtype * next;
 } SYMTYPE;
 
 SYMTYPE* type_list;

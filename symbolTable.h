@@ -7,7 +7,7 @@ typedef struct symtab {
    char *name;
    char *extra;
    int meta;
-   struct type *type;
+   struct symtype *type;
    struct scope *scope;
    struct symtab *next;
 } SYMTAB;
@@ -32,7 +32,7 @@ SYMTAB* find_in_children(SCOPE *, char*);
 SYMTAB* find_entry(SYMTAB*, char*);
 SYMTAB* add_symbols_to_scope(SCOPE*, SYMTAB*);
 SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src);
-SYMTAB* new_symbol(struct type *, char*, int, char*);
+SYMTAB* new_symbol(struct symtype *, char*, int, char*);
 void print_symbol(SYMTAB*, FILE*);
 void print_symbol_table(SCOPE *, FILE*);
 

@@ -22,7 +22,6 @@ void type_as_var_error(char*);
 SCOPE* open_scope();
 SCOPE* close_scope();
 
-
 /*
     Helpers for passing type or expression information
 */
@@ -86,9 +85,10 @@ struct Node {
 %token <character> C_CHARACTER;
 %token <string> C_STRING;
 
-%type <string> identifier type_specifier;
+%type <string> identifier;
 %type <string> binary_operator post_unary_operator pre_unary_operator;
 %type <scope> open_scope close_scope program sblock pblock;
+%type <type> type_specifier;
 %type <symbol> definition definition_list;
 %type <symbol> dblock declaration_list declaration;
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
@@ -197,16 +197,11 @@ definition:
     | TYPE identifier COLON pblock ARROW type_specifier {
         SYMTYPE* type = try_add_type(FUNCTION, $2);
         type->details.function->parameters = $4;
-        SYMTYPE* return_type = try_find_type($6);
-        if(!return_type) { 
-            symbol_not_found_error($6, "type");
-        }
-        type->details.function->return_type = return_type;
+        type->details.function->return_type = $6;
         $$ = new_symbol(type, $2, TYPE, "type");
     }
     | FUNCTION identifier COLON type_specifier sblock {
-        SYMTYPE* type = try_find_type($4);
-        $$ = new_symbol(type, $2, FUNCTION, "function");
+        $$ = new_symbol($4, $2, FUNCTION, "function");
     }
     | TYPE identifier COLON open_scope {
         try_add_type(RECORD, $2);
@@ -239,11 +234,7 @@ non_empty_parameter_list:
 
 parameter_declaration:
     type_specifier COLON identifier {
-        SYMTYPE* type = try_find_type($1);
-        if(!type) {
-            symbol_not_found_error($1, "type");
-        }
-        $$ = new_symbol(type, $3, PARAMETER, "parameter");
+        $$ = new_symbol($1, $3, PARAMETER, "parameter");
     }
     ;
 
@@ -262,11 +253,7 @@ declaration_list:
 
 declaration:
     type_specifier {
-        SYMTYPE* t = try_find_type($1);
-        if(!t) {
-            symbol_not_found_error($1, "type");
-        }
-        push_context(t);
+        push_context($1);
     } COLON identifier_list {
         $$ = $4;
         pop_context();
@@ -314,9 +301,7 @@ statement:
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
-    | assignable assign_op expression SEMI_COLON {
-
-    }
+    | assignable assign_op expression SEMI_COLON
     | mem_op assignable SEMI_COLON
     | open_scope sblock close_scope
     ;
@@ -348,7 +333,11 @@ assignable:
             } 
         } 
 
-    } identifier 
+    } identifier {
+        /*
+            TODO: RECORD ACCESS
+        */
+    }
     | assignable ablock {
         if($1) {
             if(check_type($1->type, FUNCTION, NULL)) {
@@ -371,7 +360,13 @@ assignable:
     ;
 
 ablock:
-    L_PARENTHESIS argument_list R_PARENTHESIS
+    L_PARENTHESIS argument_list R_PARENTHESIS {
+        /*
+            TODO: When an argument list is defined, uncomment,
+            and add a $$ = NULL; rule for the empty case below
+            $$ = $2;
+        */
+    }
     ;
 
 argument_list:
@@ -410,21 +405,28 @@ identifier:
     ;
 
 type_specifier:
-    identifier
-    | T_BOOLEAN
-    | T_CHARACTER
-    | T_INTEGER
-    | T_REAL
-    | T_STRING
+    identifier { 
+        SYMTYPE * t = try_find_type($1);
+        if(!t) {
+            symbol_not_found_error($1, "type");
+        }
+        $$ = t;
+    }
+    | T_BOOLEAN             { $$ = try_find_type($1); }
+    | T_CHARACTER           { $$ = try_find_type($1); }
+    | T_INTEGER             { $$ = try_find_type($1); }
+    | T_REAL                { $$ = try_find_type($1); }
+    | T_STRING              { $$ = try_find_type($1); }
     ;
 
 constant:
-    C_INTEGER             { $$ = NULL; }
-    | C_REAL              { $$ = NULL; }
-    | C_CHARACTER         { $$ = NULL; }
-    | C_STRING            { $$ = NULL; }
-    | C_TRUE              { $$ = NULL; }
-    | C_FALSE             { $$ = NULL; }
+    C_INTEGER               { $$ = NULL; }
+    | C_REAL                { $$ = NULL; }
+    | C_CHARACTER           { $$ = NULL; }
+    | C_STRING              { $$ = NULL; }
+    | C_TRUE                { $$ = NULL; }
+    | C_FALSE               { $$ = NULL; }
+    ;
 
 mem_op:
     RESERVE
