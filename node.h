@@ -4,7 +4,12 @@
 #include <stdlib.h>
 
 typedef enum nodetype {
-    CONSTANT,
+    INT_CONSTANT,
+    REAL_CONSTANT,
+    BOOLEAN_CONSTANT,
+    CHAR_CONSTANT,
+    STRING_CONSTANT,
+    NULL_CONSTANT,
     SYMBOL,
     CODE,
 } NODETYPE;

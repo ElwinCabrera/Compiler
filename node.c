@@ -18,7 +18,7 @@ void free_node(NODE* n) {
 
 NODE* int_node(int value) {
     NODE* n = new_node();
-    n->meta = CONSTANT;
+    n->meta = INT_CONSTANT;
     n->type_name = strdup("integer");
     n->value.integer = value;
     return n;
@@ -26,7 +26,7 @@ NODE* int_node(int value) {
 
 NODE* boolean_node(int value) {
     NODE* n = new_node();
-    n->meta = CONSTANT;
+    n->meta = BOOLEAN_CONSTANT;
     n->type_name = strdup("Boolean");
     n->value.boolean = value;
     return n;
@@ -34,7 +34,7 @@ NODE* boolean_node(int value) {
 
 NODE* real_node(double value) {
     NODE* n = new_node();
-    n->meta = CONSTANT;
+    n->meta = REAL_CONSTANT;
     n->type_name = strdup("real");
     n->value.real = value;
     return n;
@@ -42,7 +42,7 @@ NODE* real_node(double value) {
 
 NODE* char_node(char value) {
     NODE* n = new_node();
-    n->meta = CONSTANT;
+    n->meta = CHAR_CONSTANT;
     n->type_name = strdup("character");
     n->value.character = value;
     return n;
@@ -50,7 +50,7 @@ NODE* char_node(char value) {
 
 NODE* string_node(char* value) {
     NODE* n = new_node();
-    n->meta = CONSTANT;
+    n->meta = STRING_CONSTANT;
     n->type_name = strdup("string");
     n->value.string = value;
     return n;
