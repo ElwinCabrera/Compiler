@@ -20,7 +20,6 @@ typedef struct node {
         char character;
         char* string;
         struct symtab* symbol;
-        struct expr* expression;
         struct ir* instruction;
     } value;
 } NODE;
