@@ -92,21 +92,21 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Operators */
 
-"+"                         return handle_token(ADD);
-"-"                         return handle_token(SUB_OR_NEG);
-"*"                         return handle_token(MUL);
-"/"                         return handle_token(DIV);
-"%"                         return handle_token(REM);
-"."                         return handle_token(DOT);
-"<"                         return handle_token(LESS_THAN);
-"="                         return handle_token(EQUAL_TO);
-":="                        return handle_token(ASSIGN);
-"i2r"                       return handle_token(INT2REAL);
-"r2i"                       return handle_token(REAL2INT);
-"isNull"                    return handle_token(IS_NULL);
-"!"                         return handle_token(NOT);
-"&"                         return handle_token(AND);
-"|"                         return handle_token(OR);
+"+"                         yylval.integer = ADD; return handle_token(ADD);
+"-"                         yylval.integer = SUB_OR_NEG; return handle_token(SUB_OR_NEG);
+"*"                         yylval.integer = MUL; return handle_token(MUL);
+"/"                         yylval.integer = DIV; return handle_token(DIV);
+"%"                         yylval.integer = REM; return handle_token(REM);
+"."                         yylval.integer = DOT; return handle_token(DOT);
+"<"                         yylval.integer = LESS_THAN; return handle_token(LESS_THAN);
+"="                         yylval.integer = EQUAL_TO; return handle_token(EQUAL_TO);
+":="                        yylval.integer = ASSIGN; return handle_token(ASSIGN);
+"i2r"                       yylval.integer = INT2REAL; return handle_token(INT2REAL);
+"r2i"                       yylval.integer = REAL2INT; return handle_token(REAL2INT);
+"isNull"                    yylval.integer = IS_NULL; return handle_token(IS_NULL);
+"!"                         yylval.integer = NOT; return handle_token(NOT);
+"&"                         yylval.integer = AND; return handle_token(AND);
+"|"                         yylval.integer = OR; return handle_token(OR);
 
     /* ID */
 

@@ -85,3 +85,12 @@ NODE* ir_node(struct ir* i, char* type_name) {
     n->value.instruction = i;
     return n;
 }
+
+bool type_check_assignment(NODE* lhs, NODE* rhs) {
+    if(!lhs || lhs->meta != SYMBOL || !lhs->type_name ||
+        !rhs || !rhs->type_name) {
+        return false;
+    }
+
+    return (strcmp(lhs->type_name, rhs->type_name) == 0);
+}

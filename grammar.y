@@ -294,7 +294,11 @@ statement:
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
-    | assignable assign_op expression SEMI_COLON
+    | assignable assign_op expression SEMI_COLON {
+        if(!type_check_assignment($1, $3)) {
+            printf("Type mismatch error\n");
+        }
+    }
     | mem_op assignable SEMI_COLON
     | sblock
     ;
@@ -318,16 +322,23 @@ assignable:
         }
         $$ = symbol_node(s);
     }
-    | assignable rec_op {
+    | assignable rec_op identifier {
         if($1 && $1->value.symbol) {
             if(!check_metatype($1->value.symbol->type, MT_RECORD)) {
                 incorrect_type_error($1->value.symbol->name, "record");
+                $$ = NULL;
+            } else {
+                SYMTAB* s = find_entry($1->value.symbol->type->details.record->members->symbols, $3); 
+                if(!s) {
+                    symbol_not_found_error($3, "record member");
+                    $$ = NULL;
+                } else {
+                    $$ = symbol_node(s);
+                }
             } 
-        } 
-    } identifier {
-        /*
-            TODO: RECORD ACCESS
-        */
+        } else {
+            $$ = NULL;
+        }
     }
     | assignable ablock {
         if($1 && $1->value.symbol) {
@@ -371,13 +382,13 @@ non_empty_argument_list:
 
 expression:
     expression binary_operator expression {
-        $$ = NULL;
+        $$ = add_instruction(code_table, $2, $1, $3);
     }
     | expression post_unary_operator {
-        $$ = NULL;
+        $$ = add_instruction(code_table, $2, $1, NULL);
     }
     | pre_unary_operator expression %prec pre_unary_prec {
-        $$ = NULL;
+        $$ = add_instruction(code_table, $1, $2, NULL);
     }
     | L_PARENTHESIS expression R_PARENTHESIS {
         $$ = $2;
@@ -415,7 +426,7 @@ constant:
     | C_STRING              { $$ = string_node($1); }
     | C_TRUE                { $$ = boolean_node($1); }
     | C_FALSE               { $$ = boolean_node($1); }
-    | NULL_PTR              { $$ = NULL; }
+    | NULL_PTR              { $$ = null_node(); }
     ;
 
 mem_op:

@@ -2,6 +2,7 @@
 #define NODE_H
 
 #include <stdlib.h>
+#include <stdbool.h>
 
 typedef enum nodetype {
     INT_CONSTANT,
@@ -38,5 +39,6 @@ NODE* string_node(char*);
 NODE* null_node();
 NODE* symbol_node(struct symtab*);
 NODE* ir_node(struct ir*,char*);
+bool type_check_assignment(NODE*, NODE*);
 
 #endif
