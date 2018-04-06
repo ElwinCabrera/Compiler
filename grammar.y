@@ -32,15 +32,15 @@ void* peek_context();
 /*
     Wrappers to access types in static type linked list
 */
-SYMTYPE* try_add_type(int, char*);
-SYMTYPE* try_find_type(char*);
+SYMTYPE* new_type(int, char*);
+SYMTYPE* lookup_type(char*);
 
 /*
     Adds primitive types to the type linked list
 */
 void initialize_types();
 
-SYMTAB* try_find_symbol(char*);
+SYMTAB* find_symbol(char*);
 void insert_new_symbol(SYMTYPE*, char*, int, char*);
 
 /*
@@ -183,15 +183,15 @@ definition_list:
 
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
-        SYMTYPE* type = try_add_type(ARRAY, $2);
+        SYMTYPE* type = new_type(ARRAY, $2);
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON constant ARROW type_specifier {
-        SYMTYPE* type = try_add_type(ARRAY, $2);
+        SYMTYPE* type = new_type(ARRAY, $2);
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON pblock ARROW type_specifier {
-        SYMTYPE* type = try_add_type(FUNCTION, $2);
+        SYMTYPE* type = new_type(FUNCTION, $2);
         type->details.function->parameters = $4;
         type->details.function->return_type = $6;
         insert_new_symbol(type, $2, TYPE, "ftype");
@@ -200,9 +200,9 @@ definition:
         insert_new_symbol($4, $2, FUNCTION, "function");  
     } sblock 
     | TYPE identifier COLON open_scope {
-        try_add_type(RECORD, $2);
+        new_type(RECORD, $2);
     } dblock close_scope  {
-        SYMTYPE* t = try_find_type($2);
+        SYMTYPE* t = lookup_type($2);
         add_symbols_to_scope($4, $6);
         t->details.record->members = $4;
         insert_new_symbol(t, $2, TYPE, "rtype");
@@ -313,7 +313,7 @@ case:
 
 assignable:
     identifier { 
-        SYMTAB* s = try_find_symbol($1); 
+        SYMTAB* s = find_symbol($1); 
         if (!s) {
             symbol_not_found_error($1, "variable");
         } else if (s->meta == TYPE) {
@@ -402,17 +402,17 @@ identifier:
 
 type_specifier:
     identifier { 
-        SYMTYPE * t = try_find_type($1);
+        SYMTYPE * t = lookup_type($1);
         if(!t) {
             symbol_not_found_error($1, "type");
         }
         $$ = t;
     }
-    | T_BOOLEAN             { $$ = try_find_type($1); }
-    | T_CHARACTER           { $$ = try_find_type($1); }
-    | T_INTEGER             { $$ = try_find_type($1); }
-    | T_REAL                { $$ = try_find_type($1); }
-    | T_STRING              { $$ = try_find_type($1); }
+    | T_BOOLEAN             { $$ = lookup_type($1); }
+    | T_CHARACTER           { $$ = lookup_type($1); }
+    | T_INTEGER             { $$ = lookup_type($1); }
+    | T_REAL                { $$ = lookup_type($1); }
+    | T_STRING              { $$ = lookup_type($1); }
     ;
 
 constant:
@@ -530,19 +530,19 @@ SCOPE* close_scope() {
 }
 
 void insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
-    SYMTAB* s = new_symbol(type, name, meta, char* extra);
+    SYMTAB* s = new_symbol(type, name, meta, extra);
     add_symbols_to_scope(symbols, s);
 }
 
 void initialize_types() {
-    try_add_type(T_STRING, "string");
-    try_add_type(T_REAL, "real");
-    try_add_type(T_BOOLEAN, "Boolean");
-    try_add_type(T_INTEGER, "integer");
-    try_add_type(T_CHARACTER, "character");
+    new_type(T_STRING, "string");
+    new_type(T_REAL, "real");
+    new_type(T_BOOLEAN, "Boolean");
+    new_type(T_INTEGER, "integer");
+    new_type(T_CHARACTER, "character");
 }
 
-SYMTYPE * try_add_type(int type, char* name) {
+SYMTYPE * new_type(int type, char* name) {
     
     if (find_type(types, name)) {
         return NULL;
@@ -552,7 +552,7 @@ SYMTYPE * try_add_type(int type, char* name) {
     return types;
 }
 
-SYMTYPE * try_find_type(char* name) {
+SYMTYPE * lookup_type(char* name) {
 
     SYMTYPE * t = find_type(types, name);
 
@@ -563,7 +563,7 @@ SYMTYPE * try_find_type(char* name) {
     return t;
 }
 
-SYMTAB* try_find_symbol(char* name) {
+SYMTAB* find_symbol(char* name) {
     return find_in_scope(symbols, name);
 }
 
