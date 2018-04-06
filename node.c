@@ -56,6 +56,12 @@ NODE* string_node(char* value) {
     return n;
 }
 
+NODE* null_node() {
+    NODE* n = new_node();
+    n->meta = NULL_CONSTANT;
+    return n;
+}
+
 NODE* symbol_node(struct symtab* value) {
     NODE* n = new_node();
     n->meta = SYMBOL;

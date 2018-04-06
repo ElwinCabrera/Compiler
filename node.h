@@ -35,6 +35,7 @@ NODE* boolean_node(int);
 NODE* real_node(double);
 NODE* char_node(char);
 NODE* string_node(char*);
+NODE* null_node();
 NODE* symbol_node(struct symtab*);
 NODE* ir_node(struct ir*,char*);
 
