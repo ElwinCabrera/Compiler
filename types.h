@@ -1,6 +1,13 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+typedef enum typemeta {
+    MT_FUNCTION,
+    MT_ARRAY,
+    MT_RECORD,
+    MT_PRIMITIVE,
+} TYPEMETA;
+
 struct function_details {
     struct scope * parameters;
     struct symtype * return_type;
@@ -16,21 +23,22 @@ struct record_details {
 };
 
 typedef struct symtype {
-    int subtype;
-    char * name;
+    TYPEMETA meta;
+    char* name;
     union {
-        struct function_details * function;
-        struct array_details * array;
-        struct record_details * record;
-        void * primitive;
+        struct function_details* function;
+        struct array_details* array;
+        struct record_details* record;
+        void* primitive;
     } details;
-    struct symtype * next;
+    struct symtype* next;
 } SYMTYPE;
 
 SYMTYPE* type_list;
 
-SYMTYPE* add_type(SYMTYPE*, int, char*);
+SYMTYPE* add_type(SYMTYPE*, TYPEMETA, char*);
 SYMTYPE* find_type(SYMTYPE*, char*);
-int check_type(SYMTYPE*,int,char*);
+int check_metatype(SYMTYPE*, TYPEMETA);
+int check_type(SYMTYPE*, char*);
 
 #endif

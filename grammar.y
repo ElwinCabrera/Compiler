@@ -4,9 +4,28 @@
 #include "symbolTable.h"
 #include "types.h"
 #include "errors.h"
-#include "expressions.h"
+#include "node.h"
+#include "ir.h"
 
+static int scope_counter = 0;
+static SCOPE* symbols;
+static SYMTYPE* types;
+static ERROR* errors;
+static IRTABLE* code_table;
+static int yyerrstatus;
+
+extern int get_row();
+extern int get_column();
 int yylex();
+
+/*
+    Simple stack to pass information between productions
+*/
+struct context {
+    void* node;
+    struct context* next;
+} * context_stack = NULL;
+
 
 /*
     Error Handling
@@ -15,6 +34,11 @@ void yyerror(char*);
 void symbol_not_found_error(char*, char*);
 void incorrect_type_error(char*, char*);
 void type_as_var_error(char*);
+
+/*
+    Setup scope, IR table, and primitive types
+*/
+void initialize_structs();
 
 /*
     Used by rule actions for manipulating and accessing scope
@@ -35,31 +59,9 @@ void* peek_context();
 SYMTYPE* new_type(int, char*);
 SYMTYPE* lookup_type(char*);
 
-/*
-    Adds primitive types to the type linked list
-*/
-void initialize_types();
-
 SYMTAB* find_symbol(char*);
 void insert_new_symbol(SYMTYPE*, char*, int, char*);
 
-/*
-    Expressions
-*/
-
-EXPR* try_expression(void*);
-EXPR* try_binary_expression(void*, char*, void*);
-EXPR* try_post_unary_expression(void*, char*);
-EXPR* try_pre_unary_expression(char*, void*);
-
-struct Node {
-  int id;
-  int integer;
-  int boolean;
-  double real;
-  char character;
-  char* string;
-};
 
 %}
 
@@ -73,9 +75,8 @@ struct Node {
     char* string;
     struct scope* scope;
     struct symtab* symbol;
-    struct expr* expression;
     struct symtype* type;
-    struct Node* node;
+    struct node* node;
 }
 
 %token <string> ID;
@@ -87,15 +88,13 @@ struct Node {
 %token <string> C_STRING;
 
 %type <string> identifier;
-%type <string> binary_operator post_unary_operator pre_unary_operator;
-%type <scope> open_scope close_scope program sblock pblock;
+%type <integer> binary_operator post_unary_operator pre_unary_operator;
+%type <scope> open_scope close_scope sblock pblock;
 %type <type> type_specifier;
 %type <symbol> dblock declaration_list declaration;
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
-%type <symbol> assignable;
-%type <expression> expression;
-%type <node> constant;
+%type <node> constant expression assignable;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -147,21 +146,21 @@ struct Node {
 %token ARROW
 %token BACKSLASH
 
-%token <string> ADD
-%token <string> SUB_OR_NEG
-%token <string> MUL
-%token <string> DIV
-%token <string> REM
-%token <string> DOT
-%token <string> LESS_THAN
-%token <string> EQUAL_TO
-%token <string> ASSIGN
-%token <string> INT2REAL
-%token <string> REAL2INT
-%token <string> IS_NULL
-%token <string> NOT
-%token <string> AND
-%token <string> OR
+%token <integer> ADD
+%token <integer> SUB_OR_NEG
+%token <integer> MUL
+%token <integer> DIV
+%token <integer> REM
+%token <integer> DOT
+%token <integer> LESS_THAN
+%token <integer> EQUAL_TO
+%token <integer> ASSIGN
+%token <integer> INT2REAL
+%token <integer> REAL2INT
+%token <integer> IS_NULL
+%token <integer> NOT
+%token <integer> AND
+%token <integer> OR
 
 %token COMMENT;
 
@@ -171,9 +170,7 @@ open_scope: { $$ = open_scope(); } ;
 close_scope: { $$ = close_scope(); } ;
 
 program: 
-    open_scope {
-        initialize_types();
-    } definition_list sblock
+    { initialize_structs(); } definition_list sblock
     ;
 
 definition_list: 
@@ -183,15 +180,15 @@ definition_list:
 
 definition:
     TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
-        SYMTYPE* type = new_type(ARRAY, $2);
+        SYMTYPE* type = new_type(MT_ARRAY, $2);
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON constant ARROW type_specifier {
-        SYMTYPE* type = new_type(ARRAY, $2);
+        SYMTYPE* type = new_type(MT_ARRAY, $2);
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | TYPE identifier COLON pblock ARROW type_specifier {
-        SYMTYPE* type = new_type(FUNCTION, $2);
+        SYMTYPE* type = new_type(MT_FUNCTION, $2);
         type->details.function->parameters = $4;
         type->details.function->return_type = $6;
         insert_new_symbol(type, $2, TYPE, "ftype");
@@ -200,7 +197,7 @@ definition:
         insert_new_symbol($4, $2, FUNCTION, "function");  
     } sblock 
     | TYPE identifier COLON open_scope {
-        new_type(RECORD, $2);
+        new_type(MT_RECORD, $2);
     } dblock close_scope  {
         SYMTYPE* t = lookup_type($2);
         add_symbols_to_scope($4, $6);
@@ -319,35 +316,33 @@ assignable:
         } else if (s->meta == TYPE) {
             type_as_var_error(s->name);
         }
-        $$ = s;
+        $$ = symbol_node(s);
     }
     | assignable rec_op {
-        
-        if($1) {
-            if(!check_type($1->type, RECORD, NULL)) {
-                incorrect_type_error($1->name, "record");
+        if($1 && $1->value.symbol) {
+            if(!check_metatype($1->value.symbol->type, MT_RECORD)) {
+                incorrect_type_error($1->value.symbol->name, "record");
             } 
         } 
-
     } identifier {
         /*
             TODO: RECORD ACCESS
         */
     }
     | assignable ablock {
-        if($1) {
-            if(check_type($1->type, FUNCTION, NULL)) {
+        if($1 && $1->value.symbol) {
+            if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
                 /* 
                     TODO: FUNCTION CALL
                 */
                 // printf("Function call: %s\n", $1->name);
-            } else if(check_type($1->type, ARRAY, NULL)) {
+            } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
                 /* 
                     TODO: ARRAY ACCESS
                 */
                 // printf("Array access: %s", $1->name);
             } else {
-                incorrect_type_error($1->name, "array or function");
+                incorrect_type_error($1->value.symbol->name, "array or function");
             }
         } else {
 
@@ -376,22 +371,20 @@ non_empty_argument_list:
 
 expression:
     expression binary_operator expression {
-        $$ = try_binary_expression($1, $2, $3);
+        $$ = NULL;
     }
     | expression post_unary_operator {
-        $$ = try_post_unary_expression($1, $2);
+        $$ = NULL;
     }
     | pre_unary_operator expression %prec pre_unary_prec {
-        $$ = try_pre_unary_expression($1, $2);
+        $$ = NULL;
     }
     | L_PARENTHESIS expression R_PARENTHESIS {
         $$ = $2;
     }
-    | constant {
-        $$ = try_expression($1);
-    }
+    | constant 
     | assignable {
-        $$ = try_expression($1);
+        $$ = add_instruction(code_table, ID, $1, NULL);
     }
     ;
 
@@ -416,12 +409,12 @@ type_specifier:
     ;
 
 constant:
-    C_INTEGER               { $$ = NULL; }
-    | C_REAL                { $$ = NULL; }
-    | C_CHARACTER           { $$ = NULL; }
-    | C_STRING              { $$ = NULL; }
-    | C_TRUE                { $$ = NULL; }
-    | C_FALSE               { $$ = NULL; }
+    C_INTEGER               { $$ = int_node($1); }
+    | C_REAL                { $$ = real_node($1); }
+    | C_CHARACTER           { $$ = char_node($1); }
+    | C_STRING              { $$ = string_node($1); }
+    | C_TRUE                { $$ = boolean_node($1); }
+    | C_FALSE               { $$ = boolean_node($1); }
     | NULL_PTR              { $$ = NULL; }
     ;
 
@@ -462,14 +455,6 @@ binary_operator:
 
 %%
 
-static int scope_counter = 0;
-static SCOPE* symbols;
-static SYMTYPE* types;
-static ERROR* errors;
-static int yyerrstatus;
-
-extern int get_row();
-extern int get_column();
 
 /*
     Accessors for parts of the program
@@ -482,14 +467,6 @@ SCOPE** get_symbol_table() {
 ERROR** get_errors() {
     return &errors;
 }
-
-/*
-    Simple stack to pass information between productions
-*/
-struct context {
-    void* node;
-    struct context* next;
-} * context_stack = NULL;
 
 void push_context(void* context) {
     struct context * c = malloc(sizeof(struct context));
@@ -534,15 +511,18 @@ void insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
     add_symbols_to_scope(symbols, s);
 }
 
-void initialize_types() {
-    new_type(T_STRING, "string");
-    new_type(T_REAL, "real");
-    new_type(T_BOOLEAN, "Boolean");
-    new_type(T_INTEGER, "integer");
-    new_type(T_CHARACTER, "character");
+void initialize_structs() {
+    open_scope();
+    code_table = new_ir_table(1000);
+
+    new_type(MT_PRIMITIVE, "string");
+    new_type(MT_PRIMITIVE, "real");
+    new_type(MT_PRIMITIVE, "Boolean");
+    new_type(MT_PRIMITIVE, "integer");
+    new_type(MT_PRIMITIVE, "character");
 }
 
-SYMTYPE * new_type(int type, char* name) {
+SYMTYPE* new_type(int type, char* name) {
     
     if (find_type(types, name)) {
         return NULL;
@@ -552,7 +532,7 @@ SYMTYPE * new_type(int type, char* name) {
     return types;
 }
 
-SYMTYPE * lookup_type(char* name) {
+SYMTYPE* lookup_type(char* name) {
 
     SYMTYPE * t = find_type(types, name);
 
@@ -565,23 +545,6 @@ SYMTYPE * lookup_type(char* name) {
 
 SYMTAB* find_symbol(char* name) {
     return find_in_scope(symbols, name);
-}
-
-
-EXPR* try_expression(void* n) {
-    return NULL;
-}
-
-EXPR* try_binary_expression(void* lhs, char* op, void* rhs) {
-    return NULL;
-}
-
-EXPR* try_post_unary_expression(void* lhs, char* op) {
-    return NULL;
-}
-
-EXPR* try_pre_unary_expression(char* op, void* rhs) {
-    return NULL;
 }
 
 

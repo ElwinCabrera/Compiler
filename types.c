@@ -1,32 +1,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include "types.h"
-#include "y.tab.h"
 
-SYMTYPE * add_type(SYMTYPE* start, int type, char* name) {
+SYMTYPE * add_type(SYMTYPE* start, TYPEMETA meta, char* name) {
 
     if(!name || find_type(start, name)) {
         return NULL;
     }
 
     SYMTYPE * new = malloc(sizeof(SYMTYPE));
-    
-    new->subtype = type;
 
-    switch(type) {
-        case FUNCTION:
+    switch(meta) {
+        case MT_FUNCTION:
             new->details.function = malloc(sizeof(struct function_details));
             break;
-        case RECORD:
+        case MT_RECORD:
             new->details.record = malloc(sizeof(struct record_details));
             break;
-        case ARRAY:
+        case MT_ARRAY:
             new->details.array = malloc(sizeof(struct array_details));
             break;
         default:
             new->details.primitive = NULL;
             break;
     }
+
+    new->meta = meta;
     new->name = name;
     new->next = start;
 
@@ -51,19 +50,23 @@ SYMTYPE * find_type(SYMTYPE* start, char* name) {
     return NULL;
 }
 
-int check_type(SYMTYPE* t, int subtype, char* name) {
+int check_metatype(SYMTYPE* t, TYPEMETA meta) {
 
     if (!t) {
         return 0;
     }
 
-    if(t->subtype == subtype) {
+    return t->meta == meta;
+}
 
-        if (!name || strcmp(name, t->name) == 0) {
-            return 1;
-        }
+int check_type(SYMTYPE* t, char* name) {
 
+    if (!t || !name) {
         return 0;
+    }
+
+    if (strcmp(name, t->name) == 0) {
+        return 1;
     }
 
     return 0;

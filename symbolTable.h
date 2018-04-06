@@ -2,6 +2,7 @@
 #define SYMBOL_TABLE_H
 
 #include <stddef.h>
+#include <stdio.h>
 
 typedef struct symtab {
    char *name;

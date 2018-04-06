@@ -92,21 +92,21 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Operators */
 
-"+"                         yylval.string = strdup(yytext); return handle_token(ADD);
-"-"                         yylval.string = strdup(yytext); return handle_token(SUB_OR_NEG);
-"*"                         yylval.string = strdup(yytext); return handle_token(MUL);
-"/"                         yylval.string = strdup(yytext); return handle_token(DIV);
-"%"                         yylval.string = strdup(yytext); return handle_token(REM);
-"."                         yylval.string = strdup(yytext); return handle_token(DOT);
-"<"                         yylval.string = strdup(yytext); return handle_token(LESS_THAN);
-"="                         yylval.string = strdup(yytext); return handle_token(EQUAL_TO);
-":="                        yylval.string = strdup(yytext); return handle_token(ASSIGN);
-"i2r"                       yylval.string = strdup(yytext); return handle_token(INT2REAL);
-"r2i"                       yylval.string = strdup(yytext); return handle_token(REAL2INT);
-"isNull"                    yylval.string = strdup(yytext); return handle_token(IS_NULL);
-"!"                         yylval.string = strdup(yytext); return handle_token(NOT);
-"&"                         yylval.string = strdup(yytext); return handle_token(AND);
-"|"                         yylval.string = strdup(yytext); return handle_token(OR);
+"+"                         return handle_token(ADD);
+"-"                         return handle_token(SUB_OR_NEG);
+"*"                         return handle_token(MUL);
+"/"                         return handle_token(DIV);
+"%"                         return handle_token(REM);
+"."                         return handle_token(DOT);
+"<"                         return handle_token(LESS_THAN);
+"="                         return handle_token(EQUAL_TO);
+":="                        return handle_token(ASSIGN);
+"i2r"                       return handle_token(INT2REAL);
+"r2i"                       return handle_token(REAL2INT);
+"isNull"                    return handle_token(IS_NULL);
+"!"                         return handle_token(NOT);
+"&"                         return handle_token(AND);
+"|"                         return handle_token(OR);
 
     /* ID */
 
