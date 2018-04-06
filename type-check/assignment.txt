@@ -1,0 +1,16 @@
+
+type record : [ Boolean: r; real: j ]
+
+{
+    [ 
+        integer: a; real: b; string: c; character: d; Boolean: e;
+        record: x
+    ]
+    a := 7;
+    b := 7.2;
+    c := "Hi";
+    d := 'd';
+    e := false;
+    e := true;
+    x.a := true;
+}
