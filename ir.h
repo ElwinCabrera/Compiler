@@ -1,6 +1,7 @@
 #ifndef IR_H
 #define IR_H
 
+#include <stdio.h>
 #include "types.h"
 #include "node.h"
 
@@ -43,5 +44,7 @@ typedef struct ir_table {
 
 IRTABLE* new_ir_table(int);
 NODE* add_instruction(IRTABLE*, INSTRUCTION, NODE*, NODE*);
+void print_ir(IR*, FILE*);
+void print_ir_table(IRTABLE*, FILE*);
 
 #endif

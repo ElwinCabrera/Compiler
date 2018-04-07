@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "symbolTable.h"
+#include "ir.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
@@ -11,6 +12,7 @@ extern void yyset_in(FILE *);
 // Defined in grammar.y
 // Returns the symbol table the parser uses
 extern SCOPE** get_symbol_table();
+extern IRTABLE** get_intermediate_code();
 extern void* set_asc_file(FILE*);
 
 FILE *inputFile;
@@ -24,6 +26,7 @@ int main(int argc, char* argv[])
         const char* program;
         bool asc = false;
         bool st = false;
+        bool ir = false;
         bool read_program = false;
 
         for(int i = 1;i< argc;i++) {
@@ -33,6 +36,9 @@ int main(int argc, char* argv[])
             } else if(strcmp(argv[i],"-st") == 0) {
                 st = true;
                 //Print symbol table
+            } else if(strcmp(argv[i],"-ir") == 0) {
+                ir = true;
+                //Print intermediate representation
             } else {
                 program = argv[i];
                 read_program = true;
@@ -74,6 +80,17 @@ int main(int argc, char* argv[])
             }
             free(symbol_file_path);
             print_symbol_table(*get_symbol_table(), symbol_file);
+        }
+
+        if(ir) { //specify to print symbol table
+            // char* symbol_file_path = malloc(strlen(program) + 4);
+            // sprintf(symbol_file_path, "%s%s", program, ".st");
+            // FILE* symbol_file = fopen(symbol_file_path, "w");
+            // if(!symbol_file) {
+            //     printf("ERROR(%d): Could not open file %s for writing\n", errno, symbol_file_path);
+            // }
+            // free(symbol_file_path);
+            print_ir_table(*get_intermediate_code(), NULL);
         }
 
 
