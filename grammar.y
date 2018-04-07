@@ -194,8 +194,9 @@ definition:
         insert_new_symbol(type, $2, TYPE, "ftype");
     }
     | FUNCTION identifier COLON type_specifier {
-        insert_new_symbol($4, $2, FUNCTION, "function");  
-    } sblock 
+        insert_new_symbol($4, $2, FUNCTION, "function");
+        push_context($4);
+    } sblock { pop_context(); }
     | TYPE identifier COLON open_scope {
         new_type(MT_RECORD, $2);
     } dblock close_scope  {
@@ -296,7 +297,10 @@ statement:
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | assignable assign_op expression SEMI_COLON {
         if(!type_check_assignment($1, $3)) {
-            printf("Type mismatch error\n");
+            //printf("Type mismatch error\n");
+        } else {
+            NODE* n = add_instruction(code_table, ID, $1, NULL);
+            add_instruction(code_table, ASSIGN, n, $3);
         }
     }
     | mem_op assignable SEMI_COLON
@@ -316,7 +320,13 @@ assignable:
     identifier { 
         SYMTAB* s = find_symbol($1); 
         if (!s) {
-            symbol_not_found_error($1, "variable");
+            SYMTYPE* st = peek_context();
+            if(st && st->meta == MT_FUNCTION) {
+                s = find_entry(st->details.function->parameters->symbols, $1);
+            }
+            if(!s) {
+                symbol_not_found_error($1, "variable");
+            }
         } else if (s->meta == TYPE) {
             type_as_var_error(s->name);
         }
