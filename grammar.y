@@ -293,14 +293,16 @@ statement_list:
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
-    | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock
+    | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock {
+
+    }
     | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
     | assignable assign_op expression SEMI_COLON {
         if(!type_check_assignment($1, $3)) {
             //printf("Type mismatch error\n");
         } else {
-            NODE* n = add_instruction(code_table, ID, $1, NULL);
-            add_instruction(code_table, ASSIGN, n, $3);
+            NODE* n = add_instruction(code_table, I_LOOKUP, $1, NULL);
+            add_instruction(code_table, I_ASSIGN, n, $3);
         }
     }
     | mem_op assignable SEMI_COLON
@@ -320,6 +322,11 @@ assignable:
     identifier { 
         SYMTAB* s = find_symbol($1); 
         if (!s) {
+            /*
+                Feels a bit ugly, but if we're in a function scope, there
+                is a function type pushed on the stack. If the symbol isn't
+                found normally, check the function scope for parameters.
+            */
             SYMTYPE* st = peek_context();
             if(st && st->meta == MT_FUNCTION) {
                 s = find_entry(st->details.function->parameters->symbols, $1);
@@ -392,6 +399,12 @@ non_empty_argument_list:
 
 expression:
     expression binary_operator expression {
+        /*
+            TODO: 
+                Boolean or:
+                if $1 goto L
+
+        */
         $$ = add_instruction(code_table, $2, $1, $3);
     }
     | expression post_unary_operator {
@@ -405,7 +418,7 @@ expression:
     }
     | constant 
     | assignable {
-        $$ = add_instruction(code_table, ID, $1, NULL);
+        $$ = add_instruction(code_table, I_LOOKUP, $1, NULL);
     }
     ;
 

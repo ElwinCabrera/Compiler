@@ -8,7 +8,7 @@ IRTABLE* new_ir_table(int capacity) {
     return irtab;
 }
 
-IR* new_instruction(int index, int op, NODE* lhs, NODE* rhs) {
+IR* new_instruction(int index, INSTRUCTION op, NODE* lhs, NODE* rhs) {
     IR* i = malloc(sizeof(IR));
     i->index = index;
     i->op = op;
@@ -17,7 +17,7 @@ IR* new_instruction(int index, int op, NODE* lhs, NODE* rhs) {
     return i;
 }
 
-NODE* add_instruction(IRTABLE* irtab, int op, NODE* lhs, NODE* rhs) {
+NODE* add_instruction(IRTABLE* irtab, INSTRUCTION op, NODE* lhs, NODE* rhs) {
     
     if(!irtab || !lhs) {
         return NULL;

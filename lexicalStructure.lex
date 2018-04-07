@@ -1,6 +1,7 @@
 %{
 #include "y.tab.h"
 #include "errors.h"
+#include "ir.h"
 int handle_token(int);
 %}
 
@@ -92,21 +93,21 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Operators */
 
-"+"                         yylval.integer = ADD; return handle_token(ADD);
-"-"                         yylval.integer = SUB_OR_NEG; return handle_token(SUB_OR_NEG);
-"*"                         yylval.integer = MUL; return handle_token(MUL);
-"/"                         yylval.integer = DIV; return handle_token(DIV);
-"%"                         yylval.integer = REM; return handle_token(REM);
+"+"                         yylval.integer = I_ADD; return handle_token(ADD);
+"-"                         yylval.integer = I_SUB; return handle_token(SUB_OR_NEG);
+"*"                         yylval.integer = I_MULTIPLY; return handle_token(MUL);
+"/"                         yylval.integer = I_DIVIDE; return handle_token(DIV);
+"%"                         yylval.integer = I_MODULUS; return handle_token(REM);
 "."                         yylval.integer = DOT; return handle_token(DOT);
-"<"                         yylval.integer = LESS_THAN; return handle_token(LESS_THAN);
-"="                         yylval.integer = EQUAL_TO; return handle_token(EQUAL_TO);
-":="                        yylval.integer = ASSIGN; return handle_token(ASSIGN);
-"i2r"                       yylval.integer = INT2REAL; return handle_token(INT2REAL);
-"r2i"                       yylval.integer = REAL2INT; return handle_token(REAL2INT);
-"isNull"                    yylval.integer = IS_NULL; return handle_token(IS_NULL);
-"!"                         yylval.integer = NOT; return handle_token(NOT);
-"&"                         yylval.integer = AND; return handle_token(AND);
-"|"                         yylval.integer = OR; return handle_token(OR);
+"<"                         yylval.integer = I_LESS_THAN; return handle_token(LESS_THAN);
+"="                         yylval.integer = I_EQUAL; return handle_token(EQUAL_TO);
+":="                        yylval.integer = I_ASSIGN; return handle_token(ASSIGN);
+"i2r"                       yylval.integer = I_INT2REAL; return handle_token(INT2REAL);
+"r2i"                       yylval.integer = I_REAL2INT; return handle_token(REAL2INT);
+"isNull"                    yylval.integer = I_IS_NULL; return handle_token(IS_NULL);
+"!"                         yylval.integer = I_NOT; return handle_token(NOT);
+"&"                         yylval.integer = I_AND; return handle_token(AND);
+"|"                         yylval.integer = I_OR; return handle_token(OR);
 
     /* ID */
 
