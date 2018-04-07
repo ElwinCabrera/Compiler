@@ -293,7 +293,20 @@ statement_list:
     | statement;
 
 statement:
-    FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
+    FOR L_PARENTHESIS statement SEMI_COLON next_instruction expression next_instruction {
+        add_instruction(code_table, I_TEST_FALSE, $6, NULL);
+    } next_instruction {
+        add_instruction(code_table, I_GOTO, NULL, NULL);
+    } SEMI_COLON next_instruction statement {
+        add_instruction(code_table, I_GOTO, $6, NULL);
+    } R_PARENTHESIS next_instruction {
+        code_table->entries[$9]->lhs = ir_node(code_table->entries[$16], NULL);
+    } sblock {
+        NODE* n = ir_node(code_table->entries[$12], NULL);
+        add_instruction(code_table, I_GOTO, n, NULL);
+    } next_instruction {
+        code_table->entries[$7]->rhs = ir_node(code_table->entries[$20], NULL);
+    }
 
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     
@@ -303,9 +316,7 @@ statement:
         add_instruction(code_table, I_GOTO, NULL, NULL);
     } next_instruction {
         code_table->entries[$4]->rhs = ir_node(code_table->entries[$11], NULL);
-        // FALSE CASE:
     } ELSE sblock next_instruction {
-        // Where to go after true code:
         code_table->entries[$9]->lhs = ir_node(code_table->entries[$15], NULL);
     }
 
