@@ -95,6 +95,7 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
 %type <node> constant expression assignable;
+%type <integer> next_instruction;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -168,6 +169,7 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 
 open_scope: { $$ = open_scope(); } ;
 close_scope: { $$ = close_scope(); } ;
+next_instruction: { $$ = code_table->next_instruction; }
 
 program: 
     { initialize_structs(); } definition_list sblock
@@ -292,11 +294,29 @@ statement_list:
 
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON expression SEMI_COLON statement R_PARENTHESIS sblock
-    | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
-    | IF L_PARENTHESIS expression R_PARENTHESIS THEN sblock ELSE sblock {
 
+    | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
+    
+    | IF L_PARENTHESIS expression next_instruction { 
+        add_instruction(code_table, I_TEST_FALSE, $3, NULL);
+    } R_PARENTHESIS THEN sblock next_instruction {
+        add_instruction(code_table, I_GOTO, NULL, NULL);
+    } next_instruction {
+        code_table->entries[$4]->rhs = ir_node(code_table->entries[$11], NULL);
+        // FALSE CASE:
+    } ELSE sblock next_instruction {
+        // Where to go after true code:
+        code_table->entries[$9]->lhs = ir_node(code_table->entries[$15], NULL);
     }
-    | WHILE L_PARENTHESIS expression R_PARENTHESIS sblock
+
+    | WHILE L_PARENTHESIS next_instruction expression next_instruction {
+        add_instruction(code_table, I_TEST_FALSE, $4, NULL);
+    } R_PARENTHESIS sblock {
+        add_instruction(code_table, I_GOTO, $4, NULL);
+    } next_instruction {
+        code_table->entries[$5]->rhs = ir_node(code_table->entries[$10], NULL);
+    }
+
     | assignable assign_op expression SEMI_COLON {
         if(!type_check_assignment($1, $3)) {
             //printf("Type mismatch error\n");
@@ -305,7 +325,9 @@ statement:
             add_instruction(code_table, I_ASSIGN, n, $3);
         }
     }
+
     | mem_op assignable SEMI_COLON
+
     | sblock
     ;
 
@@ -496,6 +518,10 @@ binary_operator:
 */
 SCOPE** get_symbol_table() {
     return &symbols;
+}
+
+IRTABLE** get_intermediate_code() {
+    return &code_table;
 }
 
 ERROR** get_errors() {
