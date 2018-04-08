@@ -27,6 +27,8 @@ typedef enum instruction {
     I_TEST,
     I_TEST_FALSE,
     I_GOTO,
+    I_RESERVE,
+    I_RELEASE,
 } INSTRUCTION;
 
 typedef struct ir {

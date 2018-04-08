@@ -74,7 +74,7 @@ NODE* symbol_node(struct symtab* value) {
     return n;
 }
 
-NODE* ir_node(struct ir* i, char* type_name) {
+NODE* ir_node(int i, char* type_name) {
     NODE* n = new_node();
     n->meta = CODE;
     if(type_name) {

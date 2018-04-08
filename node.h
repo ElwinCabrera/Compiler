@@ -26,7 +26,7 @@ typedef struct node {
         char character;
         char* string;
         struct symtab* symbol;
-        struct ir* instruction;
+        int instruction;
     } value;
 } NODE;
 
@@ -38,7 +38,7 @@ NODE* char_node(char);
 NODE* string_node(char*);
 NODE* null_node();
 NODE* symbol_node(struct symtab*);
-NODE* ir_node(struct ir*,char*);
+NODE* ir_node(int, char*);
 bool type_check_assignment(NODE*, NODE*);
 
 #endif

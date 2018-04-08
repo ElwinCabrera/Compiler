@@ -88,7 +88,7 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %token <string> C_STRING;
 
 %type <string> identifier;
-%type <integer> binary_operator post_unary_operator pre_unary_operator;
+%type <integer> binary_operator post_unary_operator pre_unary_operator mem_op;
 %type <scope> open_scope close_scope sblock pblock;
 %type <type> type_specifier;
 %type <symbol> dblock declaration_list declaration;
@@ -117,9 +117,6 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %token LOCAL
 %token RETURN
 
-%token NULL_PTR
-%token RESERVE
-%token RELEASE
 %token FOR
 %token WHILE
 %token IF
@@ -146,6 +143,10 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %token COMMA
 %token ARROW
 %token BACKSLASH
+
+%token <integer> NULL_PTR
+%token <integer> RESERVE
+%token <integer> RELEASE
 
 %token <integer> ADD
 %token <integer> SUB_OR_NEG
@@ -300,12 +301,12 @@ statement:
     } SEMI_COLON next_instruction statement {
         add_instruction(code_table, I_GOTO, $6, NULL);
     } R_PARENTHESIS next_instruction {
-        code_table->entries[$9]->lhs = ir_node(code_table->entries[$16], NULL);
+        code_table->entries[$9]->lhs = ir_node($16, NULL);
     } sblock {
-        NODE* n = ir_node(code_table->entries[$12], NULL);
+        NODE* n = ir_node($12, NULL);
         add_instruction(code_table, I_GOTO, n, NULL);
     } next_instruction {
-        code_table->entries[$7]->rhs = ir_node(code_table->entries[$20], NULL);
+        code_table->entries[$7]->rhs = ir_node($20, NULL);
     }
 
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
@@ -315,9 +316,9 @@ statement:
     } R_PARENTHESIS THEN sblock next_instruction {
         add_instruction(code_table, I_GOTO, NULL, NULL);
     } next_instruction {
-        code_table->entries[$4]->rhs = ir_node(code_table->entries[$11], NULL);
+        code_table->entries[$4]->rhs = ir_node($11, NULL);
     } ELSE sblock next_instruction {
-        code_table->entries[$9]->lhs = ir_node(code_table->entries[$15], NULL);
+        code_table->entries[$9]->lhs = ir_node($15, NULL);
     }
 
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
@@ -325,7 +326,7 @@ statement:
     } R_PARENTHESIS sblock {
         add_instruction(code_table, I_GOTO, $4, NULL);
     } next_instruction {
-        code_table->entries[$5]->rhs = ir_node(code_table->entries[$10], NULL);
+        code_table->entries[$5]->rhs = ir_node($10, NULL);
     }
 
     | assignable assign_op expression SEMI_COLON {
@@ -337,8 +338,9 @@ statement:
         }
     }
 
-    | mem_op assignable SEMI_COLON
-
+    | mem_op assignable SEMI_COLON {
+        add_instruction(code_table, $1, $2, NULL);
+    }
     | sblock
     ;
 
@@ -393,10 +395,7 @@ assignable:
     | assignable ablock {
         if($1 && $1->value.symbol) {
             if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
-                /* 
-                    TODO: FUNCTION CALL
-                */
-                // printf("Function call: %s\n", $1->name);
+                add_instruction(code_table, I_CALL, $1, NULL);
             } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
                 /* 
                     TODO: ARRAY ACCESS
@@ -426,16 +425,19 @@ argument_list:
     | non_empty_argument_list;
 
 non_empty_argument_list:
-    expression COMMA non_empty_argument_list
-    | expression
+    expression COMMA non_empty_argument_list {
+        add_instruction(code_table, I_PARAM, $1, NULL);
+    }
+    | expression {
+        add_instruction(code_table, I_PARAM, $1, NULL);
+    }
     ;
 
 expression:
     expression binary_operator expression {
         /*
             TODO: 
-                Boolean or:
-                if $1 goto L
+                Boolean shortcircuiting
 
         */
         $$ = add_instruction(code_table, $2, $1, $3);

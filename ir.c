@@ -27,10 +27,10 @@ NODE* add_instruction(IRTABLE* irtab, INSTRUCTION op, NODE* lhs, NODE* rhs) {
     irtab->entries[irtab->next_instruction++] = i;
     
     if(lhs) {
-        return ir_node(i, lhs->type_name);
+        return ir_node(i->index, lhs->type_name);
     }
 
-    return ir_node(i, NULL);
+    return ir_node(i->index, NULL);
 }
 
 void print_ir_table(IRTABLE* irtab, FILE* f) {
