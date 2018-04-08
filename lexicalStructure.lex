@@ -57,8 +57,8 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 "string"                    yylval.string = strdup(yytext); return handle_token(T_STRING);
 "Boolean"                   yylval.string = strdup(yytext); return handle_token(T_BOOLEAN);
 
-"reserve"                   return handle_token(RESERVE);
-"release"                   return handle_token(RELEASE);
+"reserve"                   yylval.integer = I_RESERVE; return handle_token(RESERVE);
+"release"                   yylval.integer = I_RELEASE; return handle_token(RELEASE);
 "for"                       return handle_token(FOR);
 "while"                     return handle_token(WHILE);
 "if"                        return handle_token(IF);

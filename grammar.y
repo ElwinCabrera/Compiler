@@ -295,37 +295,51 @@ statement_list:
 
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON next_instruction expression next_instruction {
+//  1   2             3         4          5                6          7                8
         add_instruction(code_table, I_TEST_FALSE, $6, NULL);
     } next_instruction {
+//    9                10
         add_instruction(code_table, I_GOTO, NULL, NULL);
     } SEMI_COLON next_instruction statement {
-        add_instruction(code_table, I_GOTO, $6, NULL);
+//    11         12               13        14
+        NODE* n = ir_node($5, NULL);
+        add_instruction(code_table, I_GOTO, n, NULL);
     } R_PARENTHESIS next_instruction {
+//    15            16               17
         code_table->entries[$9]->lhs = ir_node($16, NULL);
     } sblock {
+//    18     19
         NODE* n = ir_node($12, NULL);
         add_instruction(code_table, I_GOTO, n, NULL);
     } next_instruction {
+//    20               21
         code_table->entries[$7]->rhs = ir_node($20, NULL);
     }
 
     | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
     
     | IF L_PARENTHESIS expression next_instruction { 
+//    1  2             3          4                5
         add_instruction(code_table, I_TEST_FALSE, $3, NULL);
     } R_PARENTHESIS THEN sblock next_instruction {
+//    6             7    8      9                10
         add_instruction(code_table, I_GOTO, NULL, NULL);
     } next_instruction {
+//    11               12
         code_table->entries[$4]->rhs = ir_node($11, NULL);
     } ELSE sblock next_instruction {
+//    13   14     15               16
         code_table->entries[$9]->lhs = ir_node($15, NULL);
     }
 
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
+//    1     2             3                4          5                6
         add_instruction(code_table, I_TEST_FALSE, $4, NULL);
     } R_PARENTHESIS sblock {
+//    7             8      9
         add_instruction(code_table, I_GOTO, $4, NULL);
     } next_instruction {
+//    10               11
         code_table->entries[$5]->rhs = ir_node($10, NULL);
     }
 
@@ -341,6 +355,7 @@ statement:
     | mem_op assignable SEMI_COLON {
         add_instruction(code_table, $1, $2, NULL);
     }
+    
     | sblock
     ;
 
