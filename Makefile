@@ -1,6 +1,6 @@
 #Source files
 SRC=runner.c symbolTable.c \
-  types.c errors.c node.c \
+  types.c node.c \
 	ir.c stack.c
 
 TEST_SRC=$(filter-out runner.c, $(SRC))

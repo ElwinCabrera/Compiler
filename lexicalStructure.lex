@@ -1,6 +1,6 @@
 %{
 #include "y.tab.h"
-#include "errors.h"
+#include "stack.h"
 #include "ir.h"
 int handle_token(int);
 %}
@@ -130,7 +130,7 @@ static FILE* asc_file = 0;
 int get_row() { return row; }
 int get_column() { return column; }
 
-extern ERROR** get_errors();
+extern STACK** get_errors();
 
 void set_asc_file(FILE* f) {
     asc_file = f;
@@ -170,18 +170,16 @@ int handle_token(int token)
 
     // Returns 1 on new line
     if(update_location()) {
-        ERROR** err = get_errors();
+        STACK** err = get_errors();
 
         while(*err) {
-            ERROR* temp = *err;
+            char* e = stack_peek(*err);
             if(asc_file) {
-                fprintf(asc_file, "%s", temp->e);
+                fprintf(asc_file, "%s", e);
             }
-
-            printf("%s", temp->e);
-
-            *err = pop_error(temp);
-            free_error(temp);
+            printf("%s", e);
+            free(e);
+            *err = stack_pop(*err);
         }
     }
 

@@ -1,7 +1,6 @@
 %{
 #include <stdio.h>
 #include <string.h>
-#include "errors.h"
 #include "ir.h"
 #include "node.h"
 #include "stack.h"
@@ -11,7 +10,7 @@
 static int scope_counter = 0;
 static SCOPE* symbols;
 static SYMTYPE* types;
-static ERROR* errors;
+static STACK* errors;
 static IRTABLE* code_table;
 static int yyerrstatus;
 
@@ -29,6 +28,7 @@ int yylex();
 */
 void yyerror(char*);
 void syntax_error(char*);
+void argument_count_mismatch(int, int);
 void invalid_unary_expression(int, char*);
 void invalid_binary_expression(int, char*, char*);
 void type_mismatch_error(char*, char*);
@@ -285,6 +285,9 @@ identifier_list:
     | identifier assign_op constant {
         SYMTYPE* type = stack_peek(symbol_context);
         $$ = new_symbol(type, $1, LOCAL, "local");
+        if(!type_check_binary_expression(I_ASSIGN, type->name, $3->type_name)) {
+
+        }
     }
     | identifier COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
@@ -440,11 +443,6 @@ assignable:
         SYMTAB* s = find_symbol($1); 
 
         if (!s) {
-            /*
-                Feels a bit ugly, but if we're in a function scope, there
-                is a function type pushed on the stack. If the symbol isn't
-                found normally, check the function scope for parameters.
-            */
             SYMTYPE* st = stack_peek(function_context);
             if(st) {
                 s = find_entry(st->details.function->parameters->symbols, $1);
@@ -490,7 +488,7 @@ assignable:
                 while(params) {
                     if(!args) {
                         while(params) { params = params->next; expected++; }
-                        printf("Too few arguments. Expected: %d, Actual: %d\n", expected, actual);
+                        argument_count_mismatch(expected, actual);
                         break;
                     }
                     actual++;
@@ -509,7 +507,7 @@ assignable:
 
                 if(args) {
                     while(args) { args = stack_pop(args); actual++; }
-                    printf("Too many arguments. Expected: %d, Actual: %d\n", expected, actual);
+                    argument_count_mismatch(expected, actual);
                 }
 
                 $$ = add_instruction(code_table, I_CALL, $1, int_node(expected));
@@ -731,7 +729,7 @@ IRTABLE** get_intermediate_code() {
     return &code_table;
 }
 
-ERROR** get_errors() {
+STACK** get_errors() {
     return &errors;
 }
 
@@ -793,7 +791,17 @@ SYMTAB* find_symbol(char* name) {
 
 void notify_error(char* e) {
     yyerror(e);
-    errors = push_error(errors, e);
+    errors = stack_push(errors, strdup(e));
+}
+
+void argument_count_mismatch(int expected, int actual) {
+    const char format[] = "LINE %d:%d - ERROR: Incorrect argument count (Expected: %d, Actual: %d)\n";
+    
+    char dest[strlen(format) + 26];
+
+    sprintf(dest, format, get_row(), get_column(), expected, actual);
+    notify_error(dest);
+    yyerrok;
 }
 
 void invalid_unary_expression(int op, char* t1) {
