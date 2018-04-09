@@ -31,6 +31,7 @@ struct context {
     Error Handling
 */
 void yyerror(char*);
+void syntax_error(char*);
 void symbol_not_found_error(char*, char*);
 void incorrect_type_error(char*, char*);
 void type_as_var_error(char*);
@@ -170,7 +171,7 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 
 open_scope: { $$ = open_scope(); } ;
 close_scope: { $$ = close_scope(); } ;
-next_instruction: { $$ = code_table->next_instruction; }
+next_instruction: { $$ = code_table->next_instruction; } ;
 
 program: 
     { initialize_structs(); } definition_list sblock
@@ -182,15 +183,15 @@ definition_list:
     ;
 
 definition:
-    TYPE identifier COLON constant ARROW type_specifier COLON L_PARENTHESIS constant R_PARENTHESIS {
+    check_type_literal identifier COLON constant check_arrow type_specifier COLON L_PARENTHESIS constant check_r_parenthesis {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
         insert_new_symbol(type, $2, TYPE, "atype");
     }
-    | TYPE identifier COLON constant ARROW type_specifier {
+    | check_type_literal identifier COLON constant check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
         insert_new_symbol(type, $2, TYPE, "atype");
     }
-    | TYPE identifier COLON pblock ARROW type_specifier {
+    | check_type_literal identifier COLON pblock check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_FUNCTION, $2);
         type->details.function->parameters = $4;
         type->details.function->return_type = $6;
@@ -200,7 +201,7 @@ definition:
         insert_new_symbol($4, $2, FUNCTION, "function");
         push_context($4);
     } sblock { pop_context(); }
-    | TYPE identifier COLON open_scope {
+    | check_type_literal identifier COLON open_scope {
         new_type(MT_RECORD, $2);
     } dblock close_scope  {
         SYMTYPE* t = lookup_type($2);
@@ -211,7 +212,7 @@ definition:
     ;
 
 pblock:
-    L_PARENTHESIS open_scope parameter_list close_scope R_PARENTHESIS {
+    L_PARENTHESIS open_scope parameter_list close_scope check_r_parenthesis {
         add_symbols_to_scope($2, $3);
         $$ = $2;
     }
@@ -233,10 +234,14 @@ parameter_declaration:
     type_specifier COLON identifier {
         $$ = new_symbol($1, $3, PARAMETER, "parameter");
     }
+    /* Syntax Errors */
+    | type_specifier error {
+
+    }
     ;
 
 dblock:
-    L_BRACKET declaration_list R_BRACKET {
+    check_l_bracket declaration_list check_r_bracket {
         $$ = $2;
     }
     ;
@@ -281,10 +286,10 @@ identifier_list:
 sblock:
     L_BRACE open_scope dblock {
         add_symbols_to_scope($2, $3);
-    } statement_list close_scope R_BRACE {
+    } statement_list close_scope check_r_brace {
         $$ = $2;
     }
-    | L_BRACE open_scope statement_list close_scope R_BRACE {
+    | L_BRACE open_scope statement_list close_scope check_r_brace {
         $$ = $2;
     }
     ;
@@ -316,13 +321,13 @@ statement:
         code_table->entries[$7]->rhs = ir_node($20, NULL);
     }
 
-    | SWITCH L_PARENTHESIS expression R_PARENTHESIS case_list OTHERWISE COLON sblock
+    | SWITCH L_PARENTHESIS expression check_r_parenthesis case_list OTHERWISE COLON sblock
     
     | IF L_PARENTHESIS expression next_instruction { 
 //    1  2             3          4                5
         add_instruction(code_table, I_TEST_FALSE, $3, NULL);
-    } R_PARENTHESIS THEN sblock next_instruction {
-//    6             7    8      9                10
+    } check_r_parenthesis THEN sblock next_instruction {
+//    6                   7    8      9                10
         add_instruction(code_table, I_GOTO, NULL, NULL);
     } next_instruction {
 //    11               12
@@ -335,15 +340,15 @@ statement:
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
 //    1     2             3                4          5                6
         add_instruction(code_table, I_TEST_FALSE, $4, NULL);
-    } R_PARENTHESIS sblock {
-//    7             8      9
+    } check_r_parenthesis sblock {
+//    7                   8      9
         add_instruction(code_table, I_GOTO, $4, NULL);
     } next_instruction {
 //    10               11
         code_table->entries[$5]->rhs = ir_node($10, NULL);
     }
 
-    | assignable assign_op expression SEMI_COLON {
+    | assignable assign_op expression semi_colon_after_statement {
         if(!type_check_assignment($1, $3)) {
             //printf("Type mismatch error\n");
         } else {
@@ -352,7 +357,7 @@ statement:
         }
     }
 
-    | mem_op assignable SEMI_COLON {
+    | mem_op assignable semi_colon_after_statement {
         add_instruction(code_table, $1, $2, NULL);
     }
     
@@ -426,7 +431,7 @@ assignable:
     ;
 
 ablock:
-    L_PARENTHESIS argument_list R_PARENTHESIS {
+    L_PARENTHESIS argument_list check_r_parenthesis {
         /*
             TODO: When an argument list is defined, uncomment,
             and add a $$ = NULL; rule for the empty case below
@@ -471,7 +476,6 @@ expression:
         $$ = add_instruction(code_table, I_LOOKUP, $1, NULL);
     }
     ;
-
 
 identifier:
     ID
@@ -535,6 +539,57 @@ binary_operator:
     | OR
     | LESS_THAN
     | EQUAL_TO
+    ;
+
+/* Syntax Errors */
+
+check_type_literal:
+    TYPE
+    | error {
+        syntax_error("Type declarations must begin with \"type\"");
+    }
+    ;
+
+semi_colon_after_statement:
+    SEMI_COLON
+    | error {
+        syntax_error("; expected following a statement");
+    }
+    ;
+
+check_r_parenthesis:
+    R_PARENTHESIS
+    | error {
+        syntax_error(") expected to match opening (");
+    }
+    ;
+
+check_l_bracket:
+    L_BRACKET
+    | error {
+        syntax_error("[ expected to open declaration block");
+    }
+    ;
+
+check_r_bracket:
+    R_BRACKET
+    | error {
+        syntax_error("] expected to match opening [");
+    }
+    ;
+
+check_r_brace:
+    R_BRACE
+    | error {
+        syntax_error("} expected to match opening {");
+    }
+    ;
+
+check_arrow:
+    ARROW
+    | error {
+        syntax_error("-> expected");
+    }
     ;
 
 %%
@@ -639,13 +694,19 @@ SYMTAB* find_symbol(char* name) {
 /*
     Error Handling
 */
+
+void notify_error(char* e) {
+    yyerror(e);
+    errors = push_error(errors, e);
+}
+
 void type_as_var_error(char* name) {
     const char format[] = "LINE %d:%d - ERROR: %s, a type, is used here as a variable\n";
     
     char dest[strlen(format) + strlen(name) + 21];
 
     sprintf(dest, format, get_row(), get_column(), name);
-    yyerror(dest);
+    notify_error(dest);
     yyerrok;
 }
 
@@ -655,7 +716,7 @@ void incorrect_type_error(char* name, char* type) {
     char dest[strlen(format) + strlen(name) + strlen(type)  + 21];
 
     sprintf(dest, format, get_row(), get_column(), name, type);
-    yyerror(dest);
+    notify_error(dest);
     yyerrok;
 }
 
@@ -666,10 +727,19 @@ void symbol_not_found_error(char* name, char* style) {
 
     sprintf(dest, format, get_row(), get_column(), name, style);
     
-    yyerror(dest);
+    notify_error(dest);
     yyerrok;
 }
 
+void syntax_error(char* expected) {
+    const char format[] = "LINE %d:%d - ERROR: %s\n";
+    
+    char dest[strlen(format) + strlen(expected) + 21];
+
+    sprintf(dest, format, get_row(), get_column(), expected);
+    notify_error(dest);
+}
+
 void yyerror (char *s) {
-    errors = push_error(errors, s);
+
  }
