@@ -1,12 +1,22 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <stdbool.h>
+
 typedef enum typemeta {
     MT_FUNCTION,
     MT_ARRAY,
     MT_RECORD,
     MT_PRIMITIVE,
 } TYPEMETA;
+
+
+typedef enum tc_result {
+    FAIL,
+    PASS,
+    COERCE_LHS,
+    COERCE_RHS,
+} TC_RESULT;
 
 struct function_details {
     struct scope * parameters;
@@ -38,7 +48,9 @@ SYMTYPE* type_list;
 
 SYMTYPE* add_type(SYMTYPE*, TYPEMETA, char*);
 SYMTYPE* find_type(SYMTYPE*, char*);
-int check_metatype(SYMTYPE*, TYPEMETA);
-int check_type(SYMTYPE*, char*);
+bool check_metatype(SYMTYPE*, TYPEMETA);
+bool check_type(SYMTYPE*, char*);
+bool compare_types(char*, char*);
+TC_RESULT type_check_binary_expression(int, char*, char*);
 
 #endif

@@ -38,6 +38,13 @@ typedef struct ir {
     NODE* rhs;
 } IR;
 
+typedef struct ir_print {
+    char* lval;
+    char* op;
+    char* lhs;
+    char* rhs;
+} IR_PRINT;
+
 typedef struct ir_table {
     IR** entries;
     int capacity;

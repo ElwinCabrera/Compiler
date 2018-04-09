@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include "types.h"
+#include "ir.h"
+
+extern SYMTYPE** get_types();
 
 SYMTYPE * add_type(SYMTYPE* start, TYPEMETA meta, char* name) {
 
@@ -50,24 +54,113 @@ SYMTYPE * find_type(SYMTYPE* start, char* name) {
     return NULL;
 }
 
-int check_metatype(SYMTYPE* t, TYPEMETA meta) {
+bool check_metatype(SYMTYPE* t, TYPEMETA meta) {
 
     if (!t) {
-        return 0;
+        return false;
     }
 
     return t->meta == meta;
 }
 
-int check_type(SYMTYPE* t, char* name) {
+bool check_type(SYMTYPE* t, char* name) {
 
     if (!t || !name) {
-        return 0;
+        return false;
     }
 
-    if (strcmp(name, t->name) == 0) {
-        return 1;
+    return strcmp(name, t->name) == 0;
+}
+
+bool compare_types(char* t1, char* t2) {
+    if(!t1 || !t2) {
+        return false;
     }
 
-    return 0;
+    return strcmp(t1, t2) == 0;
+}
+
+TC_RESULT type_check_binary_expression(int op, char* lhs, char* rhs) {
+    switch(op) {
+        case I_AND:
+        case I_OR:
+            if(compare_types(lhs, "Boolean") && compare_types(rhs, "Boolean")) {
+                return PASS;
+            }
+            return FAIL;
+        case I_MODULUS:
+            if(compare_types(lhs, "integer") && compare_types(rhs, "integer")) {
+                return PASS;
+            }
+            return FAIL;
+        case I_SUB:
+        case I_ADD:
+        case I_MULTIPLY:
+        case I_DIVIDE:
+        {
+            int left = compare_types(lhs, "integer") ? 1 : compare_types(lhs, "real") ? 2 : 0;
+            int right = compare_types(rhs, "integer") ? 1 : compare_types(rhs, "real") ? 2 : 0;
+            if(!left || !right) {
+                return FAIL;
+            }
+
+            if(left > right) {
+                return COERCE_RHS;
+            } else if(right > left) {
+                return COERCE_LHS;
+            }
+
+            return PASS;
+        }
+        case I_LESS_THAN:
+        {
+            int left = compare_types(lhs, "integer") ? 1 : compare_types(lhs, "real") ? 2 : 
+                compare_types(lhs, "Boolean") ? -1 : compare_types(lhs, "character") ? -2 : 0;
+            int right = compare_types(rhs, "integer") ? 1 : compare_types(rhs, "real") ? 2 :
+                compare_types(lhs, "Boolean") ? -1 : compare_types(lhs, "character") ? -2 : 0;
+            
+            if(!left || !right) {
+                return FAIL;
+            }
+
+            if(left < 0 || right < 0) {
+                if(left == right) {
+                    return PASS;
+                }
+                return FAIL;
+            }
+
+            if(left > right) {
+                return COERCE_RHS;
+            } else if(right > left) {
+                return COERCE_LHS;
+            }
+        }
+        case I_EQUAL: {
+            if(compare_types(lhs, rhs)) {
+                return PASS;
+            } else {
+                int left = compare_types(lhs, "integer") ? 1 : compare_types(lhs, "real") ? 2 : 0;
+                int right = compare_types(rhs, "integer") ? 1 : compare_types(rhs, "real") ? 2 : 0;
+                if(!left || !right) {
+                    if(compare_types(lhs, "null")) {
+                        SYMTYPE* t = find_type(*get_types(), rhs);
+                        if(t && t->meta != MT_PRIMITIVE) {
+                            return PASS;
+                        }
+                    } else if(compare_types(rhs, "null")) {
+                        SYMTYPE* t = find_type(*get_types(), lhs);
+                        if(t && t->meta != MT_PRIMITIVE) {
+                            return PASS;
+                        }
+                    }
+
+                    return FAIL;
+                }                
+            }
+        }
+        default: {
+            return FAIL;
+        }
+    }
 }

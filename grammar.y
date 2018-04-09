@@ -28,6 +28,7 @@ int yylex();
 */
 void yyerror(char*);
 void syntax_error(char*);
+void type_mismatch_error(char*, char*);
 void symbol_not_found_error(char*, char*);
 void incorrect_type_error(char*, char*);
 void type_as_var_error(char*);
@@ -189,7 +190,10 @@ definition:
     | FUNCTION identifier COLON type_specifier {
         insert_new_symbol($4, $2, FUNCTION, "function");
         function_context = stack_push(function_context, $4);
-    } sblock { function_context = stack_pop(function_context); }
+    } sblock { 
+        function_context = stack_pop(function_context); 
+        add_instruction(code_table, I_RETURN, NULL, NULL);
+    }
     | check_type_literal identifier COLON open_scope {
         new_type(MT_RECORD, $2);
     } dblock close_scope  {
@@ -286,6 +290,9 @@ statement_list:
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON next_instruction expression next_instruction {
 //  1   2             3         4          5                6          7                8
+        if(!compare_types("Boolean", $6->type_name)) {
+            type_mismatch_error("Boolean", $6->type_name);
+        }
         add_instruction(code_table, I_TEST_FALSE, $6, NULL);
     } next_instruction {
 //    9                10
@@ -306,10 +313,17 @@ statement:
         code_table->entries[$7]->rhs = ir_node($20, NULL);
     }
 
-    | SWITCH L_PARENTHESIS expression check_r_parenthesis case_list OTHERWISE COLON sblock
+    | SWITCH L_PARENTHESIS expression check_r_parenthesis case_list OTHERWISE COLON sblock {
+        if(!compare_types("integer", $3->type_name)) {
+            type_mismatch_error("integer", $3->type_name);
+        }
+    }
     
     | IF L_PARENTHESIS expression next_instruction { 
 //    1  2             3          4                5
+        if(!compare_types("Boolean", $3->type_name)) {
+            type_mismatch_error("Boolean", $3->type_name);
+        }
         add_instruction(code_table, I_TEST_FALSE, $3, NULL);
     } check_r_parenthesis THEN sblock next_instruction {
 //    6                   7    8      9                10
@@ -324,6 +338,9 @@ statement:
 
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
 //    1     2             3                4          5                6
+        if(!compare_types("Boolean", $4->type_name)) {
+            type_mismatch_error("Boolean", $4->type_name);
+        }
         add_instruction(code_table, I_TEST_FALSE, $4, NULL);
     } check_r_parenthesis sblock {
 //    7                   8      9
@@ -334,8 +351,8 @@ statement:
     }
 
     | assignable assign_op expression semi_colon_after_statement {
-        if(!type_check_assignment($1, $3)) {
-            //printf("Type mismatch error\n");
+        if(!compare_types($1->type_name, $3->type_name)) {
+            type_mismatch_error($1->type_name, $3->type_name);
         } else {
             NODE* n = add_instruction(code_table, I_LOOKUP, $1, NULL);
             add_instruction(code_table, I_ASSIGN, n, $3);
@@ -350,12 +367,16 @@ statement:
     ;
 
 case_list:
-    case case_list
+    case case_list 
     | case
     ;
 
 case:
-    CASE constant COLON sblock
+    CASE constant COLON sblock {
+        if(!compare_types("integer", $2->type_name)) {
+            type_mismatch_error("integer", $2->type_name);
+        }
+    }
     ;
 
 assignable:
@@ -368,9 +389,10 @@ assignable:
                 found normally, check the function scope for parameters.
             */
             SYMTYPE* st = stack_peek(function_context);
-            if(st && st->meta == MT_FUNCTION) {
+            if(st) {
                 s = find_entry(st->details.function->parameters->symbols, $1);
             }
+
             if(!s) {
                 symbol_not_found_error($1, "variable");
             }
@@ -445,7 +467,25 @@ expression:
                 Boolean shortcircuiting
 
         */
-        $$ = add_instruction(code_table, $2, $1, $3);
+        TC_RESULT r = type_check_binary_expression($2, $1->type_name, $3->type_name);
+        switch(r) {
+            case FAIL:
+                type_mismatch_error($1->type_name, $3->type_name);
+                break;
+            case PASS: 
+                $$ = add_instruction(code_table, $2, $1, $3);
+                break;
+            case COERCE_RHS: {
+                NODE* n = add_instruction(code_table, I_INT2REAL, $3, NULL);
+                $$ = add_instruction(code_table, $2, $1, n);
+                break;
+            }
+            case COERCE_LHS: {
+                NODE* n = add_instruction(code_table, I_INT2REAL, $1, NULL);
+                $$ = add_instruction(code_table, $2, n, $3);
+                break;
+            }
+        }
     }
     | expression post_unary_operator {
         $$ = add_instruction(code_table, $2, $1, NULL);
@@ -584,6 +624,10 @@ check_arrow:
     Accessors for parts of the program
     Makes compiling the compiler a bit easier
 */
+SYMTYPE** get_types() {
+    return &types;
+}
+
 SCOPE** get_symbol_table() {
     return &symbols;
 }
@@ -655,6 +699,16 @@ SYMTAB* find_symbol(char* name) {
 void notify_error(char* e) {
     yyerror(e);
     errors = push_error(errors, e);
+}
+
+void type_mismatch_error(char* t1, char* t2) {
+    const char format[] = "LINE %d:%d - ERROR: type '%s' is incompatible with expected type '%s'\n";
+    
+    char dest[strlen(format) + (t1 ? strlen(t1) : 0) + (t2 ? strlen(t2) : 0) + 21];
+
+    sprintf(dest, format, get_row(), get_column(), t2, t1);
+    notify_error(dest);
+    yyerrok;
 }
 
 void type_as_var_error(char* name) {
