@@ -70,6 +70,7 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
     struct symtab* symbol;
     struct symtype* type;
     struct node* node;
+    struct stack* stack;
 }
 
 %token <string> ID;
@@ -89,6 +90,7 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <symbol> identifier_list;
 %type <node> constant expression assignable;
 %type <integer> next_instruction;
+%type <stack> ablock argument_list non_empty_argument_list;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -452,6 +454,35 @@ assignable:
     | assignable ablock {
         if($1 && $1->value.symbol) {
             if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
+                STACK* args = $2;
+                SYMTAB* params = $1->value.symbol->type->details.function->parameters->symbols;
+                int expected = 0;
+                int actual = 0;
+                while(params) {
+                    if(!args) {
+                        while(params) { params = params->next; expected++; }
+                        printf("Too few arguments. Expected: %d, Actual: %d\n", expected, actual);
+                        break;
+                    }
+                    actual++;
+                    NODE* n = stack_peek(args);
+                    
+                    if(!compare_types(params->type->name, n->type_name)) {
+                        type_mismatch_error(params->type->name, n->type_name);
+                    } else {
+                        add_instruction(code_table, I_PARAM, n, NULL);
+                    }
+
+                    args = stack_pop(args);
+                    params = params->next;
+                    expected++;
+                }
+
+                if(args) {
+                    while(args) { args = stack_pop(args); actual++; }
+                    printf("Too many arguments. Expected: %d, Actual: %d\n", expected, actual);
+                }
+
                 $$ = add_instruction(code_table, I_CALL, $1, NULL);
             } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
                 /* 
@@ -470,24 +501,20 @@ assignable:
 
 ablock:
     L_PARENTHESIS argument_list check_r_parenthesis {
-        /*
-            TODO: When an argument list is defined, uncomment,
-            and add a $$ = NULL; rule for the empty case below
-            $$ = $2;
-        */
+        $$ = $2;
     }
     ;
 
 argument_list:
-    /* Empty String */
+    /* Empty String */ { $$ = NULL; }
     | non_empty_argument_list;
 
 non_empty_argument_list:
     expression COMMA non_empty_argument_list {
-        add_instruction(code_table, I_PARAM, $1, NULL);
+        $$ = stack_push($3, $1);
     }
     | expression {
-        add_instruction(code_table, I_PARAM, $1, NULL);
+        $$ = stack_push(NULL, $1);
     }
     ;
 
