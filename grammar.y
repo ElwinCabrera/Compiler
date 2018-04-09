@@ -17,6 +17,7 @@ static int yyerrstatus;
 
 STACK* function_context = 0;
 STACK* symbol_context = 0;
+STACK* case_context = 0;
 
 extern int get_row();
 extern int get_column();
@@ -88,9 +89,10 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <symbol> dblock declaration_list declaration;
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
-%type <node> constant expression assignable;
+%type <node> constant expression assignable case;
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list;
+%type <stack> case_list;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence
@@ -334,10 +336,22 @@ statement:
         code_table->entries[$7]->rhs = ir_node($20, NULL);
     }
 
-    | SWITCH L_PARENTHESIS expression check_r_parenthesis case_list OTHERWISE COLON sblock {
+    | SWITCH L_PARENTHESIS expression check_r_parenthesis {
+//    1      2             3          4                   5
         if(!compare_types("integer", $3->type_name)) {
             type_mismatch_error("integer", $3->type_name);
         }
+        case_context = stack_push(case_context, $3);
+    } case_list OTHERWISE COLON next_instruction sblock next_instruction {
+//    6         7         8     9                 10     11
+        STACK* s = $6;
+        NODE* jmp = ir_node($11, NULL);
+        while(s) {
+            NODE* n = stack_peek(s);
+            code_table->entries[n->value.instruction]->lhs = jmp;
+            s = stack_pop(s);
+        }
+        case_context = stack_pop(case_context);
     }
     
     | IF L_PARENTHESIS expression next_instruction { 
@@ -394,15 +408,28 @@ statement:
     ;
 
 case_list:
-    case case_list 
-    | case
+    case case_list {
+        $$ = stack_push($2, $1);
+    }
+    | case {
+        $$ = stack_push(NULL, $1);
+    }
     ;
 
 case:
-    CASE constant COLON sblock {
+    CASE constant next_instruction {
+//  1    2        3                4
+        NODE* cmp = stack_peek(case_context);
+
+        NODE* n = add_instruction(code_table, I_EQUAL, $2, cmp); 
+        add_instruction(code_table, I_TEST_FALSE, n, NULL);
+    } COLON sblock next_instruction {
+//    5     6      7
         if(!compare_types("integer", $2->type_name)) {
             type_mismatch_error("integer", $2->type_name);
-        }
+        } else
+        $$ = add_instruction(code_table, I_GOTO, NULL, NULL);
+        code_table->entries[$3 + 1]->rhs = ir_node($7 + 1, NULL);
     }
     ;
 
