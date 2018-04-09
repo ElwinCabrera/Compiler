@@ -39,7 +39,7 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
 {INTEGER}                   yylval.integer = atoi(yytext); return handle_token(C_INTEGER);
 {REAL}                      yylval.real = atof(yytext); return handle_token(C_REAL);
-{CHAR}                      yylval.character = yytext[0]; return handle_token(C_CHARACTER);
+{CHAR}                      yylval.character = yytext[1]; return handle_token(C_CHARACTER);
 {STRING}                    yylval.string = strdup(yytext); return handle_token(C_STRING);
 "true"                      yylval.boolean = 1; return handle_token(C_TRUE);
 "false"                     yylval.boolean = 0; return handle_token(C_FALSE);

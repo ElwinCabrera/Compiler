@@ -83,14 +83,14 @@ int main(int argc, char* argv[])
         }
 
         if(ir) { //specify to print symbol table
-            // char* symbol_file_path = malloc(strlen(program) + 4);
-            // sprintf(symbol_file_path, "%s%s", program, ".st");
-            // FILE* symbol_file = fopen(symbol_file_path, "w");
-            // if(!symbol_file) {
-            //     printf("ERROR(%d): Could not open file %s for writing\n", errno, symbol_file_path);
-            // }
-            // free(symbol_file_path);
-            print_ir_table(*get_intermediate_code(), NULL);
+            char* ir_file_path = malloc(strlen(program) + 4);
+            sprintf(ir_file_path, "%s%s", program, ".ir");
+            FILE* ir_file = fopen(ir_file_path, "w");
+            if(!ir_file) {
+                printf("ERROR(%d): Could not open file %s for writing\n", errno, ir_file_path);
+            }
+            free(ir_file_path);
+            print_ir_table(*get_intermediate_code(), ir_file);
         }
 
 

@@ -85,3 +85,46 @@ NODE* ir_node(int i, char* type_name) {
     n->value.instruction = i;
     return n;
 }
+
+char* node_to_string(NODE* n) {
+    if(!n) {
+        return NULL;
+    }
+
+    switch(n->meta) {
+        case STRING_CONSTANT:
+            return n->value.string;
+        case CHAR_CONSTANT: {
+            // Mem leak
+            char * tmp = malloc(2 * sizeof(char));
+            sprintf(tmp, "%c", n->value.character);
+            return tmp;
+        }
+        case INT_CONSTANT: {
+            // Mem leak
+            char * tmp = malloc(20 * sizeof(char));
+            sprintf(tmp, "%d", n->value.integer);
+            return tmp;
+        }
+        case REAL_CONSTANT: {
+            // Mem leak
+            char * tmp = malloc(20 * sizeof(char));
+            sprintf(tmp, "%f", n->value.real);
+            return tmp;
+        }
+        case NULL_CONSTANT:
+            return "null";
+        case BOOLEAN_CONSTANT:
+            return n->value.boolean ? "true" : "false";
+        case SYMBOL:
+            return n ? (n->value.symbol ? n->value.symbol->name : NULL) : NULL;
+        case CODE: {
+            // Mem leak
+            char * tmp = malloc(10 * sizeof(char));
+            sprintf(tmp, "$%d", n->value.instruction);
+            return tmp;
+        }
+        default:
+            return NULL;
+    }
+}

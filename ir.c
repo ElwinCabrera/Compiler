@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "symbolTable.h"
 #include "ir.h"
 
 IRTABLE* new_ir_table(int capacity) {
@@ -30,6 +31,10 @@ char* lval_type(INSTRUCTION op, NODE* lhs, NODE* rhs) {
         case I_ADD:
         case I_SUB:
             return lhs->type_name;
+        case I_ARRAY:
+            return lhs->value.symbol->type->details.array->element_type->name;
+        case I_CALL:
+            return lhs->value.symbol->type->details.function->return_type->type->name;
         default:
             return NULL;
     }
@@ -75,9 +80,64 @@ void print_ir(IR* i, FILE* f) {
     }
 
     if(f) {
-        fprintf(f, "[%d] OP: %d, LHS: %p, RHS: %p\n", i->index, i->op, i->lhs, i->rhs);
+        fprintf(f, "[%d] OP: %s, LHS: %s, RHS: %s\n", i->index, get_op_string(i->op), node_to_string(i->lhs), node_to_string(i->rhs));
     } else {
-        printf("[%d] OP: %d, LHS: %p, RHS: %p\n", i->index, i->op, i->lhs, i->rhs);
+        printf("[%d] OP: %s, LHS: %s, RHS: %s\n", i->index, get_op_string(i->op), node_to_string(i->lhs), node_to_string(i->rhs));
+    }
+}
+
+const char* get_op_string(INSTRUCTION i) {
+    switch(i) {
+        case I_ASSIGN:
+            return "assign";
+        case I_LOOKUP:
+            return "lookup";
+        case I_ADD:
+            return "+";
+        case I_SUB:
+            return "-";
+        case I_MULTIPLY:
+            return "*";
+        case I_DIVIDE:
+            return "/";
+        case I_MODULUS:
+            return "%";
+        case I_LESS_THAN:
+            return ">";
+        case I_EQUAL:
+            return "==";
+        case I_REAL2INT:
+            return "r2i";
+        case I_INT2REAL:
+            return "i2r";
+        case I_IS_NULL:
+            return "isNull";
+        case I_NOT:
+            return "!";
+        case I_AND:
+            return "&";
+        case I_OR:
+            return "|";
+        case I_PARAM:
+            return "param";
+        case I_CALL:
+            return "call";
+        case I_RETURN:
+            return "return";
+        case I_TEST:
+            return "test";
+        case I_TEST_FALSE:
+            return "testfalse";
+        case I_GOTO:
+            return "goto";
+        case I_RESERVE:
+            return "reserve";
+        case I_RELEASE:
+            return "release";
+        case I_ARRAY:
+            return "array";
+        default:
+            return NULL;
     }
 }
 

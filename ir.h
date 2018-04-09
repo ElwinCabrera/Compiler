@@ -23,6 +23,7 @@ typedef enum instruction {
     I_OR,
     I_PARAM,
     I_CALL,
+    I_ARRAY,
     I_RETURN,
     I_TEST,
     I_TEST_FALSE,
@@ -55,5 +56,6 @@ IRTABLE* new_ir_table(int);
 NODE* add_instruction(IRTABLE*, INSTRUCTION, NODE*, NODE*);
 void print_ir(IR*, FILE*);
 void print_ir_table(IRTABLE*, FILE*);
+const char* get_op_string(INSTRUCTION);
 
 #endif

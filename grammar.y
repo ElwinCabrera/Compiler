@@ -28,6 +28,8 @@ int yylex();
 */
 void yyerror(char*);
 void syntax_error(char*);
+void invalid_unary_expression(int, char*);
+void invalid_binary_expression(int, char*, char*);
 void type_mismatch_error(char*, char*);
 void symbol_not_found_error(char*, char*);
 void incorrect_type_error(char*, char*);
@@ -164,7 +166,12 @@ close_scope: { $$ = close_scope(); } ;
 next_instruction: { $$ = code_table->next_instruction; } ;
 
 program: 
-    { initialize_structs(); } definition_list sblock
+    { 
+        initialize_structs(); 
+        add_instruction(code_table, I_GOTO, NULL, NULL);
+    } definition_list next_instruction {
+        code_table->entries[0]->lhs = ir_node($3, NULL);
+    } sblock 
     ;
 
 definition_list: 
@@ -175,16 +182,28 @@ definition_list:
 definition:
     check_type_literal identifier COLON constant check_arrow type_specifier COLON L_PARENTHESIS constant check_r_parenthesis {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
+        type->details.array->element_type = $6;
+        if($4->meta != INT_CONSTANT) { 
+            type_mismatch_error("constant integer", $4->type_name);
+        } else {
+            type->details.array->dimensions = $4->value.integer;
+        }
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON constant check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
+        type->details.array->element_type = $6;
+        if($4->meta != INT_CONSTANT) { 
+            type_mismatch_error("constant integer", $4->type_name);
+        } else {
+            type->details.array->dimensions = $4->value.integer;
+        }
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON pblock check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_FUNCTION, $2);
         type->details.function->parameters = $4;
-        type->details.function->return_type = $6;
+        type->details.function->return_type = new_symbol($6, $2, LOCAL, "local");
         insert_new_symbol(type, $2, TYPE, "ftype");
     }
     | FUNCTION identifier COLON type_specifier {
@@ -352,7 +371,13 @@ statement:
 
     | assignable assign_op expression semi_colon_after_statement {
         if(!compare_types($1->type_name, $3->type_name)) {
-            type_mismatch_error($1->type_name, $3->type_name);
+            SYMTYPE* st = stack_peek(function_context);
+            if(st && compare_types(st->name, $1->type_name)) {
+                NODE* n = add_instruction(code_table, I_LOOKUP, $1, NULL);
+                add_instruction(code_table, I_ASSIGN, n, $3);
+            } else {
+                type_mismatch_error($1->type_name, $3->type_name);
+            }
         } else {
             NODE* n = add_instruction(code_table, I_LOOKUP, $1, NULL);
             add_instruction(code_table, I_ASSIGN, n, $3);
@@ -382,6 +407,7 @@ case:
 assignable:
     identifier { 
         SYMTAB* s = find_symbol($1); 
+
         if (!s) {
             /*
                 Feels a bit ugly, but if we're in a function scope, there
@@ -396,10 +422,14 @@ assignable:
             if(!s) {
                 symbol_not_found_error($1, "variable");
             }
+
+            $$ = symbol_node(s);
         } else if (s->meta == TYPE) {
             type_as_var_error(s->name);
+            $$ = symbol_node(NULL);
+        } else {
+            $$ = symbol_node(s);
         }
-        $$ = symbol_node(s);
     }
     | assignable rec_op identifier {
         if($1 && $1->value.symbol) {
@@ -410,23 +440,24 @@ assignable:
                 SYMTAB* s = find_entry($1->value.symbol->type->details.record->members->symbols, $3); 
                 if(!s) {
                     symbol_not_found_error($3, "record member");
-                    $$ = NULL;
+                    $$ = symbol_node(NULL);
                 } else {
                     $$ = symbol_node(s);
                 }
             } 
         } else {
-            $$ = NULL;
+            $$ = symbol_node(NULL);
         }
     }
     | assignable ablock {
         if($1 && $1->value.symbol) {
             if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
-                add_instruction(code_table, I_CALL, $1, NULL);
+                $$ = add_instruction(code_table, I_CALL, $1, NULL);
             } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
                 /* 
                     TODO: ARRAY ACCESS
                 */
+                $$ = add_instruction(code_table, I_ARRAY, $1, NULL);
                 // printf("Array access: %s", $1->name);
             } else {
                 incorrect_type_error($1->value.symbol->name, "array or function");
@@ -470,8 +501,7 @@ expression:
         TC_RESULT r = type_check_binary_expression($2, $1->type_name, $3->type_name);
         switch(r) {
             case FAIL:
-                type_mismatch_error($1->type_name, $3->type_name);
-                break;
+                invalid_binary_expression($2, $1->type_name, $3->type_name);
             case PASS: 
                 $$ = add_instruction(code_table, $2, $1, $3);
                 break;
@@ -488,17 +518,26 @@ expression:
         }
     }
     | expression post_unary_operator {
+        if(!type_check_unary_expression($2, $1->type_name)) {
+            invalid_unary_expression($2, $1->type_name);
+        }
+
         $$ = add_instruction(code_table, $2, $1, NULL);
     }
     | pre_unary_operator expression %prec pre_unary_prec {
+        if(!type_check_unary_expression($1, $2->type_name)) {
+            invalid_unary_expression($1, $2->type_name);    
+        }
         $$ = add_instruction(code_table, $1, $2, NULL);
     }
     | L_PARENTHESIS expression R_PARENTHESIS {
         $$ = $2;
     }
     | constant 
-    | assignable {
-        $$ = add_instruction(code_table, I_LOOKUP, $1, NULL);
+    | assignable { 
+        if($1->meta == SYMBOL) {
+            $$ = add_instruction(code_table, I_LOOKUP, $1, NULL);
+        }
     }
     ;
 
@@ -699,6 +738,26 @@ SYMTAB* find_symbol(char* name) {
 void notify_error(char* e) {
     yyerror(e);
     errors = push_error(errors, e);
+}
+
+void invalid_unary_expression(int op, char* t1) {
+    const char format[] = "LINE %d:%d - ERROR: unary operator '%s' cannot be applied to type '%s'\n";
+    
+    char dest[strlen(format) + (t1 ? strlen(t1) : 0) + 26];
+
+    sprintf(dest, format, get_row(), get_column(), get_op_string(op) , t1);
+    notify_error(dest);
+    yyerrok;
+}
+
+void invalid_binary_expression(int op, char* t1, char* t2) {
+    const char format[] = "LINE %d:%d - ERROR: binary operator '%s' cannot be applied to type '%s' and '%s'\n";
+    
+    char dest[strlen(format) + (t1 ? strlen(t1) : 0) + (t2 ? strlen(t2) : 0) + 26];
+
+    sprintf(dest, format, get_row(), get_column(), get_op_string(op), t2, t1);
+    notify_error(dest);
+    yyerrok;
 }
 
 void type_mismatch_error(char* t1, char* t2) {

@@ -40,5 +40,6 @@ NODE* null_node();
 NODE* symbol_node(struct symtab*);
 NODE* ir_node(int, char*);
 bool type_check_assignment(NODE*, NODE*);
+char* node_to_string(NODE*);
 
 #endif

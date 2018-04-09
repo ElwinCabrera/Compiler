@@ -20,7 +20,7 @@ typedef enum tc_result {
 
 struct function_details {
     struct scope * parameters;
-    struct symtype * return_type;
+    struct symtab * return_type;
 };
 
 struct array_details {
@@ -52,5 +52,6 @@ bool check_metatype(SYMTYPE*, TYPEMETA);
 bool check_type(SYMTYPE*, char*);
 bool compare_types(char*, char*);
 TC_RESULT type_check_binary_expression(int, char*, char*);
+TC_RESULT type_check_unary_expression(int, char*);
 
 #endif

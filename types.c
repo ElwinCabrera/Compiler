@@ -80,6 +80,28 @@ bool compare_types(char* t1, char* t2) {
     return strcmp(t1, t2) == 0;
 }
 
+TC_RESULT type_check_unary_expression(int op, char* lhs) {
+    switch(op) {
+        case I_NOT:
+            return compare_types(lhs, "Boolean") ? PASS : FAIL;
+        case I_REAL2INT:
+            return compare_types(lhs, "real") ? PASS : FAIL;
+        case I_INT2REAL:
+            return compare_types(lhs, "integer") ? PASS : FAIL;
+        case I_SUB:
+            return (compare_types(lhs, "integer") | compare_types(lhs, "real")) ? PASS : FAIL;
+        case I_IS_NULL:
+        case I_RESERVE:
+        case I_RELEASE:
+        {
+            SYMTYPE* t = find_type(*get_types(), lhs);
+            return (t && (t->meta == MT_ARRAY || t->meta == MT_RECORD)) ? PASS : FAIL;
+        }
+        default:
+            return FAIL;
+    }
+}
+
 TC_RESULT type_check_binary_expression(int op, char* lhs, char* rhs) {
     switch(op) {
         case I_AND:
