@@ -214,8 +214,10 @@ definition:
         insert_new_symbol($4, $2, FUNCTION, "function");
         function_context = stack_push(function_context, $4);
     } sblock { 
+        SYMTAB* s = find_symbol($2); 
+        NODE* n = add_instruction(code_table, I_LOOKUP, symbol_node(s), NULL);
+        add_instruction(code_table, I_RETURN, n, NULL);
         function_context = stack_pop(function_context); 
-        add_instruction(code_table, I_RETURN, NULL, NULL);
     }
     | check_type_literal identifier COLON open_scope {
         new_type(MT_RECORD, $2);
