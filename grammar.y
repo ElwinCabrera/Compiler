@@ -1,11 +1,12 @@
 %{
 #include <stdio.h>
 #include <string.h>
+#include "errors.h"
+#include "ir.h"
+#include "node.h"
+#include "stack.h"
 #include "symbolTable.h"
 #include "types.h"
-#include "errors.h"
-#include "node.h"
-#include "ir.h"
 
 static int scope_counter = 0;
 static SCOPE* symbols;
@@ -14,17 +15,12 @@ static ERROR* errors;
 static IRTABLE* code_table;
 static int yyerrstatus;
 
+STACK* function_context = 0;
+STACK* symbol_context = 0;
+
 extern int get_row();
 extern int get_column();
 int yylex();
-
-/*
-    Simple stack to pass information between productions
-*/
-struct context {
-    void* node;
-    struct context* next;
-} * context_stack = NULL;
 
 
 /*
@@ -46,13 +42,6 @@ void initialize_structs();
 */
 SCOPE* open_scope();
 SCOPE* close_scope();
-
-/*
-    Helpers for passing type or expression information
-*/
-void push_context(void*);
-void* pop_context();
-void* peek_context();
 
 /*
     Wrappers to access types in static type linked list
@@ -199,8 +188,8 @@ definition:
     }
     | FUNCTION identifier COLON type_specifier {
         insert_new_symbol($4, $2, FUNCTION, "function");
-        push_context($4);
-    } sblock { pop_context(); }
+        function_context = stack_push(function_context, $4);
+    } sblock { function_context = stack_pop(function_context); }
     | check_type_literal identifier COLON open_scope {
         new_type(MT_RECORD, $2);
     } dblock close_scope  {
@@ -234,10 +223,6 @@ parameter_declaration:
     type_specifier COLON identifier {
         $$ = new_symbol($1, $3, PARAMETER, "parameter");
     }
-    /* Syntax Errors */
-    | type_specifier error {
-
-    }
     ;
 
 dblock:
@@ -255,30 +240,30 @@ declaration_list:
 
 declaration:
     type_specifier {
-        push_context($1);
+        symbol_context = stack_push(symbol_context, $1);
     } COLON identifier_list {
         $$ = $4;
-        pop_context();
+        symbol_context = stack_pop(symbol_context);
     }
     ;
 
 
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
-        SYMTYPE* type = (SYMTYPE*) peek_context();
+        SYMTYPE* type = stack_peek(symbol_context);
         $$ = add_symbols($5, new_symbol(type, $1, LOCAL, "local"));
     }
     | identifier assign_op constant {
-        SYMTYPE* type = (SYMTYPE*) peek_context();
+        SYMTYPE* type = stack_peek(symbol_context);
         $$ = new_symbol(type, $1, LOCAL, "local");
     }
     | identifier COMMA identifier_list {
-        SYMTYPE* type = (SYMTYPE*) peek_context();
+        SYMTYPE* type = stack_peek(symbol_context);
         $$ = add_symbols($3, new_symbol(type, $1, LOCAL, "local"));
 
     }
     | identifier {
-        SYMTYPE* type = (SYMTYPE*) peek_context();
+        SYMTYPE* type = stack_peek(symbol_context);
         $$ = new_symbol(type, $1, LOCAL, "local");
     }
     ;
@@ -382,7 +367,7 @@ assignable:
                 is a function type pushed on the stack. If the symbol isn't
                 found normally, check the function scope for parameters.
             */
-            SYMTYPE* st = peek_context();
+            SYMTYPE* st = stack_peek(function_context);
             if(st && st->meta == MT_FUNCTION) {
                 s = find_entry(st->details.function->parameters->symbols, $1);
             }
@@ -609,34 +594,6 @@ IRTABLE** get_intermediate_code() {
 
 ERROR** get_errors() {
     return &errors;
-}
-
-void push_context(void* context) {
-    struct context * c = malloc(sizeof(struct context));
-    c->node = context;
-    c->next = context_stack;
-    context_stack = c;
-}
-
-void* pop_context() {
-    
-    if(!context_stack) {
-        return NULL;
-    }
-
-    struct context * c = context_stack;
-    void* r = c->node;
-    context_stack = c->next;
-    free(c);
-
-    return r;
-}
-
-void* peek_context() {
-    if(!context_stack) {
-        return NULL;
-    }
-    return context_stack->node;
 }
 
 SCOPE* open_scope() {
