@@ -483,7 +483,7 @@ assignable:
                     printf("Too many arguments. Expected: %d, Actual: %d\n", expected, actual);
                 }
 
-                $$ = add_instruction(code_table, I_CALL, $1, NULL);
+                $$ = add_instruction(code_table, I_CALL, $1, int_node(expected));
             } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
                 /* 
                     TODO: ARRAY ACCESS
