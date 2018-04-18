@@ -131,7 +131,7 @@ void print_tac(TAC* code, FILE* f) {
             fprintf(f, "[%03d]\t param %s\n", code->label, x);
             break;
         case I_CALL:
-            fprintf(f, "[%03d]\t call %s %s\n", code->label, x, y);
+            fprintf(f, "[%03d]\t %s = call %s %s\n", code->label, result, x, y);
             break;
         case I_RETURN:
             fprintf(f, "[%03d]\t return %s\n", code->label, result);

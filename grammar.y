@@ -90,8 +90,7 @@ ADDRESS* binary_expression(TAC_OP, ADDRESS*, ADDRESS*);
 %type <symbol> dblock declaration_list declaration;
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
-%type <symbol> assignable;
-%type <address> case constant expression;
+%type <address> case constant expression assignable;
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list case_list;
 
@@ -406,7 +405,7 @@ statement:
 
     | assignable assign_op expression semi_colon_after_statement {
 
-        SYMTAB* s = $1;
+        SYMTAB* s = $1->value.symbol;
 
         if(s && check_metatype(s->type, MT_FUNCTION)) {
             s = s->type->ret;
@@ -421,7 +420,7 @@ statement:
     }
 
     | mem_op assignable semi_colon_after_statement {
-        add_code(code_table, new_tac($1, symbol_address($2), NULL, NULL));
+        add_code(code_table, new_tac($1, $2, NULL, NULL));
     }
     
     | sblock
@@ -475,23 +474,23 @@ assignable:
             $$ = NULL;
         } else if (s->meta == TYPE) {
             type_as_var_error(s->name);
-            $$ = s;
+            $$ = NULL;
         } else {
-            $$ = s;
+            $$ = symbol_address(s);
         }
     }
     | assignable rec_op identifier {
-        if($1) {
-            if(!check_metatype($1->type, MT_RECORD)) {
-                incorrect_type_error($1->name, "record");
+        if($1->value.symbol) {
+            if(!check_metatype($1->value.symbol->type, MT_RECORD)) {
+                incorrect_type_error($1->value.symbol->name, "record");
                 $$ = NULL;
             } else {
-                SYMTAB* s = find_entry($1->type->members->symbols, $3); 
+                SYMTAB* s = find_entry($1->value.symbol->type->members->symbols, $3); 
                 if(!s) {
                     symbol_not_found_error($3, "record member");
                     $$ = NULL;
                 } else {
-                    $$ = s;
+                    $$ = symbol_address(s);
                 }
             } 
         } else {
@@ -499,9 +498,9 @@ assignable:
         }
     }
     | assignable ablock {
-        if(check_metatype($1->type, MT_FUNCTION)) {
+        if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
             STACK* args = $2;
-            SYMTAB* params = $1->type->parameters->symbols;
+            SYMTAB* params = $1->value.symbol->type->parameters->symbols;
 
             int expected = 0;
             int actual = 0;
@@ -530,10 +529,9 @@ assignable:
                 while(args) { args = stack_pop(args); actual++; }
                 argument_count_mismatch(expected, actual);
             }
-            
-            add_code(code_table, new_tac(I_CALL, symbol_address($1), int_address(expected), NULL));
-            $$ = $1->type->ret;
-        } else if(check_metatype($1->type, MT_ARRAY)) {
+            ADDRESS* a = temp_address($1->type->ret->type);
+            $$ = add_code(code_table, new_tac(I_CALL, $1, int_address(expected), a));
+        } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
             
             /* 
                 TODO: ARRAY ACCESS
@@ -541,7 +539,7 @@ assignable:
             // $$ = add_instruction(code_table, I_ARRAY, $1, NULL);
             // printf("Array access: %s", $1->name);
         } else {
-            incorrect_type_error($1->name, "array or function");
+            incorrect_type_error($1->value.symbol->name, "array or function");
         }
     }
     ;
@@ -565,6 +563,12 @@ non_empty_argument_list:
     }
     ;
 
+/* 
+    The binary operators are all separate because bison
+    doesn't properly handle precedence if they're all reduced to
+    the same token. 
+ */
+
 expression:
     expression ADD expression { $$ = binary_expression($2, $1, $3); }
     | expression SUB_OR_NEG expression { $$ = binary_expression($2, $1, $3); }
@@ -574,8 +578,7 @@ expression:
     | expression AND expression { $$ = binary_expression($2, $1, $3); }
     | expression OR expression { $$ = binary_expression($2, $1, $3); }
     | expression LESS_THAN expression { $$ = binary_expression($2, $1, $3); }
-    | expression EQUAL_TO expression {
-    }
+    | expression EQUAL_TO expression { $$ = binary_expression($2, $1, $3); }
     | expression post_unary_operator {
         if(!type_check_unary_expression($2, $1->type)) {
             invalid_unary_expression($2, $1->type ? $1->type->name : "NULL");
@@ -594,9 +597,7 @@ expression:
         $$ = $2;
     }
     | constant 
-    | assignable { 
-        $$ = symbol_address($1);
-    }
+    | assignable
     ;
 
 identifier:
