@@ -4,10 +4,22 @@
 
 static int temporary_count = 0;
 
+/*
+    According to text, an address can be:
+        - A symbol (name)
+        - A constant
+        - A temporary
+
+    This is a generic wrapper for an address creation
+*/
 ADDRESS* new_address() {
     return malloc(sizeof(ADDRESS));
 };
 
+/*
+    Creates an address for a temporary value.
+    Increases the temporary variable counter.
+*/
 ADDRESS* temp_address(SYMTYPE* t) {
     ADDRESS* a = new_address();
     a->meta = TEMPORARY;
@@ -16,6 +28,9 @@ ADDRESS* temp_address(SYMTYPE* t) {
     return a;
 }
 
+/*
+    Creates an address from a symbol table entry
+*/
 ADDRESS* symbol_address(SYMTAB* s) {
     ADDRESS* a = new_address();
     a->meta = SYMBOL;
@@ -24,6 +39,10 @@ ADDRESS* symbol_address(SYMTAB* s) {
     return a;
 }
 
+/*
+    Creates an address for a label
+    This is used for branching
+*/
 ADDRESS* label_address(int n) {
     ADDRESS* a = new_address();
     a->meta = LABEL;
@@ -32,6 +51,9 @@ ADDRESS* label_address(int n) {
     return a;
 }
 
+/*
+    integer constant
+*/
 ADDRESS* int_address(int n) {
     ADDRESS* a = new_address();
     a->meta = INT_CONSTANT;
@@ -40,6 +62,9 @@ ADDRESS* int_address(int n) {
     return a;
 }
 
+/*
+    boolean constant
+*/
 ADDRESS* boolean_address(int b) {
     ADDRESS* a = new_address();
     a->meta = BOOLEAN_CONSTANT;
@@ -48,6 +73,9 @@ ADDRESS* boolean_address(int b) {
     return a;
 }
 
+/*
+    real constant
+*/
 ADDRESS* real_address(double d) {
     ADDRESS* a = new_address();
     a->meta = REAL_CONSTANT;
@@ -56,6 +84,9 @@ ADDRESS* real_address(double d) {
     return a;
 };
 
+/*
+    char constant
+*/
 ADDRESS* char_address(char c) {
     ADDRESS* a = new_address();
     a->meta = CHAR_CONSTANT;
@@ -64,6 +95,9 @@ ADDRESS* char_address(char c) {
     return a;
 };
 
+/*
+    string constant
+*/
 ADDRESS* string_address(char* s) {
     ADDRESS* a = new_address();
     a->meta = STRING_CONSTANT;
@@ -72,6 +106,9 @@ ADDRESS* string_address(char* s) {
     return a;
 };
 
+/*
+    null constant
+*/
 ADDRESS* null_address() {
     ADDRESS* a = new_address();
     a->value.null = 0;
@@ -80,6 +117,10 @@ ADDRESS* null_address() {
     return a;
 }
 
+/*
+    Creates a string represenation of an address
+    Be sure to free() this
+*/
 char* create_address_string(ADDRESS* a) {
     if(!a) {
         return NULL;
@@ -90,7 +131,7 @@ char* create_address_string(ADDRESS* a) {
             return strdup(a->value.string);
         case CHAR_CONSTANT: {
             char * tmp = malloc(2 * sizeof(char));
-            sprintf(tmp, "%c", a->value.character);
+            sprintf(tmp, "'%c'", a->value.character);
             return tmp;
         }
         case INT_CONSTANT: {
