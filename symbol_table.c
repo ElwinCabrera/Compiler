@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "types.h"
-#include "symbolTable.h"
+#include "symbol_table.h"
 
 SCOPE* new_scope(SCOPE* parent, int id)
 {
@@ -166,9 +166,9 @@ void print_symbol(SYMTAB * symbol, int scope, FILE* f) {
   }
 
   if(f) {
-    fprintf(f, "%s : %d : %p : %s\n", symbol->name, scope, symbol->type, symbol->extra);
+    fprintf(f, "%s : %d : %s : %s\n", symbol->name, scope, symbol->type->name, symbol->extra);
   } else {
-    printf("%s : %d : %p : %s\n", symbol->name, scope, symbol->type, symbol->extra);
+    printf("%s : %d : %s : %s\n", symbol->name, scope, symbol->type->name, symbol->extra);
   }
 
 }

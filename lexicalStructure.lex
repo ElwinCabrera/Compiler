@@ -1,7 +1,7 @@
 %{
 #include "y.tab.h"
 #include "stack.h"
-#include "ir.h"
+#include "intermediate_code.h"
 int handle_token(int);
 %}
 

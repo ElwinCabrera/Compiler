@@ -3,8 +3,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <string.h>
-#include "symbolTable.h"
-#include "ir.h"
+#include "symbol_table.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
@@ -12,7 +11,6 @@ extern void yyset_in(FILE *);
 // Defined in grammar.y
 // Returns the symbol table the parser uses
 extern SCOPE** get_symbol_table();
-extern IRTABLE** get_intermediate_code();
 extern void* set_asc_file(FILE*);
 
 FILE *inputFile;
@@ -90,7 +88,7 @@ int main(int argc, char* argv[])
                 printf("ERROR(%d): Could not open file %s for writing\n", errno, ir_file_path);
             }
             free(ir_file_path);
-            print_ir_table(*get_intermediate_code(), ir_file);
+            print_intermediate_code(get_intermediate_code(), ir_file);
         }
 
 

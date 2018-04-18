@@ -2,14 +2,14 @@
 #define TYPES_H
 
 #include <stdbool.h>
+#include "intermediate_code.h"
 
-typedef enum typemeta {
+typedef enum ttype {
     MT_FUNCTION,
     MT_ARRAY,
     MT_RECORD,
     MT_PRIMITIVE,
-} TYPEMETA;
-
+} TTYPE;
 
 typedef enum tc_result {
     FAIL,
@@ -18,40 +18,30 @@ typedef enum tc_result {
     COERCE_RHS,
 } TC_RESULT;
 
-struct function_details {
-    struct scope * parameters;
-    struct symtab * return_type;
-};
-
-struct array_details {
-    int dimensions;
-    struct symtype * element_type;
-};
-
-struct record_details {
-    struct scope * members;
-};
-
 typedef struct symtype {
-    TYPEMETA meta;
+    TTYPE meta;
     char* name;
-    union {
-        struct function_details* function;
-        struct array_details* array;
-        struct record_details* record;
-        void* primitive;
-    } details;
+    struct scope* parameters;
+    struct symtab* ret;
+    struct scope* members;
+    struct symtype* element_type;
+    int dimensions;
     struct symtype* next;
 } SYMTYPE;
 
-SYMTYPE* type_list;
+typedef struct type_container {
+    struct symtype* head;
+} TYPE_CONTAINER;
 
-SYMTYPE* add_type(SYMTYPE*, TYPEMETA, char*);
-SYMTYPE* find_type(SYMTYPE*, char*);
-bool check_metatype(SYMTYPE*, TYPEMETA);
-bool check_type(SYMTYPE*, char*);
-bool compare_types(char*, char*);
-TC_RESULT type_check_binary_expression(int, char*, char*);
-TC_RESULT type_check_unary_expression(int, char*);
+
+TYPE_CONTAINER* get_type_container();
+SYMTYPE* add_type(TYPE_CONTAINER*, TTYPE, char*);
+SYMTYPE* find_type(TYPE_CONTAINER*, char*);
+SYMTYPE* lval_type(TAC_OP, SYMTYPE*,SYMTYPE*);
+bool check_metatype(SYMTYPE*, TTYPE);
+bool check_typename(SYMTYPE*, char*);
+bool compare_typenames(char*, char*);
+TC_RESULT type_check_binary_expression(int, SYMTYPE*, SYMTYPE*);
+TC_RESULT type_check_unary_expression(int, SYMTYPE*);
 
 #endif

@@ -1,18 +1,19 @@
 %{
 #include <stdio.h>
 #include <string.h>
-#include "ir.h"
-#include "node.h"
 #include "stack.h"
-#include "symbolTable.h"
+#include "symbol_table.h"
 #include "types.h"
+#include "address.h"
+#include "expression.h"
+#include "intermediate_code.h"
 
 static int scope_counter = 0;
 static SCOPE* symbols;
-static SYMTYPE* types;
 static STACK* errors;
-static IRTABLE* code_table;
 static int yyerrstatus;
+INTERMEDIATE_CODE* code_table;
+TYPE_CONTAINER* types;
 
 STACK* function_context = 0;
 STACK* symbol_context = 0;
@@ -52,9 +53,8 @@ SCOPE* close_scope();
 */
 SYMTYPE* new_type(int, char*);
 SYMTYPE* lookup_type(char*);
-
 SYMTAB* find_symbol(char*);
-void insert_new_symbol(SYMTYPE*, char*, int, char*);
+SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 
 
 %}
@@ -70,8 +70,9 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
     struct scope* scope;
     struct symtab* symbol;
     struct symtype* type;
-    struct node* node;
     struct stack* stack;
+    struct address* address;
+    struct expression* exp;
 }
 
 %token <string> ID;
@@ -89,7 +90,8 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <symbol> dblock declaration_list declaration;
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
-%type <node> constant expression assignable case;
+%type <symbol> assignable;
+%type <address> case constant expression;
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list;
 %type <stack> case_list;
@@ -98,8 +100,8 @@ void insert_new_symbol(SYMTYPE*, char*, int, char*);
 // chooses the correct state, we just need to handle precedence
 %expect 20
 
-%left '+' '-'
 %left '*' '/' '%'
+%left '+' '-'
 %right pre_unary_prec
 
 %token <string> T_INTEGER
@@ -172,10 +174,10 @@ next_instruction: { $$ = code_table->next_instruction; } ;
 program: 
     { 
         initialize_structs(); 
-        add_instruction(code_table, I_GOTO, NULL, NULL);
-    } definition_list next_instruction {
-        code_table->entries[0]->lhs = ir_node($3, NULL);
-    } sblock 
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
+    } definition_list next_instruction sblock {
+        code_table->entries[0]->result = label_address($3);
+    }
     ;
 
 definition_list: 
@@ -186,37 +188,36 @@ definition_list:
 definition:
     check_type_literal identifier COLON constant check_arrow type_specifier COLON L_PARENTHESIS constant check_r_parenthesis {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
-        type->details.array->element_type = $6;
+        type->element_type = $6;
         if($4->meta != INT_CONSTANT) { 
-            type_mismatch_error("constant integer", $4->type_name);
+            type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
         } else {
-            type->details.array->dimensions = $4->value.integer;
+            type->dimensions = $4->value.integer;
         }
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON constant check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
-        type->details.array->element_type = $6;
+        type->element_type = $6;
         if($4->meta != INT_CONSTANT) { 
-            type_mismatch_error("constant integer", $4->type_name);
+            type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
         } else {
-            type->details.array->dimensions = $4->value.integer;
+            type->dimensions = $4->value.integer;
         }
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON pblock check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_FUNCTION, $2);
-        type->details.function->parameters = $4;
-        type->details.function->return_type = new_symbol($6, $2, LOCAL, "local");
+        type->parameters = $4;
+        type->ret = new_symbol($6, $2, LOCAL, "local");
         insert_new_symbol(type, $2, TYPE, "ftype");
     }
     | FUNCTION identifier COLON type_specifier {
-        insert_new_symbol($4, $2, FUNCTION, "function");
-        function_context = stack_push(function_context, $4);
+        SYMTAB* s = insert_new_symbol($4, $2, FUNCTION, "function");
+        function_context = stack_push(function_context, s);
     } sblock { 
-        SYMTAB* s = find_symbol($2); 
-        NODE* n = add_instruction(code_table, I_LOOKUP, symbol_node(s), NULL);
-        add_instruction(code_table, I_RETURN, n, NULL);
+        ADDRESS* a = symbol_address($4->ret);
+        add_code(code_table, new_tac(I_RETURN, NULL, NULL, a));
         function_context = stack_pop(function_context); 
     }
     | check_type_literal identifier COLON open_scope {
@@ -224,7 +225,7 @@ definition:
     } dblock close_scope  {
         SYMTYPE* t = lookup_type($2);
         add_symbols_to_scope($4, $6);
-        t->details.record->members = $4;
+        t->members = $4;
         insert_new_symbol(t, $2, TYPE, "rtype");
     }
     ;
@@ -280,14 +281,25 @@ declaration:
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
-        $$ = add_symbols($5, new_symbol(type, $1, LOCAL, "local"));
+        SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
+        if(!s || !type || type != $3->type) {
+            type_mismatch_error(type ? type->name : "NULL", 
+                $3->type ? $3->type->name : "NULL");
+        } else {
+            add_code(code_table, new_tac(I_ASSIGN, symbol_address(s), $3, NULL));
+        }
+        $$ = add_symbols($5, s);
     }
     | identifier assign_op constant {
         SYMTYPE* type = stack_peek(symbol_context);
-        $$ = new_symbol(type, $1, LOCAL, "local");
-        if(!type_check_binary_expression(I_ASSIGN, type->name, $3->type_name)) {
-
+        SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
+        if(!s || !type || type != $3->type) {
+            type_mismatch_error(type ? type->name : "NULL", 
+                $3->type ? $3->type->name : "NULL");
+        } else {
+            add_code(code_table, new_tac(I_ASSIGN, symbol_address(s), $3, NULL));
         }
+        $$ = new_symbol(type, $1, LOCAL, "local");
     }
     | identifier COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
@@ -318,42 +330,38 @@ statement_list:
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON next_instruction expression next_instruction {
 //  1   2             3         4          5                6          7                8
-        if(!compare_types("Boolean", $6->type_name)) {
-            type_mismatch_error("Boolean", $6->type_name);
+        if(!check_typename($6->type, "Boolean")) {
+            type_mismatch_error("Boolean", $6->type ? $6->type->name : "NULL");
         }
-        add_instruction(code_table, I_TEST_FALSE, $6, NULL);
+        add_code(code_table, new_tac(I_TEST_FALSE, $6, NULL, NULL));
     } next_instruction {
 //    9                10
-        add_instruction(code_table, I_GOTO, NULL, NULL);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
     } SEMI_COLON next_instruction statement {
 //    11         12               13        14
-        NODE* n = ir_node($5, NULL);
-        add_instruction(code_table, I_GOTO, n, NULL);
-    } R_PARENTHESIS next_instruction {
-//    15            16               17
-        code_table->entries[$9]->lhs = ir_node($16, NULL);
-    } sblock {
-//    18     19
-        NODE* n = ir_node($12, NULL);
-        add_instruction(code_table, I_GOTO, n, NULL);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($5)));
+    } R_PARENTHESIS next_instruction sblock {
+//    15            16               17     18
+        code_table->entries[$9]->result = label_address($16);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($12)));
     } next_instruction {
-//    20               21
-        code_table->entries[$7]->rhs = ir_node($20, NULL);
+//    19               20
+        code_table->entries[$7]->result = label_address($19);
     }
 
     | SWITCH L_PARENTHESIS expression check_r_parenthesis {
 //    1      2             3          4                   5
-        if(!compare_types("integer", $3->type_name)) {
-            type_mismatch_error("integer", $3->type_name);
+        if(!check_typename($3->type, "integer")) {
+            type_mismatch_error("integer", $3->type ? $3->type->name : "NULL");
         }
         case_context = stack_push(case_context, $3);
     } case_list OTHERWISE COLON next_instruction sblock next_instruction {
 //    6         7         8     9                 10     11
         STACK* s = $6;
-        NODE* jmp = ir_node($11, NULL);
+        ADDRESS* jmp = label_address($11);
         while(s) {
-            NODE* n = stack_peek(s);
-            code_table->entries[n->value.instruction]->lhs = jmp;
+            ADDRESS* a = stack_peek(s);
+            code_table->entries[a->value.label]->result = jmp;
             s = stack_pop(s);
         }
         case_context = stack_pop(case_context);
@@ -361,52 +369,51 @@ statement:
     
     | IF L_PARENTHESIS expression next_instruction { 
 //    1  2             3          4                5
-        if(!compare_types("Boolean", $3->type_name)) {
-            type_mismatch_error("Boolean", $3->type_name);
+        if(!check_typename($3->type, "Boolean")) {
+            type_mismatch_error("Boolean", $3->type ? $3->type->name : "NULL");
         }
-        add_instruction(code_table, I_TEST_FALSE, $3, NULL);
+        add_code(code_table, new_tac(I_TEST_FALSE, $3, NULL, NULL));
     } check_r_parenthesis THEN sblock next_instruction {
 //    6                   7    8      9                10
-        add_instruction(code_table, I_GOTO, NULL, NULL);
-    } next_instruction {
-//    11               12
-        code_table->entries[$4]->rhs = ir_node($11, NULL);
-    } ELSE sblock next_instruction {
-//    13   14     15               16
-        code_table->entries[$9]->lhs = ir_node($15, NULL);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
+    } next_instruction ELSE sblock next_instruction {
+//    11               12   13     14
+        code_table->entries[$4]->result = label_address($11);
+        code_table->entries[$9]->result = label_address($14);
     }
 
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
 //    1     2             3                4          5                6
-        if(!compare_types("Boolean", $4->type_name)) {
-            type_mismatch_error("Boolean", $4->type_name);
+        if(!check_typename($4->type, "Boolean")) {
+            type_mismatch_error("Boolean", $4->type ? $4->type->name : "NULL");
         }
-        add_instruction(code_table, I_TEST_FALSE, $4, NULL);
+        add_code(code_table, new_tac(I_TEST_FALSE, $4, NULL, NULL));
     } check_r_parenthesis sblock {
 //    7                   8      9
-        add_instruction(code_table, I_GOTO, $4, NULL);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($3)));
     } next_instruction {
 //    10               11
-        code_table->entries[$5]->rhs = ir_node($10, NULL);
+        code_table->entries[$5]->result = label_address($10);
     }
 
     | assignable assign_op expression semi_colon_after_statement {
-        if(!compare_types($1->type_name, $3->type_name)) {
-            SYMTYPE* st = stack_peek(function_context);
-            if(st && compare_types(st->name, $1->type_name)) {
-                NODE* n = add_instruction(code_table, I_LOOKUP, $1, NULL);
-                add_instruction(code_table, I_ASSIGN, n, $3);
-            } else {
-                type_mismatch_error($1->type_name, $3->type_name);
-            }
+
+        SYMTAB* s = $1;
+
+        if(s && check_metatype(s->type, MT_FUNCTION)) {
+            s = s->type->ret;
+        }
+
+        if(!s || !s->type || s->type != $3->type) {
+            type_mismatch_error($1 ? $1->type ? $1->type->name : "NULL" : "NULL", 
+                $3->type ? $3->type->name : "NULL");
         } else {
-            NODE* n = add_instruction(code_table, I_LOOKUP, $1, NULL);
-            add_instruction(code_table, I_ASSIGN, n, $3);
+            add_code(code_table, new_tac(I_ASSIGN, symbol_address(s), $3, NULL));
         }
     }
 
     | mem_op assignable semi_colon_after_statement {
-        add_instruction(code_table, $1, $2, NULL);
+        add_code(code_table, new_tac($1, symbol_address($2), NULL, NULL));
     }
     
     | sblock
@@ -424,105 +431,110 @@ case_list:
 case:
     CASE constant next_instruction {
 //  1    2        3                4
-        NODE* cmp = stack_peek(case_context);
-
-        NODE* n = add_instruction(code_table, I_EQUAL, $2, cmp); 
-        add_instruction(code_table, I_TEST_FALSE, n, NULL);
+        ADDRESS* exp = stack_peek(case_context);
+        add_code(code_table, new_tac(I_TEST_NOTEQUAL, exp, $2, NULL));
     } COLON sblock next_instruction {
 //    5     6      7
-        if(!compare_types("integer", $2->type_name)) {
-            type_mismatch_error("integer", $2->type_name);
-        } else
-        $$ = add_instruction(code_table, I_GOTO, NULL, NULL);
-        code_table->entries[$3 + 1]->rhs = ir_node($7 + 1, NULL);
+        if(!check_typename($2->type, "integer")) {
+            type_mismatch_error("integer", $2->type ? $2->type->name : "NULL");
+        } else {
+            $$ = label_address($7);
+            add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
+            code_table->entries[$3]->result = label_address($7 + 1);
+        }
     }
     ;
 
 assignable:
     identifier { 
-        SYMTAB* s = find_symbol($1); 
+        SYMTAB* s = NULL;
+        SYMTAB* fn = stack_peek(function_context);
+
+        if(fn) {
+            if(strcmp(fn->name, $1) == 0) {
+                s = fn;
+            } else {
+                s = find_entry(fn->type->parameters->symbols, $1);
+            }
+        }
+
+        if(!s) {
+            s = find_symbol($1); 
+        }
 
         if (!s) {
-            SYMTYPE* st = stack_peek(function_context);
-            if(st) {
-                s = find_entry(st->details.function->parameters->symbols, $1);
-            }
-
-            if(!s) {
-                symbol_not_found_error($1, "variable");
-            }
-
-            $$ = symbol_node(s);
+            symbol_not_found_error($1, "variable");
+            $$ = NULL;
         } else if (s->meta == TYPE) {
             type_as_var_error(s->name);
-            $$ = symbol_node(NULL);
+            $$ = s;
         } else {
-            $$ = symbol_node(s);
+            $$ = s;
         }
     }
     | assignable rec_op identifier {
-        if($1 && $1->value.symbol) {
-            if(!check_metatype($1->value.symbol->type, MT_RECORD)) {
-                incorrect_type_error($1->value.symbol->name, "record");
+        if($1) {
+            if(!check_metatype($1->type, MT_RECORD)) {
+                incorrect_type_error($1->name, "record");
                 $$ = NULL;
             } else {
-                SYMTAB* s = find_entry($1->value.symbol->type->details.record->members->symbols, $3); 
+                SYMTAB* s = find_entry($1->type->members->symbols, $3); 
                 if(!s) {
                     symbol_not_found_error($3, "record member");
-                    $$ = symbol_node(NULL);
+                    $$ = NULL;
                 } else {
-                    $$ = symbol_node(s);
+                    $$ = s;
                 }
             } 
         } else {
-            $$ = symbol_node(NULL);
+            $$ = NULL;
         }
     }
     | assignable ablock {
-        if($1 && $1->value.symbol) {
-            if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
-                STACK* args = $2;
-                SYMTAB* params = $1->value.symbol->type->details.function->parameters->symbols;
-                int expected = 0;
-                int actual = 0;
-                while(params) {
-                    if(!args) {
-                        while(params) { params = params->next; expected++; }
-                        argument_count_mismatch(expected, actual);
-                        break;
-                    }
-                    actual++;
-                    NODE* n = stack_peek(args);
-                    
-                    if(!compare_types(params->type->name, n->type_name)) {
-                        type_mismatch_error(params->type->name, n->type_name);
-                    } else {
-                        add_instruction(code_table, I_PARAM, n, NULL);
-                    }
+        if(check_metatype($1->type, MT_FUNCTION)) {
+            STACK* args = $2;
+            SYMTAB* params = $1->type->parameters->symbols;
 
-                    args = stack_pop(args);
-                    params = params->next;
-                    expected++;
-                }
-
-                if(args) {
-                    while(args) { args = stack_pop(args); actual++; }
+            int expected = 0;
+            int actual = 0;
+            while(params) {
+                if(!args) {
+                    while(params) { params = params->next; expected++; }
                     argument_count_mismatch(expected, actual);
+                    break;
+                }
+                actual++;
+                ADDRESS* a = stack_peek(args);
+                
+                if(params->type && params->type == a->type) {
+                    add_code(code_table, new_tac(I_PARAM, a, NULL, NULL));
+                } else {
+                    type_mismatch_error(params->type ? params->type->name : "NULL", 
+                        a->type ? a->type->name : "NULL");
                 }
 
-                $$ = add_instruction(code_table, I_CALL, $1, int_node(expected));
-            } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
-                /* 
-                    TODO: ARRAY ACCESS
-                */
-                $$ = add_instruction(code_table, I_ARRAY, $1, NULL);
-                // printf("Array access: %s", $1->name);
-            } else {
-                incorrect_type_error($1->value.symbol->name, "array or function");
+                args = stack_pop(args);
+                params = params->next;
+                expected++;
             }
-        } else {
 
-        } 
+            if(args) {
+                while(args) { args = stack_pop(args); actual++; }
+                argument_count_mismatch(expected, actual);
+            }
+            
+            add_code(code_table, new_tac(I_CALL, symbol_address($1), int_address(expected), NULL));
+            $$ = $1->type->ret;
+        } else if(check_metatype($1->type, MT_ARRAY)) {
+            
+            /* 
+                TODO: ARRAY ACCESS
+            */
+            // $$ = add_instruction(code_table, I_ARRAY, $1, NULL);
+            // printf("Array access: %s", $1->name);
+        } else {
+            incorrect_type_error($1->name, "array or function");
+        }
     }
     ;
 
@@ -552,46 +564,47 @@ expression:
                 Boolean shortcircuiting
 
         */
-        TC_RESULT r = type_check_binary_expression($2, $1->type_name, $3->type_name);
+        TC_RESULT r = type_check_binary_expression($2, $1->type, $3->type);
         switch(r) {
             case FAIL:
-                invalid_binary_expression($2, $1->type_name, $3->type_name);
-            case PASS: 
-                $$ = add_instruction(code_table, $2, $1, $3);
+                invalid_binary_expression($2, $1->type ? $1->type->name : "NULL",
+                    $3->type ? $3->type->name : "NULL");
+            case PASS: {
+                $$ = add_code(code_table, new_tac($2, $1, $3, temp_address(lval_type($2, $1->type, $3->type))));
                 break;
+            }
             case COERCE_RHS: {
-                NODE* n = add_instruction(code_table, I_INT2REAL, $3, NULL);
-                $$ = add_instruction(code_table, $2, $1, n);
+                ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, $3, NULL, temp_address($1->type)));
+                $$ = add_code(code_table, new_tac($2, $1, a, temp_address($1->type)));
                 break;
             }
             case COERCE_LHS: {
-                NODE* n = add_instruction(code_table, I_INT2REAL, $1, NULL);
-                $$ = add_instruction(code_table, $2, n, $3);
+                ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, $1, NULL, temp_address($3->type)));
+                $$ = add_code(code_table, new_tac($2, a, $3, temp_address($3->type)));
                 break;
             }
         }
     }
     | expression post_unary_operator {
-        if(!type_check_unary_expression($2, $1->type_name)) {
-            invalid_unary_expression($2, $1->type_name);
+        if(!type_check_unary_expression($2, $1->type)) {
+            invalid_unary_expression($2, $1->type ? $1->type->name : "NULL");
         }
-
-        $$ = add_instruction(code_table, $2, $1, NULL);
+        ADDRESS* a = temp_address(lval_type($2, $1->type, NULL));
+        $$ = add_code(code_table, new_tac($2, $1, NULL, a));
     }
     | pre_unary_operator expression %prec pre_unary_prec {
-        if(!type_check_unary_expression($1, $2->type_name)) {
-            invalid_unary_expression($1, $2->type_name);    
+        if(!type_check_unary_expression($1, $2->type)) {
+            invalid_unary_expression($1, $2->type ? $2->type->name : "NULL");
         }
-        $$ = add_instruction(code_table, $1, $2, NULL);
+        ADDRESS* a = temp_address(lval_type($1, $2->type, NULL));
+        $$ = add_code(code_table, new_tac($1, $2, NULL, a));
     }
     | L_PARENTHESIS expression R_PARENTHESIS {
         $$ = $2;
     }
     | constant 
     | assignable { 
-        if($1->meta == SYMBOL) {
-            $$ = add_instruction(code_table, I_LOOKUP, $1, NULL);
-        }
+        $$ = symbol_address($1);
     }
     ;
 
@@ -615,13 +628,13 @@ type_specifier:
     ;
 
 constant:
-    C_INTEGER               { $$ = int_node($1); }
-    | C_REAL                { $$ = real_node($1); }
-    | C_CHARACTER           { $$ = char_node($1); }
-    | C_STRING              { $$ = string_node($1); }
-    | C_TRUE                { $$ = boolean_node($1); }
-    | C_FALSE               { $$ = boolean_node($1); }
-    | NULL_PTR              { $$ = null_node(); }
+    C_INTEGER               { $$ = int_address($1); }
+    | C_REAL                { $$ = real_address($1); }
+    | C_CHARACTER           { $$ = char_address($1); }
+    | C_STRING              { $$ = string_address($1); }
+    | C_TRUE                { $$ = boolean_address($1); }
+    | C_FALSE               { $$ = boolean_address($1); }
+    | NULL_PTR              { $$ = null_address(); }
     ;
 
 mem_op:
@@ -717,16 +730,9 @@ check_arrow:
     Accessors for parts of the program
     Makes compiling the compiler a bit easier
 */
-SYMTYPE** get_types() {
-    return &types;
-}
 
 SCOPE** get_symbol_table() {
     return &symbols;
-}
-
-IRTABLE** get_intermediate_code() {
-    return &code_table;
 }
 
 STACK** get_errors() {
@@ -743,41 +749,31 @@ SCOPE* close_scope() {
     return symbols;
 }
 
-void insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
+SYMTAB* insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
     SYMTAB* s = new_symbol(type, name, meta, extra);
     add_symbols_to_scope(symbols, s);
+    return s;
 }
 
 void initialize_structs() {
     open_scope();
-    code_table = new_ir_table(1000);
+    code_table = get_intermediate_code();
+    types = get_type_container();
 
     new_type(MT_PRIMITIVE, "string");
     new_type(MT_PRIMITIVE, "real");
     new_type(MT_PRIMITIVE, "Boolean");
     new_type(MT_PRIMITIVE, "integer");
     new_type(MT_PRIMITIVE, "character");
+    new_type(MT_PRIMITIVE, "nullconst");
 }
 
 SYMTYPE* new_type(int type, char* name) {
-    
-    if (find_type(types, name)) {
-        return NULL;
-    }
-    
-    types = add_type(types, type, name);
-    return types;
+    return add_type(types, type, name);
 }
 
 SYMTYPE* lookup_type(char* name) {
-
-    SYMTYPE * t = find_type(types, name);
-
-    if(!t) {
-        return NULL;
-    }
-
-    return t;
+    return find_type(types, name);
 }
 
 SYMTAB* find_symbol(char* name) {
