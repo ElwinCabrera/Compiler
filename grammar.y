@@ -5,7 +5,6 @@
 #include "symbol_table.h"
 #include "types.h"
 #include "address.h"
-#include "expression.h"
 #include "intermediate_code.h"
 
 static int scope_counter = 0;

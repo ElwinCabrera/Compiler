@@ -30,7 +30,6 @@ typedef struct address {
         int null;
         int label;
     } value;
-    char* string;
 } ADDRESS;
 
 ADDRESS* label_address(int);

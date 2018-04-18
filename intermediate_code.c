@@ -7,6 +7,10 @@
 
 static INTERMEDIATE_CODE* intermediate_code;
 
+/*
+    Creates (if necessary) and returns a pointer to an intermediate code
+    representation
+*/
 INTERMEDIATE_CODE* get_intermediate_code() {
     if(!intermediate_code) {
         // Allocate room for 1000 three-address codes
@@ -18,6 +22,9 @@ INTERMEDIATE_CODE* get_intermediate_code() {
     return intermediate_code;
 }
 
+/*
+    Creates a new three address code
+*/
 TAC* new_tac(TAC_OP op, ADDRESS* x, ADDRESS* y, ADDRESS* r) {
     TAC* code = malloc(sizeof(TAC));
     code->op = op;
@@ -27,6 +34,10 @@ TAC* new_tac(TAC_OP op, ADDRESS* x, ADDRESS* y, ADDRESS* r) {
     return code;
 }
 
+/*
+    Adds a three address code to the table if both are not null
+    This labels the TAC with the next open label.
+*/
 ADDRESS* add_code(INTERMEDIATE_CODE* table, TAC* code) {
     if(!table || !code) {
         return NULL;
@@ -36,6 +47,9 @@ ADDRESS* add_code(INTERMEDIATE_CODE* table, TAC* code) {
     return code->result;
 }
 
+/*
+    Helper function to print a full intermediate representation
+*/
 void print_intermediate_code(INTERMEDIATE_CODE* table, FILE* f) {
     if(!table) {
         return;
@@ -46,21 +60,115 @@ void print_intermediate_code(INTERMEDIATE_CODE* table, FILE* f) {
     }
 }
 
+/*
+    Print a single TAC
+*/
 void print_tac(TAC* code, FILE* f) {
     
     if(!code) {
         return;
     }
 
-    char* str = create_tac_string(code);
-
-    if(f) {
-        fprintf(f, str);
-    } else {
-        printf(str);
+    if(!f) {
+        f = stdout;
     }
+
+    char* x = code->x ? create_address_string(code->x) : NULL;
+    char* y = code->y ? create_address_string(code->y) : NULL;
+    char* result = code->result ? create_address_string(code->result) : NULL;
+
+    switch(code->op) {
+        case I_ASSIGN:
+            fprintf(f, "[%03d]\t %s := %s\n", code->label, x, y);
+            break;
+        case I_LOOKUP:
+            fprintf(f, "[%03d]\t %s = ID %s\n", code->label, result, x);
+            break;
+        case I_ADD:
+            fprintf(f, "[%03d]\t %s = %s + %s\n", code->label, result, x, y);
+            break;
+        case I_SUB:
+            if(code->y) {
+               fprintf(f, "[%03d]\t %s = %s - %s\n", code->label, result, x, y);
+            } else {
+                fprintf(f, "[%03d]\t %s = - %s\n", code->label, result, x);
+            }
+            break;
+        case I_MULTIPLY:
+            fprintf(f, "[%03d]\t %s = %s * %s\n", code->label, result, x, y);
+            break;
+        case I_DIVIDE:
+            fprintf(f, "[%03d]\t %s = %s / %s\n", code->label, result, x, y);
+            break;
+        case I_MODULUS: 
+            fprintf(f, "[%03d]\t %s = %s MOD %s\n", code->label, result, x, y);
+            break;
+        case I_LESS_THAN:
+            fprintf(f, "[%03d]\t %s = %s < %s\n", code->label, result, x, y);
+            break;
+        case I_EQUAL:
+            fprintf(f, "[%03d]\t %s = %s == %s\n", code->label, result, x, y);
+            break;
+        case I_REAL2INT:
+            fprintf(f, "[%03d]\t %s = r2i %s\n", code->label, result, x);
+            break;
+        case I_INT2REAL: 
+            fprintf(f, "[%03d]\t %s = i2r %s\n", code->label, result, x);
+            break;
+        case I_IS_NULL:
+            fprintf(f, "[%03d]\t %s = isNull %s\n", code->label, result, x);
+            break;
+        case I_NOT:
+            fprintf(f, "[%03d]\t %s = not %s\n", code->label, result, x);
+            break;
+        case I_AND:
+            fprintf(f, "[%03d]\t %s = %s AND %s\n", code->label, result, x, y);
+            break;
+        case I_OR:
+            fprintf(f, "[%03d]\t %s = %s OR %s\n", code->label, result, x, y);
+            break;
+        case I_PARAM:
+            fprintf(f, "[%03d]\t param %s\n", code->label, x);
+            break;
+        case I_CALL:
+            fprintf(f, "[%03d]\t call %s %s\n", code->label, x, y);
+            break;
+        case I_RETURN:
+            fprintf(f, "[%03d]\t return %s\n", code->label, result);
+            break;
+        case I_TEST:
+            fprintf(f, "[%03d]\t if %s goto %s\n", code->label, x, result);
+            break;
+        case I_TEST_FALSE:
+            fprintf(f, "[%03d]\t ifFalse %s goto %s\n", code->label, x, result);
+            break;
+        case I_TEST_NOTEQUAL:
+            fprintf(f, "[%03d]\t if %s != %s goto %s\n", code->label, x, y, result);
+            break;
+        case I_GOTO:
+            fprintf(f, "[%03d]\t goto %s\n", code->label, result);
+            break;
+        case I_RESERVE:
+            fprintf(f, "[%03d]\t reserve %s\n", code->label, x);
+            break;
+        case I_RELEASE:
+            fprintf(f, "[%03d]\t release %s\n", code->label, x);
+            break;
+        case I_ARRAY:
+            fprintf(f, "[%03d]\t %s = %s[%s]\n", code->label, result, x, y);
+            break;
+        default:
+            fprintf(f, "UNKNOWN OP: %d\n", code->op);
+    }
+
+    if(x) free(x);
+    if(y) free(y);
+    if(result) free(result);
 }
 
+/*
+    String representation of an operator
+*/
 const char* get_op_string(TAC_OP op) {
     switch(op) {
         case I_ASSIGN:
@@ -100,9 +208,11 @@ const char* get_op_string(TAC_OP op) {
         case I_RETURN:
             return "return";
         case I_TEST:
-            return "test";
+            return "if x goto L";
         case I_TEST_FALSE:
-            return "testfalse";
+            return "ifFalse x goto L";
+        case I_TEST_NOTEQUAL:
+            return "if x != y goto L";
         case I_GOTO:
             return "goto";
         case I_RESERVE:
@@ -114,108 +224,4 @@ const char* get_op_string(TAC_OP op) {
         default:
             return NULL;
     }
-}
-
-int get_str_size(char* x, char* y, char* result) {
-    int x_len = x ? strlen(x) : 0;
-    int y_len = y ? strlen(y) : 0;
-    int result_len = result ? strlen(result) : 0;
-    return x_len + y_len + result_len + 1;
-}
-
-char* create_tac_string(TAC* code) {
-    char* x = code->x ? create_address_string(code->x) : NULL;
-    char* y = code->y ? create_address_string(code->y) : NULL;
-    char* result = code->result ? create_address_string(code->result) : NULL;
-    int size = get_str_size(x, y, result);
-    char* str = malloc(size * sizeof(char) + 20);
-    switch(code->op) {
-        case I_ASSIGN:
-            sprintf(str, "[%02d]\t %s := %s\n", code->label, x, y);
-            break;
-        case I_LOOKUP:
-            sprintf(str, "[%02d]\t %s = ID %s\n", code->label, result, x);
-            break;
-        case I_ADD:
-            sprintf(str, "[%02d]\t %s = %s + %s\n", code->label, result, x, y);
-            break;
-        case I_SUB:
-            if(code->y) {
-                sprintf(str, "[%02d]\t %s = %s - %s\n", code->label, result, x, y);
-            } else {
-                sprintf(str, "[%02d]\t %s = - %s\n", code->label, result, x);
-            }
-            break;
-        case I_MULTIPLY:
-            sprintf(str, "[%02d]\t %s = %s * %s\n", code->label, result, x, y);
-            break;
-        case I_DIVIDE:
-            sprintf(str, "[%02d]\t %s = %s / %s\n", code->label, result, x, y);
-            break;
-        case I_MODULUS: 
-            sprintf(str, "[%02d]\t %s = %s MOD %s\n", code->label, result, x, y);
-            break;
-        case I_LESS_THAN:
-            sprintf(str, "[%02d]\t %s = %s < %s\n", code->label, result, x, y);
-            break;
-        case I_EQUAL:
-            sprintf(str, "[%02d]\t %s = %s == %s\n", code->label, result, x, y);
-            break;
-        case I_REAL2INT:
-            sprintf(str, "[%02d]\t %s = r2i %s\n", code->label, result, x);
-            break;
-        case I_INT2REAL: 
-            sprintf(str, "[%02d]\t %s = i2r %s\n", code->label, result, x);
-            break;
-        case I_IS_NULL:
-            sprintf(str, "[%02d]\t %s = isNull %s\n", code->label, result, x);
-            break;
-        case I_NOT:
-            sprintf(str, "[%02d]\t %s = not %s\n", code->label, result, x);
-            break;
-        case I_AND:
-            sprintf(str, "[%02d]\t %s = %s AND %s\n", code->label, result, x, y);
-            break;
-        case I_OR:
-            sprintf(str, "[%02d]\t %s = %s OR %s\n", code->label, result, x, y);
-            break;
-        case I_PARAM:
-            sprintf(str, "[%02d]\t param %s\n", code->label, x);
-            break;
-        case I_CALL:
-            sprintf(str, "[%02d]\t call %s %s\n", code->label, x, y);
-            break;
-        case I_RETURN:
-            sprintf(str, "[%02d]\t return %s\n", code->label, result);
-            break;
-        case I_TEST:
-            sprintf(str, "[%02d]\t if %s goto %s\n", code->label, x, result);
-            break;
-        case I_TEST_FALSE:
-            sprintf(str, "[%02d]\t ifFalse %s goto %s\n", code->label, x, result);
-            break;
-        case I_TEST_NOTEQUAL:
-            sprintf(str, "[%02d]\t if %s != %s goto %s\n", code->label, x, y, result);
-            break;
-        case I_GOTO:
-            sprintf(str, "[%02d]\t goto %s\n", code->label, result);
-            break;
-        case I_RESERVE:
-            sprintf(str, "[%02d]\t reserve %s\n", code->label, x);
-            break;
-        case I_RELEASE:
-            sprintf(str, "[%02d]\t release %s\n", code->label, x);
-            break;
-        case I_ARRAY:
-            sprintf(str, "[%02d]\t %s = %s[%s]\n", code->label, result, x, y);
-            break;
-        default:
-            sprintf(str, "UNKNOWN OP: %d\n", code->op);
-    }
-
-    if(x) free(x);
-    if(y) free(y);
-    if(result) free(result);
-
-    return str;
 }
