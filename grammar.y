@@ -186,28 +186,38 @@ definition_list:
 definition:
     check_type_literal identifier COLON constant check_arrow type_specifier COLON L_PARENTHESIS constant check_r_parenthesis {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
-        type->element_type = $6;
-        if($4->meta != INT_CONSTANT) { 
-            type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
-        } else {
-            type->dimensions = $4->value.integer;
+
+        if(type) {
+            type->element_type = $6;
+
+            if($4->meta != INT_CONSTANT) { 
+                type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
+            } else {
+                type->dimensions = $4->value.integer;
+            }
         }
+
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON constant check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_ARRAY, $2);
-        type->element_type = $6;
-        if($4->meta != INT_CONSTANT) { 
-            type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
-        } else {
-            type->dimensions = $4->value.integer;
+        if(type) {
+            type->element_type = $6;
+            if($4->meta != INT_CONSTANT) { 
+                type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
+            } else {
+                type->dimensions = $4->value.integer;
+            }
         }
+
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON pblock check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_FUNCTION, $2);
-        type->parameters = $4;
-        type->ret = new_symbol($6, $2, LOCAL, "local");
+        if(type) {
+            type->parameters = $4;
+            type->ret = new_symbol($6, $2, LOCAL, "local");
+        }
         insert_new_symbol(type, $2, TYPE, "ftype");
     }
     | FUNCTION identifier COLON type_specifier {
