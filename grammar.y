@@ -55,6 +55,7 @@ SYMTYPE* lookup_type(char*);
 SYMTAB* find_symbol(char*);
 SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 
+ADDRESS* binary_expression(TAC_OP, ADDRESS*, ADDRESS*);
 
 %}
 
@@ -83,7 +84,7 @@ SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 %token <string> C_STRING;
 
 %type <string> identifier;
-%type <integer> binary_operator post_unary_operator pre_unary_operator mem_op;
+%type <integer> post_unary_operator pre_unary_operator mem_op;
 %type <scope> open_scope close_scope sblock pblock;
 %type <type> type_specifier;
 %type <symbol> dblock declaration_list declaration;
@@ -94,12 +95,11 @@ SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list case_list;
 
-// Operator precedence conflicts, but the generated state machine
-// chooses the correct state, we just need to handle precedence
-%expect 20
-
-%left '*' '/' '%'
-%left '+' '-'
+%left L_PARENTHESIS R_PARENTHESIS
+%left IS_NULL;
+%left MUL DIV REM;
+%left AND OR EQUAL_TO LESS_THAN;
+%left ADD SUB_OR_NEG;
 %right pre_unary_prec
 
 %token <string> T_INTEGER
@@ -566,32 +566,15 @@ non_empty_argument_list:
     ;
 
 expression:
-    expression binary_operator expression {
-        /*
-            TODO: 
-                Boolean shortcircuiting
-
-        */
-        TC_RESULT r = type_check_binary_expression($2, $1->type, $3->type);
-        switch(r) {
-            case FAIL:
-                invalid_binary_expression($2, $1->type ? $1->type->name : "NULL",
-                    $3->type ? $3->type->name : "NULL");
-            case PASS: {
-                $$ = add_code(code_table, new_tac($2, $1, $3, temp_address(lval_type($2, $1->type, $3->type))));
-                break;
-            }
-            case COERCE_RHS: {
-                ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, $3, NULL, temp_address($1->type)));
-                $$ = add_code(code_table, new_tac($2, $1, a, temp_address($1->type)));
-                break;
-            }
-            case COERCE_LHS: {
-                ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, $1, NULL, temp_address($3->type)));
-                $$ = add_code(code_table, new_tac($2, a, $3, temp_address($3->type)));
-                break;
-            }
-        }
+    expression ADD expression { $$ = binary_expression($2, $1, $3); }
+    | expression SUB_OR_NEG expression { $$ = binary_expression($2, $1, $3); }
+    | expression MUL expression { $$ = binary_expression($2, $1, $3); }
+    | expression DIV expression { $$ = binary_expression($2, $1, $3); }
+    | expression REM expression { $$ = binary_expression($2, $1, $3); }
+    | expression AND expression { $$ = binary_expression($2, $1, $3); }
+    | expression OR expression { $$ = binary_expression($2, $1, $3); }
+    | expression LESS_THAN expression { $$ = binary_expression($2, $1, $3); }
+    | expression EQUAL_TO expression {
     }
     | expression post_unary_operator {
         if(!type_check_unary_expression($2, $1->type)) {
@@ -666,18 +649,6 @@ pre_unary_operator:
     | NOT
     | INT2REAL
     | REAL2INT
-    ;
-
-binary_operator:
-    ADD
-    | SUB_OR_NEG
-    | MUL
-    | DIV
-    | REM
-    | AND
-    | OR
-    | LESS_THAN
-    | EQUAL_TO
     ;
 
 /* Syntax Errors */
@@ -788,6 +759,29 @@ SYMTAB* find_symbol(char* name) {
     return find_in_scope(symbols, name);
 }
 
+ADDRESS* binary_expression(TAC_OP op, ADDRESS* x, ADDRESS* y) {
+    TC_RESULT r = type_check_binary_expression(op, x->type, y->type);
+    switch(r) {
+        case FAIL:
+            invalid_binary_expression(op, x->type ? x->type->name : "NULL",
+                y->type ? y->type->name : "NULL");
+            return temp_address(NULL);
+        case PASS: {
+            return add_code(code_table, new_tac(op, x, y, temp_address(lval_type(op, x->type, y->type))));
+        }
+        case COERCE_RHS: {
+            ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, y, NULL, temp_address(x->type)));
+            return add_code(code_table, new_tac(op, x, a, temp_address(x->type)));
+        }
+        case COERCE_LHS: {
+            ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, x, NULL, temp_address(y->type)));
+            return add_code(code_table, new_tac(op, a, y, temp_address(y->type)));
+        }
+        default:
+            yyerror("Fatal error parsing a binary expression\n.");
+            return temp_address(NULL);
+    }
+}
 
 /*
     Error Handling
