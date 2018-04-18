@@ -92,8 +92,7 @@ SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <symbol> assignable;
 %type <address> case constant expression;
 %type <integer> next_instruction;
-%type <stack> ablock argument_list non_empty_argument_list;
-%type <stack> case_list;
+%type <stack> ablock argument_list non_empty_argument_list case_list;
 
 // Operator precedence conflicts, but the generated state machine
 // chooses the correct state, we just need to handle precedence

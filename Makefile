@@ -41,8 +41,8 @@ compiler: compiler_tools $(SRC)
 
 compiler_tools: syntax_analayzer lexical_analyzer
 
-lexical_analyzer: lexicalStructure.lex y.tab.h
-	flex lexicalStructure.lex
+lexical_analyzer: lexical_structure.lex y.tab.h
+	flex lexical_structure.lex
 
 syntax_analayzer: grammar.y
 	bison -d -v -y grammar.y
