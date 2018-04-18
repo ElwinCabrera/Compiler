@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
             print_symbol_table(*get_symbol_table(), symbol_file);
         }
 
-        if(ir) { //specify to print symbol table
+        if(ir) { //specify to print ir
             char* ir_file_path = malloc(strlen(program) + 4);
             sprintf(ir_file_path, "%s%s", program, ".ir");
             FILE* ir_file = fopen(ir_file_path, "w");

@@ -51,7 +51,6 @@ struct address* add_code(INTERMEDIATE_CODE*, TAC*);
 TAC* new_tac(TAC_OP, struct address*, struct address*, struct address*);
 void print_intermediate_code(INTERMEDIATE_CODE*, FILE*);
 void print_tac(TAC*, FILE*);
-char* create_tac_string(TAC*);
 const char* get_op_string(TAC_OP);
 
 #endif
