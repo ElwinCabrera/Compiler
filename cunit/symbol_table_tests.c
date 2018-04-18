@@ -1,10 +1,10 @@
-#include "symbolTableTests.h"
-#include "../symbolTable.h"
+#include "symbol_table_tests.h"
+#include "../symbol_table.h"
 
 // Add an entry to a scope and try to find it
 void test00() { 
 
-  struct scope * s = new_scope(NULL);
+  struct scope * s = new_scope(NULL, 0);
 
   struct symtab * expected = add_symbols_to_scope(s, new_symbol(NULL, "testFunction", 0, NULL));
 
@@ -15,7 +15,7 @@ void test00() {
 // Should be NULL
 void test01() { 
 
-  struct scope * s = new_scope(NULL);
+  struct scope * s = new_scope(NULL, 0);
 
   CU_ASSERT_PTR_NULL(find_in_scope(s, "testFunction"));
 }
@@ -25,8 +25,8 @@ void test01() {
 // The entry should be scope-visible from the child scope
 void test02() { 
 
-  struct scope * s = new_scope(NULL);
-  struct scope * s2 = new_scope(s);
+  struct scope * s = new_scope(NULL, 0);
+  struct scope * s2 = new_scope(s, 0);
 
   struct symtab * expected = add_symbols_to_scope(s, new_symbol(NULL, "testFunction", 0, NULL));
 
@@ -38,8 +38,8 @@ void test02() {
 // Add entry to child scope
 // The entry should NOT be scope-visible from the parent scope
 void test03() {
-  struct scope * s = new_scope(NULL);
-  struct scope * s2 = new_scope(s);
+  struct scope * s = new_scope(NULL, 0);
+  struct scope * s2 = new_scope(s, 0);
 
   struct symtab * expected = add_symbols_to_scope(s2, new_symbol(NULL, "testFunction", 0, NULL));
 
@@ -51,8 +51,8 @@ void test03() {
 // Add entry to child scope
 // The entry should be children-visible from the parent scope
 void test04() {
-  struct scope * s = new_scope(NULL);
-  struct scope * s2 = new_scope(s);
+  struct scope * s = new_scope(NULL, 0);
+  struct scope * s2 = new_scope(s, 0);
 
   struct symtab * expected = add_symbols_to_scope(s2, new_symbol(NULL, "testFunction", 0, NULL));
 
@@ -64,8 +64,8 @@ void test04() {
 // Add entry to parent scope
 // The entry should be NOT children-visible from the child scope
 void test05() {
-  struct scope * s = new_scope(NULL);
-  struct scope * s2 = new_scope(s);
+  struct scope * s = new_scope(NULL, 0);
+  struct scope * s2 = new_scope(s, 0);
 
   struct symtab * expected = add_symbols_to_scope(s, new_symbol(NULL, "testFunction", 0, NULL));
 

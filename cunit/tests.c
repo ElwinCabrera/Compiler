@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "CUnit.h"
 #include "Basic.h"
-#include "symbolTableTests.h"
+#include "symbol_table_tests.h"
 
 int main() {
     if (CUE_SUCCESS != CU_initialize_registry()) { return CU_get_error(); }
