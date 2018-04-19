@@ -176,7 +176,7 @@ program:
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
         add_code(code_table, new_tac(I_NOP, NULL, NULL, NULL));
     } definition_list next_instruction sblock {
-        code_table->entries[0]->result = label_address($3);
+        backpatch(code_table, 0, $3);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(1)));
     }
     ;
@@ -223,9 +223,10 @@ definition:
         }
         insert_new_symbol(type, $2, TYPE, "ftype");
     }
-    | FUNCTION identifier COLON type_specifier {
+    | FUNCTION identifier COLON type_specifier next_instruction {
         SYMTAB* s = insert_new_symbol($4, $2, FUNCTION, "function");
         function_context = stack_push(function_context, s);
+        s->label = label_address($5);
     } sblock { 
         ADDRESS* a = symbol_address($4->ret);
         add_code(code_table, new_tac(I_RETURN, NULL, NULL, a));
@@ -347,11 +348,11 @@ statement:
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($5)));
     } R_PARENTHESIS next_instruction sblock {
 //    15            16               17     18
-        code_table->entries[$9]->result = label_address($16);
+        backpatch(code_table, $9, $16);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($12)));
     } next_instruction {
 //    19               20
-        code_table->entries[$7]->result = label_address($19);
+        backpatch(code_table, $7, $19);
     }
     | SWITCH L_PARENTHESIS expression check_r_parenthesis {
 //    1      2             3          4                   5
@@ -364,10 +365,9 @@ statement:
     } case_list OTHERWISE COLON next_instruction sblock next_instruction {
 //    6         7         8     9                 10     11
         STACK* s = $6;
-        ADDRESS* jmp = label_address($11);
         while(s) {
             ADDRESS* a = stack_peek(s);
-            code_table->entries[a->value.label]->result = jmp;
+            backpatch(code_table, a->value.label, $11);
             s = stack_pop(s);
         }
         case_context = stack_pop(case_context);
@@ -385,8 +385,8 @@ statement:
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
     } next_instruction ELSE sblock next_instruction {
 //    11               12   13     14
-        code_table->entries[$4]->result = label_address($11);
-        code_table->entries[$9]->result = label_address($14);
+        backpatch(code_table, $4, $11);
+        backpatch(code_table, $9, $14);
     }
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
 //    1     2             3                4          5                6
@@ -401,7 +401,7 @@ statement:
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($3)));
     } next_instruction {
 //    10               11
-        code_table->entries[$5]->result = label_address($10);
+        backpatch(code_table, $5, $10);
     }
     | assignable assign_op expression semi_colon_after_statement {
         handle_assignment($1, $3);
@@ -435,7 +435,7 @@ case:
 //    5     6      7
         $$ = label_address($7);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
-        code_table->entries[$3]->result = label_address($7 + 1);
+        backpatch(code_table, $3, $7 + 1);
     }
     ;
 
@@ -536,7 +536,7 @@ expression:
         EXPRESSION* false_const = const_expression(boolean_address(0));
         handle_assignment(assign, $5);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(code_table->next_instruction + 2)));
-        code_table->entries[$3]->result = label_address(code_table->next_instruction);
+        backpatch(code_table, $3, code_table->next_instruction);
         handle_assignment(assign, false_const);
         $$ = temp_expression(a);
     }
@@ -549,7 +549,7 @@ expression:
         EXPRESSION* true_const = const_expression(boolean_address(1));
         handle_assignment(assign, $5);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(code_table->next_instruction + 2)));
-        code_table->entries[$3]->result = label_address(code_table->next_instruction);
+        backpatch(code_table, $3, code_table->next_instruction);
         handle_assignment(assign, true_const);
         $$ = temp_expression(a);
     }

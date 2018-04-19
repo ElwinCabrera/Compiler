@@ -47,6 +47,14 @@ ADDRESS* add_code(INTERMEDIATE_CODE* table, TAC* code) {
     return code->result;
 }
 
+void backpatch(INTERMEDIATE_CODE* table, int from, int to) {
+    if(!table || table->next_instruction <= from) {
+        return;
+    }
+
+    table->entries[from]->result = label_address(to);
+}
+
 /*
     Helper function to print a full intermediate representation
 */

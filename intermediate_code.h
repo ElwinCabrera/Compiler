@@ -50,6 +50,7 @@ typedef struct intermediate_code {
 INTERMEDIATE_CODE* get_intermediate_code();
 struct address* add_code(INTERMEDIATE_CODE*, TAC*);
 TAC* new_tac(TAC_OP, struct address*, struct address*, struct address*);
+void backpatch(INTERMEDIATE_CODE*, int, int);
 void print_intermediate_code(INTERMEDIATE_CODE*, FILE*);
 void print_tac(TAC*, FILE*);
 const char* get_op_string(TAC_OP);
