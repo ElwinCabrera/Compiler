@@ -29,6 +29,7 @@ typedef enum tac_op {
     I_GOTO,
     I_RESERVE,
     I_RELEASE,
+    I_NOP,
 } TAC_OP;
 
 typedef struct tac {

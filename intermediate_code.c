@@ -157,6 +157,9 @@ void print_tac(TAC* code, FILE* f) {
         case I_ARRAY:
             fprintf(f, "[%03d]\t %s = %s[%s]\n", code->label, result, x, y);
             break;
+        case I_NOP:
+            fprintf(f, "[%03d]\t NOP\n", code->label);
+            break;
         default:
             fprintf(f, "UNKNOWN OP: %d\n", code->op);
     }

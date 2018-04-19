@@ -174,8 +174,10 @@ program:
     { 
         initialize_structs(); 
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
+        add_code(code_table, new_tac(I_NOP, NULL, NULL, NULL));
     } definition_list next_instruction sblock {
         code_table->entries[0]->result = label_address($3);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(1)));
     }
     ;
 

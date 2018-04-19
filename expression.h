@@ -9,6 +9,15 @@ typedef enum etype {
     E_ASSIGNABLE,
 } ETYPE;
 
+
+typedef enum tc_result {
+    FAIL,
+    PASS,
+    COERCE_LHS,
+    COERCE_RHS,
+} TC_RESULT;
+
+
 typedef struct expression {
     ETYPE meta;
     union {
@@ -24,6 +33,8 @@ EXPRESSION* assignable_expression(struct assignable*);
 EXPRESSION* binary_expression(TAC_OP, EXPRESSION*, EXPRESSION*);
 EXPRESSION* unary_expression(TAC_OP, EXPRESSION*);
 struct symtype* expression_type(EXPRESSION*);
+TC_RESULT type_check_binary_expression(int, EXPRESSION*, EXPRESSION*);
+TC_RESULT type_check_unary_expression(int, EXPRESSION*);
 
 struct address* exp_rvalue(EXPRESSION*);
 struct address* exp_lvalue(EXPRESSION*);
