@@ -82,7 +82,7 @@ void print_tac(TAC* code, FILE* f) {
             fprintf(f, "[%03d]\t %s := %s\n", code->label, x, y);
             break;
         case I_LOOKUP:
-            fprintf(f, "[%03d]\t %s = ID %s\n", code->label, result, x);
+            fprintf(f, "[%03d]\t %s = LOOKUP %s %s\n", code->label, result, x, y);
             break;
         case I_ADD:
             fprintf(f, "[%03d]\t %s = %s + %s\n", code->label, result, x, y);

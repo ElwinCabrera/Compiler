@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "address.h"
+#include "symbol_table.h"
+#include "types.h"
 
 static int temporary_count = 0;
 

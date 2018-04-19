@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#include "types.h"
 
 typedef struct symtab {
    char* name;
@@ -35,7 +34,7 @@ SYMTAB* find_in_children(SCOPE *, char*);
 SYMTAB* find_entry(SYMTAB*, char*);
 SYMTAB* add_symbols_to_scope(SCOPE*, SYMTAB*);
 SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src);
-SYMTAB* new_symbol(SYMTYPE*, char*, int, char*);
+SYMTAB* new_symbol(struct symtype*, char*, int, char*);
 void print_symbol(SYMTAB*, int, FILE*);
 void print_symbol_table(SCOPE*, FILE*);
 

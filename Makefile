@@ -1,7 +1,8 @@
 #Source files
-SRC=runner.c symbol_table.c \
- types.c stack.c \
- address.c intermediate_code.c
+SRC= runner.c symbol_table.c \
+ types.c stack.c assignable.c \
+ address.c intermediate_code.c \
+ expression.c
 
 TEST_SRC=$(filter-out runner.c, $(SRC))
 

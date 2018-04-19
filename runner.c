@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "symbol_table.h"
+#include "intermediate_code.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
