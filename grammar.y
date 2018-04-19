@@ -5,6 +5,8 @@
 #include "symbol_table.h"
 #include "types.h"
 #include "address.h"
+#include "assignable.h"
+#include "expression.h"
 #include "intermediate_code.h"
 
 static int scope_counter = 0;
@@ -28,7 +30,6 @@ int yylex();
 */
 void yyerror(char*);
 void syntax_error(char*);
-void argument_count_mismatch(int, int);
 void invalid_unary_expression(int, char*);
 void invalid_binary_expression(int, char*, char*);
 void type_mismatch_error(char*, char*);
@@ -55,8 +56,6 @@ SYMTYPE* lookup_type(char*);
 SYMTAB* find_symbol(char*);
 SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 
-ADDRESS* binary_expression(TAC_OP, ADDRESS*, ADDRESS*);
-
 %}
 
 %start program
@@ -72,7 +71,8 @@ ADDRESS* binary_expression(TAC_OP, ADDRESS*, ADDRESS*);
     struct symtype* type;
     struct stack* stack;
     struct address* address;
-    struct expression* exp;
+    struct assignable* assignable;
+    struct expression* expression;
 }
 
 %token <string> ID;
@@ -90,7 +90,9 @@ ADDRESS* binary_expression(TAC_OP, ADDRESS*, ADDRESS*);
 %type <symbol> dblock declaration_list declaration;
 %type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
 %type <symbol> identifier_list;
-%type <address> case constant expression assignable;
+%type <expression> expression;
+%type <address> case constant;
+%type <assignable> assignable;
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list case_list;
 
@@ -289,23 +291,15 @@ identifier_list:
     identifier assign_op constant COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
         SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
-        if(!s || !type || type != $3->type) {
-            type_mismatch_error(type ? type->name : "NULL", 
-                $3->type ? $3->type->name : "NULL");
-        } else {
-            add_code(code_table, new_tac(I_ASSIGN, symbol_address(s), $3, NULL));
-        }
+        ADDRESS* a = symbol_address(s);
+        handle_assignment(assignable_variable(a), const_expression($3));
         $$ = add_symbols($5, s);
     }
     | identifier assign_op constant {
         SYMTYPE* type = stack_peek(symbol_context);
         SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
-        if(!s || !type || type != $3->type) {
-            type_mismatch_error(type ? type->name : "NULL", 
-                $3->type ? $3->type->name : "NULL");
-        } else {
-            add_code(code_table, new_tac(I_ASSIGN, symbol_address(s), $3, NULL));
-        }
+        ADDRESS* a = symbol_address(s);
+        handle_assignment(assignable_variable(a), const_expression($3));
         $$ = new_symbol(type, $1, LOCAL, "local");
     }
     | identifier COMMA identifier_list {
@@ -337,10 +331,12 @@ statement_list:
 statement:
     FOR L_PARENTHESIS statement SEMI_COLON next_instruction expression next_instruction {
 //  1   2             3         4          5                6          7                8
-        if(!check_typename($6->type, "Boolean")) {
-            type_mismatch_error("Boolean", $6->type ? $6->type->name : "NULL");
+        ADDRESS* a = exp_rvalue($6);
+        SYMTYPE* type = a ? a->type : NULL;
+        if(!check_typename(type, "Boolean")) {
+            type_mismatch_error("Boolean", type ? type->name : "NULL");
         }
-        add_code(code_table, new_tac(I_TEST_FALSE, $6, NULL, NULL));
+        add_code(code_table, new_tac(I_TEST_FALSE, a, NULL, NULL));
     } next_instruction {
 //    9                10
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
@@ -355,11 +351,12 @@ statement:
 //    19               20
         code_table->entries[$7]->result = label_address($19);
     }
-
     | SWITCH L_PARENTHESIS expression check_r_parenthesis {
 //    1      2             3          4                   5
-        if(!check_typename($3->type, "integer")) {
-            type_mismatch_error("integer", $3->type ? $3->type->name : "NULL");
+        ADDRESS* a = exp_rvalue($3);
+        SYMTYPE* type = a ? a->type : NULL;
+        if(!check_typename(type, "integer")) {
+            type_mismatch_error("integer", type ? type->name : "NULL");
         }
         case_context = stack_push(case_context, $3);
     } case_list OTHERWISE COLON next_instruction sblock next_instruction {
@@ -373,13 +370,14 @@ statement:
         }
         case_context = stack_pop(case_context);
     }
-    
     | IF L_PARENTHESIS expression next_instruction { 
 //    1  2             3          4                5
-        if(!check_typename($3->type, "Boolean")) {
-            type_mismatch_error("Boolean", $3->type ? $3->type->name : "NULL");
+        ADDRESS* a = exp_rvalue($3);
+        SYMTYPE* type = a ? a->type : NULL;
+        if(!check_typename(type, "Boolean")) {
+            type_mismatch_error("Boolean", type ? type->name : "NULL");
         }
-        add_code(code_table, new_tac(I_TEST_FALSE, $3, NULL, NULL));
+        add_code(code_table, new_tac(I_TEST_FALSE, a, NULL, NULL));
     } check_r_parenthesis THEN sblock next_instruction {
 //    6                   7    8      9                10
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
@@ -388,13 +386,14 @@ statement:
         code_table->entries[$4]->result = label_address($11);
         code_table->entries[$9]->result = label_address($14);
     }
-
     | WHILE L_PARENTHESIS next_instruction expression next_instruction {
 //    1     2             3                4          5                6
-        if(!check_typename($4->type, "Boolean")) {
-            type_mismatch_error("Boolean", $4->type ? $4->type->name : "NULL");
+        ADDRESS* a = exp_rvalue($4);
+        SYMTYPE* type = a ? a->type : NULL;
+        if(!check_typename(type, "Boolean")) {
+            type_mismatch_error("Boolean", type ? type->name : "NULL");
         }
-        add_code(code_table, new_tac(I_TEST_FALSE, $4, NULL, NULL));
+        add_code(code_table, new_tac(I_TEST_FALSE, a, NULL, NULL));
     } check_r_parenthesis sblock {
 //    7                   8      9
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address($3)));
@@ -402,27 +401,13 @@ statement:
 //    10               11
         code_table->entries[$5]->result = label_address($10);
     }
-
     | assignable assign_op expression semi_colon_after_statement {
-
-        SYMTAB* s = $1->value.symbol;
-
-        if(s && check_metatype(s->type, MT_FUNCTION)) {
-            s = s->type->ret;
-        }
-
-        if(!s || !s->type || s->type != $3->type) {
-            type_mismatch_error($1 ? $1->type ? $1->type->name : "NULL" : "NULL", 
-                $3->type ? $3->type->name : "NULL");
-        } else {
-            add_code(code_table, new_tac(I_ASSIGN, symbol_address(s), $3, NULL));
-        }
+        handle_assignment($1, $3);
     }
-
     | mem_op assignable semi_colon_after_statement {
-        add_code(code_table, new_tac($1, $2, NULL, NULL));
+        ADDRESS* a = assignable_rvalue($2);
+        add_code(code_table, new_tac($1, a, NULL, NULL));
     }
-    
     | sblock
     ;
 
@@ -438,17 +423,17 @@ case_list:
 case:
     CASE constant next_instruction {
 //  1    2        3                4
-        ADDRESS* exp = stack_peek(case_context);
-        add_code(code_table, new_tac(I_TEST_NOTEQUAL, exp, $2, NULL));
+        EXPRESSION* exp = stack_peek(case_context);
+        SYMTYPE* e_type = expression_type(exp);
+        if(!check_typename(e_type, "integer")) {
+            type_mismatch_error("integer", e_type ? e_type->name : "NULL");
+        }
+        add_code(code_table, new_tac(I_TEST_NOTEQUAL, exp_rvalue(exp), $2, NULL));
     } COLON sblock next_instruction {
 //    5     6      7
-        if(!check_typename($2->type, "integer")) {
-            type_mismatch_error("integer", $2->type ? $2->type->name : "NULL");
-        } else {
-            $$ = label_address($7);
-            add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
-            code_table->entries[$3]->result = label_address($7 + 1);
-        }
+        $$ = label_address($7);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
+        code_table->entries[$3]->result = label_address($7 + 1);
     }
     ;
 
@@ -471,26 +456,26 @@ assignable:
 
         if (!s) {
             symbol_not_found_error($1, "variable");
-            $$ = NULL;
         } else if (s->meta == TYPE) {
             type_as_var_error(s->name);
-            $$ = NULL;
         } else {
-            $$ = symbol_address(s);
+            $$ = assignable_variable(symbol_address(s));
         }
     }
     | assignable rec_op identifier {
-        if($1->value.symbol) {
-            if(!check_metatype($1->value.symbol->type, MT_RECORD)) {
-                incorrect_type_error($1->value.symbol->name, "record");
+        ADDRESS* a = assignable_rvalue($1);
+        
+        if(a) {
+            if(!check_metatype(a->type, MT_RECORD)) {
+                incorrect_type_error(a->value.symbol->name, "record");
                 $$ = NULL;
             } else {
-                SYMTAB* s = find_entry($1->value.symbol->type->members->symbols, $3); 
+                SYMTAB* s = find_entry(a->value.symbol->type->members->symbols, $3); 
                 if(!s) {
                     symbol_not_found_error($3, "record member");
                     $$ = NULL;
                 } else {
-                    $$ = symbol_address(s);
+                    $$ = assignable_record(a, symbol_address(s));
                 }
             } 
         } else {
@@ -498,48 +483,13 @@ assignable:
         }
     }
     | assignable ablock {
-        if(check_metatype($1->value.symbol->type, MT_FUNCTION)) {
-            STACK* args = $2;
-            SYMTAB* params = $1->value.symbol->type->parameters->symbols;
-
-            int expected = 0;
-            int actual = 0;
-            while(params) {
-                if(!args) {
-                    while(params) { params = params->next; expected++; }
-                    argument_count_mismatch(expected, actual);
-                    break;
-                }
-                actual++;
-                ADDRESS* a = stack_peek(args);
-                
-                if(params->type && params->type == a->type) {
-                    add_code(code_table, new_tac(I_PARAM, a, NULL, NULL));
-                } else {
-                    type_mismatch_error(params->type ? params->type->name : "NULL", 
-                        a->type ? a->type->name : "NULL");
-                }
-
-                args = stack_pop(args);
-                params = params->next;
-                expected++;
-            }
-
-            if(args) {
-                while(args) { args = stack_pop(args); actual++; }
-                argument_count_mismatch(expected, actual);
-            }
-            ADDRESS* a = temp_address($1->type->ret->type);
-            $$ = add_code(code_table, new_tac(I_CALL, $1, int_address(expected), a));
-        } else if(check_metatype($1->value.symbol->type, MT_ARRAY)) {
-            
-            /* 
-                TODO: ARRAY ACCESS
-            */
-            // $$ = add_instruction(code_table, I_ARRAY, $1, NULL);
-            // printf("Array access: %s", $1->name);
+        ADDRESS* a = assignable_rvalue($1);
+        if(check_metatype(a->type, MT_FUNCTION)) {
+            $$ = assignable_function(a, $2);
+        } else if(check_metatype(a->type, MT_ARRAY)) {
+            $$ = assignable_array(a, $2);
         } else {
-            incorrect_type_error($1->value.symbol->name, "array or function");
+            incorrect_type_error(a->value.symbol->name, "array or function");
         }
     }
     ;
@@ -575,29 +525,49 @@ expression:
     | expression MUL expression { $$ = binary_expression($2, $1, $3); }
     | expression DIV expression { $$ = binary_expression($2, $1, $3); }
     | expression REM expression { $$ = binary_expression($2, $1, $3); }
-    | expression AND expression { $$ = binary_expression($2, $1, $3); }
-    | expression OR expression { $$ = binary_expression($2, $1, $3); }
+    | expression AND next_instruction {
+        TAC* short_circuit = new_tac(I_TEST_FALSE, exp_rvalue($1), NULL, NULL);
+        add_code(code_table, short_circuit);
+    } expression {
+        ADDRESS* a = temp_address(lookup_type("Boolean"));
+        ASSIGNABLE* assign = assignable_variable(a);
+        EXPRESSION* false_const = const_expression(boolean_address(0));
+        handle_assignment(assign, $5);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(code_table->next_instruction + 2)));
+        code_table->entries[$3]->result = label_address(code_table->next_instruction);
+        handle_assignment(assign, false_const);
+        $$ = temp_expression(a);
+    }
+    | expression OR next_instruction {
+        TAC* short_circuit = new_tac(I_TEST, exp_rvalue($1), NULL, NULL);
+        add_code(code_table, short_circuit);
+    } expression { 
+        ADDRESS* a = temp_address(lookup_type("Boolean"));
+        ASSIGNABLE* assign = assignable_variable(a);
+        EXPRESSION* true_const = const_expression(boolean_address(1));
+        handle_assignment(assign, $5);
+        add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(code_table->next_instruction + 2)));
+        code_table->entries[$3]->result = label_address(code_table->next_instruction);
+        handle_assignment(assign, true_const);
+        $$ = temp_expression(a);
+    }
     | expression LESS_THAN expression { $$ = binary_expression($2, $1, $3); }
     | expression EQUAL_TO expression { $$ = binary_expression($2, $1, $3); }
     | expression post_unary_operator {
-        if(!type_check_unary_expression($2, $1->type)) {
-            invalid_unary_expression($2, $1->type ? $1->type->name : "NULL");
-        }
-        ADDRESS* a = temp_address(lval_type($2, $1->type, NULL));
-        $$ = add_code(code_table, new_tac($2, $1, NULL, a));
+        $$ = unary_expression($2, $1);
     }
     | pre_unary_operator expression %prec pre_unary_prec {
-        if(!type_check_unary_expression($1, $2->type)) {
-            invalid_unary_expression($1, $2->type ? $2->type->name : "NULL");
-        }
-        ADDRESS* a = temp_address(lval_type($1, $2->type, NULL));
-        $$ = add_code(code_table, new_tac($1, $2, NULL, a));
+        $$ = unary_expression($1, $2);
     }
     | L_PARENTHESIS expression R_PARENTHESIS {
         $$ = $2;
     }
-    | constant 
-    | assignable
+    | constant {
+        $$ = const_expression($1);
+    }
+    | assignable {
+        $$ = assignable_expression($1);
+    }
     ;
 
 identifier:
@@ -760,30 +730,6 @@ SYMTAB* find_symbol(char* name) {
     return find_in_scope(symbols, name);
 }
 
-ADDRESS* binary_expression(TAC_OP op, ADDRESS* x, ADDRESS* y) {
-    TC_RESULT r = type_check_binary_expression(op, x->type, y->type);
-    switch(r) {
-        case FAIL:
-            invalid_binary_expression(op, x->type ? x->type->name : "NULL",
-                y->type ? y->type->name : "NULL");
-            return temp_address(NULL);
-        case PASS: {
-            return add_code(code_table, new_tac(op, x, y, temp_address(lval_type(op, x->type, y->type))));
-        }
-        case COERCE_RHS: {
-            ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, y, NULL, temp_address(x->type)));
-            return add_code(code_table, new_tac(op, x, a, temp_address(x->type)));
-        }
-        case COERCE_LHS: {
-            ADDRESS* a = add_code(code_table, new_tac(I_INT2REAL, x, NULL, temp_address(y->type)));
-            return add_code(code_table, new_tac(op, a, y, temp_address(y->type)));
-        }
-        default:
-            yyerror("Fatal error parsing a binary expression\n.");
-            return temp_address(NULL);
-    }
-}
-
 /*
     Error Handling
 */
@@ -800,7 +746,6 @@ void argument_count_mismatch(int expected, int actual) {
 
     sprintf(dest, format, get_row(), get_column(), expected, actual);
     notify_error(dest);
-    yyerrok;
 }
 
 void invalid_unary_expression(int op, char* t1) {
@@ -810,7 +755,6 @@ void invalid_unary_expression(int op, char* t1) {
 
     sprintf(dest, format, get_row(), get_column(), get_op_string(op) , t1);
     notify_error(dest);
-    yyerrok;
 }
 
 void invalid_binary_expression(int op, char* t1, char* t2) {
@@ -820,7 +764,6 @@ void invalid_binary_expression(int op, char* t1, char* t2) {
 
     sprintf(dest, format, get_row(), get_column(), get_op_string(op), t2, t1);
     notify_error(dest);
-    yyerrok;
 }
 
 void type_mismatch_error(char* t1, char* t2) {
@@ -830,7 +773,6 @@ void type_mismatch_error(char* t1, char* t2) {
 
     sprintf(dest, format, get_row(), get_column(), t2, t1);
     notify_error(dest);
-    yyerrok;
 }
 
 void type_as_var_error(char* name) {
@@ -840,7 +782,6 @@ void type_as_var_error(char* name) {
 
     sprintf(dest, format, get_row(), get_column(), name);
     notify_error(dest);
-    yyerrok;
 }
 
 void incorrect_type_error(char* name, char* type) {
@@ -850,7 +791,6 @@ void incorrect_type_error(char* name, char* type) {
 
     sprintf(dest, format, get_row(), get_column(), name, type);
     notify_error(dest);
-    yyerrok;
 }
 
 void symbol_not_found_error(char* name, char* style) {
@@ -861,7 +801,6 @@ void symbol_not_found_error(char* name, char* style) {
     sprintf(dest, format, get_row(), get_column(), name, style);
     
     notify_error(dest);
-    yyerrok;
 }
 
 void syntax_error(char* expected) {
