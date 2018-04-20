@@ -86,7 +86,6 @@ SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
   insertNew->meta = meta;
   insertNew->type = type;
   insertNew->scope = NULL;
-  insertNew->width = 0;
 
   return insertNew;
 }
@@ -120,7 +119,7 @@ bool size_comparator(LINKED_LIST* a, LINKED_LIST* b) {
   SYMTAB* a_val = ll_value(a);
   SYMTAB* b_val = ll_value(b);
 
-  return a_val->width < b_val->width ? false : true;
+  return get_type_width(a_val->type) < get_type_width(b_val->type) ? false : true;
 }
 
 void reorder_symbols(SCOPE* s) {

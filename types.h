@@ -31,7 +31,7 @@ typedef struct type_container {
 TYPE_CONTAINER* get_type_container();
 SYMTYPE* add_type(TYPE_CONTAINER*, TTYPE, char*, int);
 SYMTYPE* find_type(TYPE_CONTAINER*, char*);
-SYMTYPE* lval_type(TAC_OP, SYMTYPE*,SYMTYPE*);
+SYMTYPE* lval_type(TAC_OP, SYMTYPE*, SYMTYPE*);
 bool check_metatype(SYMTYPE*, TTYPE);
 bool check_typename(SYMTYPE*, char*);
 bool compare_typenames(char*, char*);

@@ -114,5 +114,5 @@ int get_type_width(SYMTYPE* t) {
         return 0;
     }
 
-    return 0;
+    return t->width;
 }
