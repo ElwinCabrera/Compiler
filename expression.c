@@ -94,13 +94,15 @@ EXPRESSION* binary_expression(TAC_OP op, EXPRESSION* x, EXPRESSION* y) {
         case COERCE_RHS: {
             TAC* conversion = new_tac(I_INT2REAL, exp_rvalue(y), NULL, temp_address(tx));
             ADDRESS* a = add_code(code_table, conversion);
-            TAC* code = new_tac(op, exp_rvalue(x), a, temp_address(tx));
+            SYMTYPE* result_type = lval_type(op, tx, a->type);            
+            TAC* code = new_tac(op, exp_rvalue(x), a, temp_address(result_type));
             return temp_expression(add_code(code_table, code));
         }
         case COERCE_LHS: {
             TAC* conversion = new_tac(I_INT2REAL, exp_rvalue(x), NULL, temp_address(ty));
             ADDRESS* a = add_code(code_table, conversion);
-            TAC* code = new_tac(op, a, exp_rvalue(y), temp_address(ty));
+            SYMTYPE* result_type = lval_type(op, a->type, ty);   
+            TAC* code = new_tac(op, a, exp_rvalue(y), temp_address(result_type));
             return temp_expression(add_code(code_table, code));
         }
         default:
@@ -208,9 +210,11 @@ TC_RESULT type_check_binary_expression(int op, EXPRESSION* x, EXPRESSION* y) {
                             return PASS;
                         }
                     }
-
-                    return FAIL;
-                }                
+                } else if(left > right) {
+                    return COERCE_RHS;
+                } else if(right > left) {
+                    return COERCE_LHS;
+                }
             }
         }
         default: {
