@@ -2,6 +2,7 @@
 #define INTERMEDIATE_CODE_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 typedef enum tac_op {
     I_ASSIGN,
@@ -34,6 +35,7 @@ typedef enum tac_op {
 
 typedef struct tac {
     int label;
+    bool leader;
     TAC_OP op;
     struct address* result;
     struct address* x;
@@ -54,5 +56,6 @@ void backpatch(INTERMEDIATE_CODE*, int, int);
 void print_intermediate_code(INTERMEDIATE_CODE*, FILE*);
 void print_tac(TAC*, FILE*);
 const char* get_op_string(TAC_OP);
+bool code_is_jump(TAC*);
 
 #endif

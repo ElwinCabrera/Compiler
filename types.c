@@ -33,23 +33,18 @@ SYMTYPE* add_type(TYPE_CONTAINER* container, TTYPE meta, char* name, int width) 
     return new;
 }
 
+bool name_match_type(LINKED_LIST* l, void* name) {
+  SYMTYPE* t = ll_value(l);
+  return t && t->name && strcmp(t->name, name) == 0;
+}
+
 SYMTYPE* find_type(TYPE_CONTAINER* container, char* name) {
 
-    if(!name || !container) {
+    if(!container) {
         return NULL;
     }
 
-    LINKED_LIST* s = container->head;
-
-    while(s) {
-        SYMTYPE* t = ll_value(s);
-        if(t && strcmp(name, t->name) == 0) {
-            return t;
-        }
-        s = ll_next(s);
-    }
-
-    return NULL;
+    return ll_find(container->head, name, name_match_type);
 }
 
 bool check_metatype(SYMTYPE* t, TTYPE meta) {

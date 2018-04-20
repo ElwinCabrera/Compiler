@@ -31,6 +31,7 @@ TAC* new_tac(TAC_OP op, ADDRESS* x, ADDRESS* y, ADDRESS* r) {
     code->x = x;
     code->y = y;
     code->result = r;
+    code->leader = false;
     return code;
 }
 
@@ -235,4 +236,13 @@ const char* get_op_string(TAC_OP op) {
         default:
             return NULL;
     }
+}
+
+bool code_is_jump(TAC* code) {
+    if(!code) {
+        return false;
+    }
+    TAC_OP op = code->op;
+    return op == I_GOTO || op == I_RETURN || op == I_CALL ||
+        op == I_TEST_FALSE || op == I_TEST || op == I_TEST_NOTEQUAL;
 }
