@@ -115,15 +115,19 @@ ADDRESS* assignable_lvalue(ASSIGNABLE* a) {
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
 
     switch(a->meta) {
-        case A_VARIABLE:
+        case A_VARIABLE: {
+            if(a->variable->type && a->variable->type->meta == MT_FUNCTION) {
+                return symbol_address(a->variable->type->ret);
+            }
             return a->variable;
+        }
         case A_ARRAY: {
             INTERMEDIATE_CODE* code_table = get_intermediate_code();
             STACK* i = a->indices;
             ADDRESS* array = assignable_rvalue(a);
             while(i) {
                 EXPRESSION* e = stack_peek(i);
-                ADDRESS* result = temp_address(a->array->type);
+                ADDRESS* result = i->next ? temp_address(array->type) : temp_address(array->type->element_type);
                 TAC* code = new_tac(I_ARRAY, array, exp_rvalue(e), result);
                 array = add_code(code_table, code);
                 i = i->next;
@@ -167,10 +171,6 @@ void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_lvalue(a);
 
-    if(adr && adr->type && adr->type->meta == MT_FUNCTION) {
-        adr = symbol_address(adr->type->ret);
-    }
-
     SYMTYPE* a_type = adr ? adr->type : NULL;
     SYMTYPE* e_type = expression_type(e);
     
@@ -188,7 +188,7 @@ void handle_memop(TAC_OP op, ASSIGNABLE* a) {
     
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_rvalue(a);
-    int width = get_type_width(adr->type);
+    int width = 0;
     
     if(op == I_RESERVE) {
         add_code(code_table, new_tac(op, int_address(width), NULL, adr));
