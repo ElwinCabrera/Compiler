@@ -75,10 +75,10 @@ void* ll_value(LINKED_LIST* l) {
     return l ? l->value : NULL;
 }
 
-LINKED_LIST* ll_merge(LINKED_LIST* lhs, LINKED_LIST* rhs, void* comparator(LINKED_LIST*, LINKED_LIST*)) {
+LINKED_LIST* ll_merge(LINKED_LIST* lhs, LINKED_LIST* rhs, bool comparator(LINKED_LIST*, LINKED_LIST*)) {
 
     LINKED_LIST* result;
-
+    
     if(rhs == NULL) return lhs;
     else if(lhs == NULL) return rhs;
     
