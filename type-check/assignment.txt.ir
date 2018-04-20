@@ -1,0 +1,16 @@
+[0] OP: goto, LHS: $1, RHS: (null)
+[1] OP: lookup, LHS: a, RHS: (null)
+[2] OP: assign, LHS: $1, RHS: 7
+[3] OP: lookup, LHS: b, RHS: (null)
+[4] OP: assign, LHS: $3, RHS: 7.200000
+[5] OP: lookup, LHS: c, RHS: (null)
+[6] OP: assign, LHS: $5, RHS: "Hi"
+[7] OP: lookup, LHS: d, RHS: (null)
+[8] OP: assign, LHS: $7, RHS: d
+[9] OP: lookup, LHS: e, RHS: (null)
+[10] OP: assign, LHS: $9, RHS: false
+[11] OP: lookup, LHS: e, RHS: (null)
+[12] OP: assign, LHS: $11, RHS: true
+[13] OP: |, LHS: true, RHS: false
+[14] OP: lookup, LHS: r, RHS: (null)
+[15] OP: assign, LHS: $14, RHS: $13

@@ -1,0 +1,14 @@
+
+type record : [ Boolean: r; real: j ]
+
+{
+    [ 
+        integer: a; real: b; record: x; Boolean: j
+    ]
+
+    j :=  (x isNull);
+
+   while( true ){
+      b := i2r 0;
+   }
+}

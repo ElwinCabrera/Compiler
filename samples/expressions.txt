@@ -1,5 +1,5 @@
 {
-    [ int : x, y ]
+    [ integer : x, y; Boolean: j, k]
 
     (*
         We are mostly looking at what happens after the
@@ -33,23 +33,23 @@
     x := 7 * 7;
     x := 7 / 7;
     x := 7 % 7;
-    x := 7 & 7;
-    x := 7 | 7;
-    x := 7 < 7;
-    x := (7) = 7;
-    x := -(7) = 7;
-    x := (-x) = 7;
+    j := j & k;
+    j := k | k;
+    j := 7 < 7;
+    j := (7) = 7;
+    j := (-(7)) = 7;
+    k := (-x) = 7;
     x := -(4 * 4);
 
     (* Even when they are parenthesized *)
     
-    x := (7 = (7));
+    j := (7 = (7));
 
 
     (* Or laid out in sequence *)
-    x := 7 = 7 = 7 = 7;
+    j := (7 = 7) = (7 = 7);
 
-    x := y isNull = z isNull;
+    k := y isNull = z isNull;
     x := (y isNull = z isNull);
     x := (!(y isNull) = ((!(z) isNull))) = true | false & true;
 

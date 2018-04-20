@@ -12,5 +12,5 @@ type record : [ Boolean: r; real: j ]
     d := 'd';
     e := false;
     e := true;
-    x.a := true;
+    x.r := true | false;
 }

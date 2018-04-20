@@ -1,18 +1,19 @@
 
 (* A record with two ints*)
-type record1 : [ int : y, z ]
+type record1 : [ integer : y, z ]
 
 (* A record with a real and an int *)
-type record2 : [ real: a; int : b ]
+type record2 : [ real: a; integer : b ]
 
 (* A record with recursive type *)
-type record3 : [ record3 : x ; int : y ]
+type record3 : [ record3 : x ; integer : y ]
 
 (* A record with recursive type and initial value *)
-type record4 : [ record3 : x ; int : y := 0 ]
+type record4 : [ record3 : x ; integer : y := 0 ]
 
 (* Empty S Block *)
 {
     (* Empty Statement List Is A Syntax Error *)
+    [integer: x]
     x := 7;
 }

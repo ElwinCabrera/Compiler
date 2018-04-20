@@ -1,33 +1,40 @@
 (* A function that takes two ints and returns a Boolean *)
-type sampleFunction : (int : i, int: j) -> Boolean
+type sampleFunction : (integer : i, integer: j) -> Boolean
 
 (* A function with an empty body *)
 function checkInts : sampleFunction 
 {
-
+    [integer: x := 0]
     (* 
         Note that nothing is going to be returned even
         though we expect to return something based on the 
         type specification...
     *)
+    x := 1;
 }
 
 (* A function with a declaration list *)
 function checkInts2 : sampleFunction
 {
-    [ int : sum ]
+    [ integer : sum ]
+
+    sum := 0;
 }
 
 (* A function with a longer declaration list with initial values *)
 function checkInts2 : sampleFunction
 {
-    [ int : sum, sum2, sum3, sum4, sum5 := 0;
-      real : sum6, sum7, sum8, sum9, sum10 := 0 
+    [ integer : sum, sum2, sum3, sum4, sum5 := 0;
+      real : sum6, sum7, sum8, sum9, sum10 := 0.0
     ]
+
+    sum := 2;
 }
 
 
 (* Empty S Block *)
 {
+    [Boolean: k]
+    k := false;
     (* Empty Statement List Is A Syntax Error *)
 }

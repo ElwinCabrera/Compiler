@@ -14,7 +14,7 @@ type stringArray : 1 -> string : ( "hello" )
 type real2int : ( real: r ) -> integer
 
 (* This is a function type definition with multiple parameters *)
-type getIntArray : ( real2int: f, integer: p00, integer: p01, integer: p10, integer: p11 )
+type getIntArray : ( integer: p00, integer: p01, integer: p10, integer: p11 )
                  -> intArray
 
 (* Functions with no input parameters are also valid. *)
@@ -36,7 +36,7 @@ function initializeIntArray: getIntArray {
    ia(0, 1) := p01;
    ia(1, 0) := p10;
    ia(1, 1) := p11;
-   initializeIntArray := initializeIntArray(1);
+   initializeIntArray := ia;
 }
 
 (* Simple function with no input, returning a string. *)
@@ -64,7 +64,7 @@ function sayHello : noInput {
       (* Below is a for statement *)
       for(i := - 1 ;; i < 9; i := i + 1;){
          (* 2 would implicitly be converted to the real value 2.0 *)
-         x := x - 2 * 10 / true;
+         x := x - 2 * 10 / 5;
       }
    }
 

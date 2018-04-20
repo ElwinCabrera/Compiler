@@ -1,0 +1,16 @@
+
+{
+    [integer: x]
+
+    if(true) then {
+        x := 0;
+        if(false) then {
+            x := 2;
+        } else {
+            x := 0;
+        }
+
+    } else {
+        x := 1;
+    }
+}

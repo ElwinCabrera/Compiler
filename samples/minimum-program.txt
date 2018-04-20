@@ -2,5 +2,7 @@
 
 (* Empty S Block *)
 {
+    [integer: x]
     (* Empty Statement List Is A Syntax Error *)
+    x := 0;
 }

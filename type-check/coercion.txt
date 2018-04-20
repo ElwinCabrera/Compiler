@@ -1,0 +1,9 @@
+{
+    [ integer: a; real: b; Boolean: t ]
+
+    a := 7;
+    
+    (* This becomes a real *)
+    b := 7 + 7.2;
+    t := (7.2 = 7);
+}
