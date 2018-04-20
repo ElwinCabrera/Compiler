@@ -124,7 +124,7 @@ TC_RESULT type_check_unary_expression(int op, EXPRESSION* x) {
         case I_SUB:
             return (check_typename(lhs, "integer") | check_typename(lhs, "real")) ? PASS : FAIL;
         case I_IS_NULL:
-            return (x->meta == E_ASSIGNABLE && x->value.assignable->meta != A_VARIABLE) ? PASS : FAIL;
+            return x && (x->meta == E_ASSIGNABLE && x->value.assignable->meta != A_VARIABLE) ? PASS : FAIL;
         case I_RESERVE:
         case I_RELEASE:
         {
