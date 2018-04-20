@@ -8,33 +8,29 @@ typedef struct symtab {
    char* name;
    char* extra;
    int meta;
+   int width;
+   struct address* label;
    struct symtype* type;
    struct scope* scope;
-   struct symtab* next;
 } SYMTAB;
 
 typedef struct scope {
     int id;
-    struct symtab* symbols;
-    struct scope_list* children;
+    struct linked_list* symbols;
+    struct linked_list* children;
     struct scope* parent;
 } SCOPE;
 
-typedef struct scope_list {
-    struct scope* node;
-    struct scope_list* next;
-} SCOPE_LIST;
 
 SCOPE* new_scope(SCOPE*, int);
 SCOPE* exit_scope(SCOPE*);
 
-SYMTAB* last_entry(SYMTAB*);
 SYMTAB* find_in_scope(SCOPE*, char*);
 SYMTAB* find_in_children(SCOPE *, char*);
-SYMTAB* find_entry(SYMTAB*, char*);
-SYMTAB* add_symbols_to_scope(SCOPE*, SYMTAB*);
-SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src);
+SYMTAB* find_entry(struct linked_list*, char*);
+struct linked_list* add_symbols_to_scope(SCOPE*, struct linked_list*);
 SYMTAB* new_symbol(struct symtype*, char*, int, char*);
+void reorder_symbols(SCOPE*);
 void print_symbol(SYMTAB*, int, FILE*);
 void print_symbol_table(SCOPE*, FILE*);
 

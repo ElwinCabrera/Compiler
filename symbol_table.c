@@ -3,6 +3,8 @@
 #include <string.h>
 #include "types.h"
 #include "symbol_table.h"
+#include "stack.h"
+#include "linked_list.h"
 
 SCOPE* new_scope(SCOPE* parent, int id)
 {
@@ -13,12 +15,10 @@ SCOPE* new_scope(SCOPE* parent, int id)
   new->symbols = NULL;
   new->parent = parent;
 
-  if(parent != NULL) {
-    SCOPE_LIST *child = malloc(sizeof(SCOPE_LIST));
-    child->node = new;
-    child->next = parent->children;
-    parent->children = child;
+  if(parent) {
+    parent->children = ll_insertfront(parent->children, new);
   }
+
   //printf("New scope %p is a child of %p\n", new, parent);
   return new;
 }
@@ -64,41 +64,17 @@ SYMTAB* find_in_children(SCOPE* s, char* target)
   SYMTAB* sym = find_entry(s->symbols, target);
 
   if(sym == NULL) {
-    SCOPE_LIST *child = s->children;
-    while(child != NULL) {
-      sym = find_in_children(child->node, target);
+   LINKED_LIST* child = s->children;
+    while(child) {
+      sym = find_in_children(ll_value(child), target);
       if (sym != NULL) {
         return sym;
       }
-      child = child->next;
+      child = ll_next(child);
     }
   }
 
   return sym;
-}
-
-SYMTAB* last_entry(SYMTAB* start)
-{
-  if(!start) {
-    return NULL;
-  }
-
-  SYMTAB* p = start;
-  while(p->next != NULL) {
-    p = p->next;
-  }
-  return p;
-}
-
-SYMTAB* add_symbols(SYMTAB* dest, SYMTAB* src) {
-  SYMTAB* last = last_entry(dest);
-  if(last) {
-    // dest has valid contents
-    last->next = src;
-    return dest;
-  }
-  // nothing found in dest
-  return src;
 }
 
 SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
@@ -110,34 +86,47 @@ SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
   insertNew->meta = meta;
   insertNew->type = type;
   insertNew->scope = NULL;
-  insertNew->next = NULL;
+  insertNew->width = 0;
 
   return insertNew;
 }
 
-SYMTAB* add_symbols_to_scope(SCOPE* scope, SYMTAB* symbols)
+LINKED_LIST* add_symbols_to_scope(SCOPE* scope, LINKED_LIST* symbols)
 {
   if(!scope) {
     return NULL;
   }
 
-  scope->symbols = add_symbols(scope->symbols, symbols);
-  
+  scope->symbols = ll_combine(scope->symbols, symbols);
+
   return scope->symbols;
 }
 
-SYMTAB* find_entry(SYMTAB* start, char* name)
+SYMTAB* find_entry(LINKED_LIST* start, char* name)
 {
-  //if the first node will never have any data then I need to skip the first node
-  SYMTAB *p = start;
-  while(p  != NULL) {
-    if(strcmp(p->name, name) == 0) {
+  while(start) {
+    SYMTAB* p = (SYMTAB*) ll_value(start);
+    if(p && p->name && strcmp(p->name, name) == 0) {
       return p; 
     }
-    p = p->next;
+    start = ll_next(start);
   }
 
   return NULL;
+}
+
+
+bool size_comparator(LINKED_LIST* a, LINKED_LIST* b) {
+  SYMTAB* a_val = ll_value(a);
+  SYMTAB* b_val = ll_value(b);
+
+  return a_val->width < b_val->width ? false : true;
+}
+
+void reorder_symbols(SCOPE* s) {
+  if(s) {
+    ll_mergesort(&s->symbols, size_comparator);
+  }
 }
 
 void print_symbol_table(SCOPE* symbol_table, FILE* f) {
@@ -145,18 +134,20 @@ void print_symbol_table(SCOPE* symbol_table, FILE* f) {
     return;
   }
 
-  SYMTAB* s = symbol_table->symbols;
+  LINKED_LIST* s = symbol_table->symbols;
   
   while(s) {
-    print_symbol(s, symbol_table->id, f);
-    s = s->next;
+    SYMTAB* symbol = ll_value(s);
+    print_symbol(symbol, symbol_table->id, f);
+    s = ll_next(s);
   }
   
-  SCOPE_LIST * children = symbol_table->children;
+  LINKED_LIST* children = symbol_table->children;
 
   while(children) {
-    print_symbol_table(children->node, f);
-    children = children->next;
+    SCOPE* scope = ll_value(children);
+    print_symbol_table(scope, f);
+    children = ll_next(children);
   }
 }
 
@@ -166,9 +157,10 @@ void print_symbol(SYMTAB * symbol, int scope, FILE* f) {
   }
 
   if(f) {
-    fprintf(f, "%s : %d : %s : %s\n", symbol->name, scope, symbol->type->name, symbol->extra);
+    fprintf(f, "%s : %d : %s : %s\n", symbol->name, scope,  symbol->type ? symbol->type->name : "NULL", symbol->extra);
   } else {
-    printf("%s : %d : %s : %s\n", symbol->name, scope, symbol->type->name, symbol->extra);
+    printf("%s : %d : %s : %s\n", symbol->name, scope, symbol->type ? symbol->type->name : "NULL", symbol->extra);
   }
 
 }
+

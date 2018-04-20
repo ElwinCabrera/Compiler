@@ -2,7 +2,7 @@
 SRC= runner.c symbol_table.c \
  types.c stack.c assignable.c \
  address.c intermediate_code.c \
- expression.c
+ expression.c linked_list.c
 
 TEST_SRC=$(filter-out runner.c, $(SRC))
 
@@ -48,7 +48,7 @@ lexical_analyzer: lexical_structure.lex y.tab.h
 syntax_analayzer: grammar.y
 	bison -d -v -y grammar.y
 
-tests: $(TEST_SRC) $(TESTS)
+tests: $(TEST_SRC) $(GEN) $(TESTS)
 	$(CC) $(CFLAGS) -lm -L $(CUNIT_PATH_PREFIX)lib -I $(CUNIT_PATH_PREFIX)include/$(CUNIT_DIRECTORY) -g $^ -o tests -lcunit -lgcov 
 
 clean:

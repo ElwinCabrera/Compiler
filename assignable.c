@@ -6,6 +6,7 @@
 #include "symbol_table.h"
 #include "intermediate_code.h"
 #include "expression.h"
+#include "linked_list.h"
 
 extern void argument_count_mismatch(int, int);
 extern void type_mismatch_error(char*, char*);
@@ -64,12 +65,13 @@ ASSIGNABLE* assignable_function(ADDRESS* fn, STACK* args) {
     }
 
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
-    SYMTAB* params = fn->type->parameters->symbols;
+    LINKED_LIST* params = fn->type->parameters->symbols;
     int expected = 0;
     int actual = 0;
     while(params) {
+        SYMTAB* param = ll_value(params);
         if(!args) {
-            while(params) { params = params->next; expected++; }
+            while(params) { params = ll_next(params); expected++; }
             argument_count_mismatch(expected, actual);
             break;
         }
@@ -77,15 +79,15 @@ ASSIGNABLE* assignable_function(ADDRESS* fn, STACK* args) {
         EXPRESSION* e = stack_peek(args);
         SYMTYPE* actual = expression_type(e);
         
-        if(params->type && params->type == actual) {
+        if(param->type && param->type == actual) {
             add_code(code_table, new_tac(I_PARAM, exp_rvalue(e), NULL, NULL));
         } else {
-            type_mismatch_error(params->type ? params->type->name : "NULL", 
+            type_mismatch_error(param->type ? param->type->name : "NULL", 
                 actual ? actual->name : "NULL");
         }
 
         args = stack_pop(args);
-        params = params->next;
+        params = ll_next(params);
         expected++;
     }
 
@@ -116,13 +118,17 @@ ADDRESS* assignable_lvalue(ASSIGNABLE* a) {
         case A_VARIABLE:
             return a->variable;
         case A_ARRAY: {
-            /* 
-                This is an array access, we have the indicies in a stack:
-                a->indicies
-            */
-            ADDRESS* result = temp_address(a->array->type->element_type);
-            TAC* code = new_tac(I_ARRAY, a->array, int_address(0), result);
-            return add_code(code_table, code);
+            INTERMEDIATE_CODE* code_table = get_intermediate_code();
+            STACK* i = a->indices;
+            ADDRESS* array = assignable_rvalue(a);
+            while(i) {
+                EXPRESSION* e = stack_peek(i);
+                ADDRESS* result = temp_address(a->array->type);
+                TAC* code = new_tac(I_ARRAY, array, exp_rvalue(e), result);
+                array = add_code(code_table, code);
+                i = i->next;
+            }
+            return array;
         }
         case A_RECORD: {
             ADDRESS* result = temp_address(a->variable->type);
@@ -148,11 +154,12 @@ ADDRESS* assignable_rvalue(ASSIGNABLE* a) {
         case A_VARIABLE:
             return a->variable;
         case A_RECORD:
-        case A_ARRAY: {
             return assignable_lvalue(a);
+        case A_ARRAY: {
+            return symbol_address(a->array->value.symbol);
+        }
         default:
             return NULL;
-        }
     }
 }
 
@@ -160,7 +167,7 @@ void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_lvalue(a);
 
-    if(adr && adr->type->meta == MT_FUNCTION) {
+    if(adr && adr->type && adr->type->meta == MT_FUNCTION) {
         adr = symbol_address(adr->type->ret);
     }
 
@@ -175,4 +182,17 @@ void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
     }
 
     add_code(code_table, new_tac(I_ASSIGN, adr, exp_rvalue(e), NULL));
+}
+
+void handle_memop(TAC_OP op, ASSIGNABLE* a) {
+    
+    INTERMEDIATE_CODE* code_table = get_intermediate_code();
+    ADDRESS* adr = assignable_rvalue(a);
+    int width = get_type_width(adr->type);
+    
+    if(op == I_RESERVE) {
+        add_code(code_table, new_tac(op, int_address(width), NULL, adr));
+    } else {
+        add_code(code_table, new_tac(op, adr, int_address(width), NULL));
+    }
 }

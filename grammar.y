@@ -8,6 +8,7 @@
 #include "assignable.h"
 #include "expression.h"
 #include "intermediate_code.h"
+#include "linked_list.h"
 
 static int scope_counter = 0;
 static SCOPE* symbols;
@@ -29,6 +30,8 @@ int yylex();
     Error Handling
 */
 void yyerror(char*);
+void fatal_error(char*);
+void redefinition_error(char*,char*);
 void syntax_error(char*);
 void invalid_unary_expression(int, char*);
 void invalid_binary_expression(int, char*, char*);
@@ -51,7 +54,7 @@ SCOPE* close_scope();
 /*
     Wrappers to access types in static type linked list
 */
-SYMTYPE* new_type(int, char*);
+SYMTYPE* new_type(int, char*, int);
 SYMTYPE* lookup_type(char*);
 SYMTAB* find_symbol(char*);
 SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
@@ -67,7 +70,7 @@ SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
     char character;
     char* string;
     struct scope* scope;
-    struct symtab* symbol;
+    struct linked_list* list;
     struct symtype* type;
     struct stack* stack;
     struct address* address;
@@ -87,9 +90,8 @@ SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <integer> post_unary_operator pre_unary_operator mem_op;
 %type <scope> open_scope close_scope sblock pblock;
 %type <type> type_specifier;
-%type <symbol> dblock declaration_list declaration;
-%type <symbol> parameter_list non_empty_parameter_list parameter_declaration;
-%type <symbol> identifier_list;
+%type <list> dblock declaration_list declaration identifier_list;
+%type <list> parameter_list non_empty_parameter_list parameter_declaration;
 %type <expression> expression;
 %type <address> case constant;
 %type <assignable> assignable;
@@ -175,9 +177,10 @@ program:
         initialize_structs(); 
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, NULL));
         add_code(code_table, new_tac(I_NOP, NULL, NULL, NULL));
-    } definition_list next_instruction sblock {
-        backpatch(code_table, 0, $3);
+    } open_scope definition_list next_instruction sblock {
+        backpatch(code_table, 0, $4);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(1)));
+        reorder_symbols($2);
     }
     ;
 
@@ -188,7 +191,7 @@ definition_list:
 
 definition:
     check_type_literal identifier COLON constant check_arrow type_specifier COLON L_PARENTHESIS constant check_r_parenthesis {
-        SYMTYPE* type = new_type(MT_ARRAY, $2);
+        SYMTYPE* type = new_type(MT_ARRAY, $2, 4);
 
         if(type) {
             type->element_type = $6;
@@ -203,7 +206,7 @@ definition:
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON constant check_arrow type_specifier {
-        SYMTYPE* type = new_type(MT_ARRAY, $2);
+        SYMTYPE* type = new_type(MT_ARRAY, $2, 4);
         if(type) {
             type->element_type = $6;
             if($4->meta != INT_CONSTANT) { 
@@ -216,7 +219,7 @@ definition:
         insert_new_symbol(type, $2, TYPE, "atype");
     }
     | check_type_literal identifier COLON pblock check_arrow type_specifier {
-        SYMTYPE* type = new_type(MT_FUNCTION, $2);
+        SYMTYPE* type = new_type(MT_FUNCTION, $2, 4);
         if(type) {
             type->parameters = $4;
             type->ret = new_symbol($6, $2, LOCAL, "local");
@@ -233,10 +236,11 @@ definition:
         function_context = stack_pop(function_context); 
     }
     | check_type_literal identifier COLON open_scope {
-        new_type(MT_RECORD, $2);
+        new_type(MT_RECORD, $2, 4);
     } dblock close_scope  {
         SYMTYPE* t = lookup_type($2);
         add_symbols_to_scope($4, $6);
+        reorder_symbols($4);
         t->members = $4;
         insert_new_symbol(t, $2, TYPE, "rtype");
     }
@@ -256,14 +260,14 @@ parameter_list:
 
 non_empty_parameter_list:
     parameter_declaration COMMA non_empty_parameter_list {
-        $$ = add_symbols($1, $3);
+        $$ = ll_combine($3, $1);
     }
     | parameter_declaration
     ;
 
 parameter_declaration:
     type_specifier COLON identifier {
-        $$ = new_symbol($1, $3, PARAMETER, "parameter");
+        $$ = ll_new(new_symbol($1, $3, PARAMETER, "parameter"));
     }
     ;
 
@@ -275,7 +279,7 @@ dblock:
 
 declaration_list:
     declaration SEMI_COLON declaration_list {
-        $$ = add_symbols($1, $3);
+        $$ = ll_combine($1, $3);
     }
     | declaration
     ;
@@ -296,29 +300,30 @@ identifier_list:
         SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
         ADDRESS* a = symbol_address(s);
         handle_assignment(assignable_variable(a), const_expression($3));
-        $$ = add_symbols($5, s);
+        $$ = ll_insertfront($5, s);
     }
     | identifier assign_op constant {
         SYMTYPE* type = stack_peek(symbol_context);
         SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
         ADDRESS* a = symbol_address(s);
         handle_assignment(assignable_variable(a), const_expression($3));
-        $$ = new_symbol(type, $1, LOCAL, "local");
+        $$ = ll_new(new_symbol(type, $1, LOCAL, "local"));
     }
     | identifier COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
-        $$ = add_symbols($3, new_symbol(type, $1, LOCAL, "local"));
+        $$ = ll_insertfront($3, new_symbol(type, $1, LOCAL, "local"));
 
     }
     | identifier {
         SYMTYPE* type = stack_peek(symbol_context);
-        $$ = new_symbol(type, $1, LOCAL, "local");
+        $$ = ll_new(new_symbol(type, $1, LOCAL, "local"));
     }
     ;
 
 sblock:
     L_BRACE open_scope dblock {
         add_symbols_to_scope($2, $3);
+        reorder_symbols($2);
     } statement_list close_scope check_r_brace {
         $$ = $2;
     }
@@ -407,8 +412,7 @@ statement:
         handle_assignment($1, $3);
     }
     | mem_op assignable semi_colon_after_statement {
-        ADDRESS* a = assignable_rvalue($2);
-        add_code(code_table, new_tac($1, a, NULL, NULL));
+        handle_memop($1, $2);
     }
     | sblock
     ;
@@ -703,25 +707,28 @@ SCOPE* close_scope() {
 
 SYMTAB* insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
     SYMTAB* s = new_symbol(type, name, meta, extra);
-    add_symbols_to_scope(symbols, s);
+    add_symbols_to_scope(symbols, ll_new(s));
     return s;
 }
 
 void initialize_structs() {
-    open_scope();
     code_table = get_intermediate_code();
     types = get_type_container();
 
-    new_type(MT_PRIMITIVE, "string");
-    new_type(MT_PRIMITIVE, "real");
-    new_type(MT_PRIMITIVE, "Boolean");
-    new_type(MT_PRIMITIVE, "integer");
-    new_type(MT_PRIMITIVE, "character");
-    new_type(MT_PRIMITIVE, "nullconst");
+    new_type(MT_PRIMITIVE, "string", 4);
+    new_type(MT_PRIMITIVE, "real", 8);
+    new_type(MT_PRIMITIVE, "Boolean", 1);
+    new_type(MT_PRIMITIVE, "integer", 4);
+    new_type(MT_PRIMITIVE, "character", 1);
+    new_type(MT_PRIMITIVE, "nullconst", 4);
 }
 
-SYMTYPE* new_type(int type, char* name) {
-    return add_type(types, type, name);
+SYMTYPE* new_type(int type, char* name, int width) {
+    SYMTYPE* t = add_type(types, type, name, width);
+    if(!t){
+        redefinition_error("type", name); 
+    }
+    return t;
 }
 
 SYMTYPE* lookup_type(char* name) {
@@ -739,6 +746,12 @@ SYMTAB* find_symbol(char* name) {
 void notify_error(char* e) {
     yyerror(e);
     errors = stack_push(errors, strdup(e));
+    yyerrok;
+}
+
+void fatal_error(char* err) {
+    printf("LINE %d:%d - [FATAL ERROR] %s\n", get_row(), get_column(), err);
+    yyerror(NULL);
 }
 
 void argument_count_mismatch(int expected, int actual) {
@@ -765,6 +778,15 @@ void invalid_binary_expression(int op, char* t1, char* t2) {
     char dest[strlen(format) + (t1 ? strlen(t1) : 0) + (t2 ? strlen(t2) : 0) + 26];
 
     sprintf(dest, format, get_row(), get_column(), get_op_string(op), t2, t1);
+    notify_error(dest);
+}
+
+void redefinition_error(char* t1, char* t2) {
+    const char format[] = "LINE %d:%d - ERROR: %s redinition; '%s' already has meaning'\n";
+    
+    char dest[strlen(format) + (t1 ? strlen(t1) : 0) + (t2 ? strlen(t2) : 0) + 21];
+
+    sprintf(dest, format, get_row(), get_column(), t1, t2);
     notify_error(dest);
 }
 

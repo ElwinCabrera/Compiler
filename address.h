@@ -18,7 +18,7 @@ typedef struct address {
     struct symtype* type;
     union {
         int integer;
-        int boolean;
+        char boolean;
         double real;
         char character;
         char* string;
@@ -26,6 +26,7 @@ typedef struct address {
         int temporary;
         int null;
         int label;
+        struct assignable* array;
     } value;
 } ADDRESS;
 
@@ -38,6 +39,7 @@ ADDRESS* real_address(double);
 ADDRESS* char_address(char);
 ADDRESS* string_address(char*);
 ADDRESS* null_address();
+int get_width(ADDRESS*);
 char* create_address_string(ADDRESS*);
 
 #endif

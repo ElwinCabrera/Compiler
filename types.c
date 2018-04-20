@@ -5,6 +5,7 @@
 #include "symbol_table.h"
 #include "types.h"
 #include "expression.h"
+#include "linked_list.h"
 
 static TYPE_CONTAINER* known_types;
 
@@ -16,7 +17,7 @@ TYPE_CONTAINER* get_type_container() {
     return known_types;
 }
 
-SYMTYPE* add_type(TYPE_CONTAINER* container, TTYPE meta, char* name) {
+SYMTYPE* add_type(TYPE_CONTAINER* container, TTYPE meta, char* name, int width) {
 
     if(!name || find_type(container, name)) {
         return NULL;
@@ -26,9 +27,8 @@ SYMTYPE* add_type(TYPE_CONTAINER* container, TTYPE meta, char* name) {
 
     new->meta = meta;
     new->name = name;
-    new->next = container->head;
-
-    container->head = new;
+    new->width = width;
+    container->head = ll_insertfront(container->head, new);
 
     return new;
 }
@@ -39,13 +39,14 @@ SYMTYPE* find_type(TYPE_CONTAINER* container, char* name) {
         return NULL;
     }
 
-    SYMTYPE* s = container->head;
+    LINKED_LIST* s = container->head;
 
     while(s) {
-        if(strcmp(name, s->name) == 0) {
-            return s;
+        SYMTYPE* t = ll_value(s);
+        if(t && strcmp(name, t->name) == 0) {
+            return t;
         }
-        s = s->next;
+        s = ll_next(s);
     }
 
     return NULL;
@@ -106,4 +107,12 @@ SYMTYPE* lval_type(TAC_OP op, SYMTYPE* lhs, SYMTYPE* rhs) {
         default:
             return NULL;
     }
+}
+
+int get_type_width(SYMTYPE* t) {
+    if(!t) {
+        return 0;
+    }
+
+    return 0;
 }

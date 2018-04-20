@@ -87,7 +87,7 @@ void print_tac(TAC* code, FILE* f) {
 
     switch(code->op) {
         case I_ASSIGN:
-            fprintf(f, "[%03d]\t %s := %s\n", code->label, x, y);
+            fprintf(f, "[%03d]\t %s = %s\n", code->label, x, y);
             break;
         case I_LOOKUP:
             fprintf(f, "[%03d]\t %s = LOOKUP %s %s\n", code->label, result, x, y);
@@ -157,10 +157,10 @@ void print_tac(TAC* code, FILE* f) {
             fprintf(f, "[%03d]\t goto %s\n", code->label, result);
             break;
         case I_RESERVE:
-            fprintf(f, "[%03d]\t reserve %s\n", code->label, x);
+            fprintf(f, "[%03d]\t %s = malloc(%s)\n", code->label, result, x);
             break;
         case I_RELEASE:
-            fprintf(f, "[%03d]\t release %s\n", code->label, x);
+            fprintf(f, "[%03d]\t release(%s,%s)\n", code->label, x, y);
             break;
         case I_ARRAY:
             fprintf(f, "[%03d]\t %s = %s[%s]\n", code->label, result, x, y);

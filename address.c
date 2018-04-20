@@ -3,6 +3,7 @@
 #include "address.h"
 #include "symbol_table.h"
 #include "types.h"
+#include "assignable.h"
 
 static int temporary_count = 0;
 
@@ -132,17 +133,17 @@ char* create_address_string(ADDRESS* a) {
         case STRING_CONSTANT:
             return strdup(a->value.string);
         case CHAR_CONSTANT: {
-            char * tmp = malloc(2 * sizeof(char));
+            char* tmp = malloc(2 * sizeof(char));
             sprintf(tmp, "'%c'", a->value.character);
             return tmp;
         }
         case INT_CONSTANT: {
-            char * tmp = malloc(20 * sizeof(char));
+            char* tmp = malloc(20 * sizeof(char));
             sprintf(tmp, "%d", a->value.integer);
             return tmp;
         }
         case REAL_CONSTANT: {
-            char * tmp = malloc(20 * sizeof(char));
+            char* tmp = malloc(20 * sizeof(char));
             sprintf(tmp, "%f", a->value.real);
             return tmp;
         }
@@ -153,12 +154,12 @@ char* create_address_string(ADDRESS* a) {
         case SYMBOL:
             return a->value.symbol ? strdup(a->value.symbol->name) : NULL;
         case TEMPORARY: {
-            char * tmp = malloc(10 * sizeof(char));
+            char* tmp = malloc(10 * sizeof(char));
             sprintf(tmp, "t%d", a->value.temporary);
             return tmp;
         }
         case LABEL: {
-            char * tmp = malloc(10 * sizeof(char));
+            char* tmp = malloc(10 * sizeof(char));
             sprintf(tmp, "L%d", a->value.label);
             return tmp;
         }
