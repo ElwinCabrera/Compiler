@@ -9,6 +9,17 @@ LINKED_LIST* ll_new(void* value) {
     return new;
 }
 
+void* ll_find(LINKED_LIST* l, void* match, bool accessor(LINKED_LIST*, void*)) {
+
+    while(l) {
+        if(accessor(l, match)) {
+            return ll_value(l);
+        }
+        l = ll_next(l);
+    }
+    return NULL;
+}
+
 LINKED_LIST* ll_combine(LINKED_LIST* src, LINKED_LIST* add) {
     
     if(!src) {
@@ -78,7 +89,7 @@ void* ll_value(LINKED_LIST* l) {
 LINKED_LIST* ll_merge(LINKED_LIST* lhs, LINKED_LIST* rhs, bool comparator(LINKED_LIST*, LINKED_LIST*)) {
 
     LINKED_LIST* result;
-    
+
     if(rhs == NULL) return lhs;
     else if(lhs == NULL) return rhs;
     

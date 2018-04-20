@@ -101,19 +101,15 @@ LINKED_LIST* add_symbols_to_scope(SCOPE* scope, LINKED_LIST* symbols)
   return scope->symbols;
 }
 
-SYMTAB* find_entry(LINKED_LIST* start, char* name)
-{
-  while(start) {
-    SYMTAB* p = (SYMTAB*) ll_value(start);
-    if(p && p->name && strcmp(p->name, name) == 0) {
-      return p; 
-    }
-    start = ll_next(start);
-  }
-
-  return NULL;
+bool name_match_symbol(LINKED_LIST* l, void* name) {
+  SYMTAB* s = ll_value(l);
+  return s && s->name && strcmp(s->name, name) == 0;
 }
 
+SYMTAB* find_entry(LINKED_LIST* start, char* name)
+{
+  return ll_find(start, name, name_match_symbol);
+}
 
 bool size_comparator(LINKED_LIST* a, LINKED_LIST* b) {
   SYMTAB* a_val = ll_value(a);
