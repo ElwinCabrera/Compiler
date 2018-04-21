@@ -88,86 +88,86 @@ void print_tac(TAC* code, FILE* f) {
 
     switch(code->op) {
         case I_ASSIGN:
-            fprintf(f, "[%03d]\t %s = %s\n", code->label, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s\n", code->label, (code->leader ? "*\t" : "\t"), x, y);
             break;
         case I_LOOKUP:
-            fprintf(f, "[%03d]\t %s = LOOKUP %s %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = LOOKUP %s %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_ADD:
-            fprintf(f, "[%03d]\t %s = %s + %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s + %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_SUB:
             if(code->y) {
-               fprintf(f, "[%03d]\t %s = %s - %s\n", code->label, result, x, y);
+               fprintf(f, "[%03d]%s\t %s = %s - %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             } else {
-                fprintf(f, "[%03d]\t %s = - %s\n", code->label, result, x);
+                fprintf(f, "[%03d]%s\t %s = - %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x);
             }
             break;
         case I_MULTIPLY:
-            fprintf(f, "[%03d]\t %s = %s * %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s * %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_DIVIDE:
-            fprintf(f, "[%03d]\t %s = %s / %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s / %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_MODULUS: 
-            fprintf(f, "[%03d]\t %s = %s MOD %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s MOD %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_LESS_THAN:
-            fprintf(f, "[%03d]\t %s = %s < %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s < %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_EQUAL:
-            fprintf(f, "[%03d]\t %s = %s == %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s == %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_REAL2INT:
-            fprintf(f, "[%03d]\t %s = r2i %s\n", code->label, result, x);
+            fprintf(f, "[%03d]%s\t %s = r2i %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x);
             break;
         case I_INT2REAL: 
-            fprintf(f, "[%03d]\t %s = i2r %s\n", code->label, result, x);
+            fprintf(f, "[%03d]%s\t %s = i2r %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x);
             break;
         case I_IS_NULL:
-            fprintf(f, "[%03d]\t %s = isNull %s\n", code->label, result, x);
+            fprintf(f, "[%03d]%s\t %s = isNull %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x);
             break;
         case I_NOT:
-            fprintf(f, "[%03d]\t %s = not %s\n", code->label, result, x);
+            fprintf(f, "[%03d]%s\t %s = not %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x);
             break;
         case I_AND:
-            fprintf(f, "[%03d]\t %s = %s AND %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s AND %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_OR:
-            fprintf(f, "[%03d]\t %s = %s OR %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s OR %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_PARAM:
-            fprintf(f, "[%03d]\t param %s\n", code->label, x);
+            fprintf(f, "[%03d]%s\t param %s\n", code->label, (code->leader ? "*\t" : "\t"), x);
             break;
         case I_CALL:
-            fprintf(f, "[%03d]\t %s = call %s %s\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = call %s %s\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_RETURN:
-            fprintf(f, "[%03d]\t return %s\n", code->label, result);
+            fprintf(f, "[%03d]%s\t return %s\n", code->label, (code->leader ? "*\t" : "\t"), result);
             break;
         case I_TEST:
-            fprintf(f, "[%03d]\t if %s goto %s\n", code->label, x, result);
+            fprintf(f, "[%03d]%s\t if %s goto %s\n", code->label, (code->leader ? "*\t" : "\t"), x, result);
             break;
         case I_TEST_FALSE:
-            fprintf(f, "[%03d]\t ifFalse %s goto %s\n", code->label, x, result);
+            fprintf(f, "[%03d]%s\t ifFalse %s goto %s\n", code->label, (code->leader ? "*\t" : "\t"), x, result);
             break;
         case I_TEST_NOTEQUAL:
-            fprintf(f, "[%03d]\t if %s != %s goto %s\n", code->label, x, y, result);
+            fprintf(f, "[%03d]%s\t if %s != %s goto %s\n", code->label, (code->leader ? "*\t" : "\t"), x, y, result);
             break;
         case I_GOTO:
-            fprintf(f, "[%03d]\t goto %s\n", code->label, result);
+            fprintf(f, "[%03d]%s\t goto %s\n", code->label, (code->leader ? "*\t" : "\t"), result);
             break;
         case I_RESERVE:
-            fprintf(f, "[%03d]\t %s = malloc(%s)\n", code->label, result, x);
+            fprintf(f, "[%03d]%s\t %s = malloc(%s)\n", code->label, (code->leader ? "*\t" : "\t"), result, x);
             break;
         case I_RELEASE:
-            fprintf(f, "[%03d]\t release(%s,%s)\n", code->label, x, y);
+            fprintf(f, "[%03d]%s\t release(%s,%s)\n", code->label, (code->leader ? "*\t" : "\t"), x, y);
             break;
         case I_ARRAY:
-            fprintf(f, "[%03d]\t %s = %s[%s]\n", code->label, result, x, y);
+            fprintf(f, "[%03d]%s\t %s = %s[%s]\n", code->label, (code->leader ? "*\t" : "\t"), result, x, y);
             break;
         case I_NOP:
-            fprintf(f, "[%03d]\t NOP\n", code->label);
+            fprintf(f, "[%03d]%s\t NOP\n", code->label, (code->leader ? "*\t" : "\t"));
             break;
         default:
             fprintf(f, "UNKNOWN OP: %d\n", code->op);
