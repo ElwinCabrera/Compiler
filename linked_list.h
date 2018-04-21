@@ -38,5 +38,6 @@ LINKED_LIST* ll_insertback(LINKED_LIST*, void*);
 LINKED_LIST* ll_next(LINKED_LIST*);
 void* ll_value(LINKED_LIST*);
 void ll_mergesort(LINKED_LIST**, void*);
+void ll_reverse(LINKED_LIST** ref);
 
 #endif

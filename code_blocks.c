@@ -12,10 +12,12 @@ BLOCK* new_code_block(int i) {
 }
 
 void print_blocks(LINKED_LIST* l, FILE* f) {
+    ll_reverse(&l);
     while(l) {
         BLOCK* b = ll_value(l);
         fprintf(f ? f : stdout, "Block %d\n", b->label);
         LINKED_LIST* code_list = b->code;
+        ll_reverse(&code_list);
         while(code_list) {
             TAC* code = ll_value(code_list);
             print_tac(code, f);

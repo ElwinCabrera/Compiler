@@ -131,6 +131,10 @@ void ll_split(LINKED_LIST* list, LINKED_LIST** mid_point) {
 }
 
 void ll_mergesort(LINKED_LIST** ref, void* comparator) {
+    if(!ref) {
+        return;
+    }
+
     LINKED_LIST* lhs = *ref;
 
     if(!lhs || !lhs->next) {
@@ -145,4 +149,23 @@ void ll_mergesort(LINKED_LIST** ref, void* comparator) {
     ll_mergesort(&rhs, comparator);
 
     *ref = ll_merge(lhs, rhs, comparator);
+}
+
+void ll_reverse(LINKED_LIST** ref) {
+    if(!ref) {
+        return;
+    }
+
+    LINKED_LIST* cur = *ref;
+    LINKED_LIST* next = NULL;
+    LINKED_LIST* prev = NULL;
+
+    while(cur) {
+        next = ll_next(cur);
+        cur->next = prev;
+        prev = cur;
+        cur = next;
+    }
+
+    *ref = prev;
 }
