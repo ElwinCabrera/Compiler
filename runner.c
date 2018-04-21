@@ -6,6 +6,7 @@
 #include "symbol_table.h"
 #include "intermediate_code.h"
 #include "code_blocks.h"
+#include "linked_list.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
@@ -27,6 +28,7 @@ int main(int argc, char* argv[])
         bool asc = false;
         bool st = false;
         bool ir = false;
+        bool blocks = false;
         bool read_program = false;
 
         for(int i = 1;i< argc;i++) {
@@ -39,6 +41,9 @@ int main(int argc, char* argv[])
             } else if(strcmp(argv[i],"-ir") == 0) {
                 ir = true;
                 //Print intermediate representation
+            } else if(strcmp(argv[i],"-bl") == 0) {
+                blocks = true;
+                //Print blocks
             } else {
                 program = argv[i];
                 read_program = true;
@@ -81,8 +86,10 @@ int main(int argc, char* argv[])
             free(symbol_file_path);
             print_symbol_table(*get_symbol_table(), symbol_file);
         }
+        
 
-        if(ir) { //specify to print ir
+        if(ir || blocks) { //specify to print ir
+            INTERMEDIATE_CODE* code_table = get_intermediate_code();
             char* ir_file_path = malloc(strlen(program) + 4);
             sprintf(ir_file_path, "%s%s", program, ".ir");
             FILE* ir_file = fopen(ir_file_path, "w");
@@ -90,9 +97,13 @@ int main(int argc, char* argv[])
                 printf("ERROR(%d): Could not open file %s for writing\n", errno, ir_file_path);
             }
             free(ir_file_path);
-            INTERMEDIATE_CODE* code_table = get_intermediate_code();
-            mark_leaders(code_table);
-            print_intermediate_code(code_table, ir_file);
+            
+            if(ir) {
+                print_intermediate_code(code_table, ir_file);
+            } else {
+                LINKED_LIST* blocks = make_blocks(code_table);
+                print_blocks(blocks, ir_file);
+            }
         }
 
 

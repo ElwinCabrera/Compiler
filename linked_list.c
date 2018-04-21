@@ -128,7 +128,6 @@ void ll_split(LINKED_LIST* list, LINKED_LIST** mid_point) {
 
    (*mid_point) = slow->next;
    slow->next = NULL;
-    
 }
 
 void ll_mergesort(LINKED_LIST** ref, void* comparator) {
