@@ -189,6 +189,24 @@ void handle_memop(TAC_OP op, ASSIGNABLE* a) {
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_rvalue(a);
     int width = 0;
+
+    if(adr && check_metatype(adr->type, MT_RECORD)) {
+        LINKED_LIST* symbols = adr->type->members->symbols;
+        while(symbols) {
+            SYMTAB* s = ll_value(symbols);
+            width += get_type_width(s->type);
+            symbols = ll_next(symbols);
+        }
+    } else if(adr && check_metatype(adr->type, MT_ARRAY)) {
+        STACK* sizes = a->indices;
+        width += get_type_width(adr->type->element_type);
+        while(sizes) {
+            EXPRESSION* e = stack_peek(sizes);
+            width *= e->value.constant->value.integer;
+            sizes = stack_pop(sizes);
+        }
+        width += 4 * adr->type->dimensions + 4;
+    }
     
     if(op == I_RESERVE) {
         add_code(code_table, new_tac(op, int_address(width), NULL, adr));

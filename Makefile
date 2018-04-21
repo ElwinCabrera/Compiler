@@ -2,7 +2,8 @@
 SRC= runner.c symbol_table.c \
  types.c stack.c assignable.c \
  address.c intermediate_code.c \
- expression.c linked_list.c
+ expression.c linked_list.c \
+ code_blocks.c
 
 TEST_SRC=$(filter-out runner.c, $(SRC))
 

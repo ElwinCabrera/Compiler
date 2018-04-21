@@ -5,6 +5,7 @@
 #include <string.h>
 #include "symbol_table.h"
 #include "intermediate_code.h"
+#include "code_blocks.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
@@ -89,7 +90,9 @@ int main(int argc, char* argv[])
                 printf("ERROR(%d): Could not open file %s for writing\n", errno, ir_file_path);
             }
             free(ir_file_path);
-            print_intermediate_code(get_intermediate_code(), ir_file);
+            INTERMEDIATE_CODE* code_table = get_intermediate_code();
+            mark_leaders(code_table);
+            print_intermediate_code(code_table, ir_file);
         }
 
 
