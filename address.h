@@ -1,6 +1,8 @@
 #ifndef ADDRESS_H
 #define ADDRESS_H
 
+#include <stdbool.h>
+
 typedef enum atype {
     SYMBOL,
     INT_CONSTANT,
@@ -15,6 +17,8 @@ typedef enum atype {
 
 typedef struct address {
     ATYPE meta;
+    int next_use;
+    bool live;
     struct symtype* type;
     union {
         int integer;

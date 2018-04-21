@@ -39,51 +39,77 @@ void set_next_use_information(BLOCK* code_block) {
         TAC* c = ll_value(statements);
         if(c) {
 
-            bool x = c->x && c->x->meta == SYMBOL;
-            bool y = c->y && c->y->meta == SYMBOL;
-            bool result = c->result && c->result->meta == SYMBOL;
-
             /*
                 1. Attach to statement i the information currently found in the symbol table
                 regarding the next use and liveness of x, y, and y. 
             */
 
-            if(result) {
-                c->result_live = c->result->value.symbol->live;
-                c->result_next = c->result->value.symbol->next_use;
+            if(c->result) {
+                if(c->result->meta == SYMBOL) {
+                    c->result_live = c->result->value.symbol->live;
+                    c->result_next = c->result->value.symbol->next_use; 
+                } else if(c->result->meta == TEMPORARY) {
+                    c->result_live = c->result->live;
+                    c->result_next = c->result->next_use;
+                }
             }
 
-            if(x) {
-                c->x_live = c->x->value.symbol->live;
-                c->x_next = c->x->value.symbol->next_use;
+            if(c->x) {
+                if(c->x->meta == SYMBOL) {
+                    c->x_live = c->x->value.symbol->live;
+                    c->x_next = c->x->value.symbol->next_use; 
+                } else if(c->x->meta == TEMPORARY) {
+                    c->x_live = c->x->live;
+                    c->x_next = c->x->next_use;
+                }
             }
 
-            if(y) {
-                c->y_live = c->y->value.symbol->live;
-                c->y_next = c->y->value.symbol->next_use;
+            if(c->y) {
+                if(c->y->meta == SYMBOL) {
+                    c->y_live = c->y->value.symbol->live;
+                    c->y_next = c->y->value.symbol->next_use; 
+                } else if(c->y->meta == TEMPORARY) {
+                    c->y_live = c->y->live;
+                    c->y_next = c->y->next_use;
+                }
             }
 
 
             /*
                 2. In the symbol table, set x to "not live" and "no next use."
             */
-            if(result) {
-                c->result->value.symbol->live = false;
-                c->result->value.symbol->next_use = 0;
+            if(c->result) {
+                if(c->result->meta == SYMBOL) {
+                    c->result->value.symbol->live = false;
+                    c->result->value.symbol->next_use = 0;
+                } else if(c->result->meta == TEMPORARY) {
+                    c->result->live = false;
+                    c->result->next_use = 0;
+                }
             }
 
             /*
                 3. In the symbol table, set y and z to "live" and the next uses of y and z to i.
             */
 
-            if(x) {
-                c->x->value.symbol->live = true;
-                c->x->value.symbol->next_use = c->label;
+            if(c->x) {
+                if(c->x->meta == SYMBOL) {
+                    c->x->value.symbol->live = false;
+                    c->x->value.symbol->next_use = 0;
+                } else if(c->x->meta == TEMPORARY) {
+                    c->x->live = false;
+                    c->x->next_use = 0;
+                }
             }
 
-            if(y) {
-                c->y->value.symbol->live = true;
-                c->y->value.symbol->next_use = c->label;
+            if(c->y) {
+                if(c->y->meta == SYMBOL) {
+                    c->y->value.symbol->live = false;
+                    c->y->value.symbol->next_use = 0;
+                } else if(c->y->meta == TEMPORARY) {
+                    c->y->live = false;
+                    c->y->next_use = 0;
+                }
             }
         }
 

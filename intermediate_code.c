@@ -30,9 +30,9 @@ TAC* new_tac(TAC_OP op, ADDRESS* x, ADDRESS* y, ADDRESS* r) {
     code->result_live = false;
     code->x_live = false;
     code->y_live = false;
-    code->result_next = -1;
-    code->x_next = -1;
-    code->y_next = -1;
+    code->result_next = 0;
+    code->x_next = 0;
+    code->y_next = 0;
     code->op = op;
     code->x = x;
     code->y = y;

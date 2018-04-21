@@ -16,7 +16,10 @@ static int temporary_count = 0;
     This is a generic wrapper for an address creation
 */
 ADDRESS* new_address() {
-    return malloc(sizeof(ADDRESS));
+    ADDRESS* a = malloc(sizeof(ADDRESS));
+    a->live = false;
+    a->next_use = 0;
+    return a;
 };
 
 /*
