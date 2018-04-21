@@ -37,6 +37,12 @@ typedef struct tac {
     int label;
     bool leader;
     TAC_OP op;
+    int result_next;
+    int x_next;
+    int y_next;
+    bool result_live;
+    bool x_live;
+    bool y_live;
     struct address* result;
     struct address* x;
     struct address* y;

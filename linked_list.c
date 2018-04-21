@@ -169,3 +169,28 @@ void ll_reverse(LINKED_LIST** ref) {
 
     *ref = prev;
 }
+
+
+void* ll_remove(LINKED_LIST** ref, void* match, bool accessor(LINKED_LIST*, void*)) {
+    if(!ref) {
+        return NULL;
+    }
+    
+    LINKED_LIST* cur = *ref;
+    LINKED_LIST* prev;
+    while(cur) {
+        if(accessor(cur, match)) {
+            void* val = ll_value(cur);
+            if(prev) {
+                prev->next = ll_next(cur);
+            } else {
+                *ref = ll_next(cur);
+            }
+            free(cur);
+            return val;
+        }
+        prev = cur;
+        cur = ll_next(cur);
+    }
+    return NULL;
+}

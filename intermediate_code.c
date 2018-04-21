@@ -27,6 +27,12 @@ INTERMEDIATE_CODE* get_intermediate_code() {
 */
 TAC* new_tac(TAC_OP op, ADDRESS* x, ADDRESS* y, ADDRESS* r) {
     TAC* code = malloc(sizeof(TAC));
+    code->result_live = false;
+    code->x_live = false;
+    code->y_live = false;
+    code->result_next = -1;
+    code->x_next = -1;
+    code->y_next = -1;
     code->op = op;
     code->x = x;
     code->y = y;

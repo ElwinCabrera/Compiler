@@ -12,12 +12,12 @@ BLOCK* new_code_block(int i) {
 }
 
 void print_blocks(LINKED_LIST* l, FILE* f) {
-    ll_reverse(&l);
+
     while(l) {
         BLOCK* b = ll_value(l);
         fprintf(f ? f : stdout, "Block %d\n", b->label);
         LINKED_LIST* code_list = b->code;
-        ll_reverse(&code_list);
+
         while(code_list) {
             TAC* code = ll_value(code_list);
             print_tac(code, f);
@@ -28,10 +28,73 @@ void print_blocks(LINKED_LIST* l, FILE* f) {
     }
 }
 
+void set_next_use_information(BLOCK* code_block) {
+    if(!code_block) {
+        return;
+    }
+
+    LINKED_LIST* statements = code_block->code;
+
+    while(statements) {
+        TAC* c = ll_value(statements);
+        if(c) {
+
+            bool x = c->x && c->x->meta == SYMBOL;
+            bool y = c->y && c->y->meta == SYMBOL;
+            bool result = c->result && c->result->meta == SYMBOL;
+
+            /*
+                1. Attach to statement i the information currently found in the symbol table
+                regarding the next use and liveness of x, y, and y. 
+            */
+
+            if(result) {
+                c->result_live = c->result->value.symbol->live;
+                c->result_next = c->result->value.symbol->next_use;
+            }
+
+            if(x) {
+                c->x_live = c->x->value.symbol->live;
+                c->x_next = c->x->value.symbol->next_use;
+            }
+
+            if(y) {
+                c->y_live = c->y->value.symbol->live;
+                c->y_next = c->y->value.symbol->next_use;
+            }
+
+
+            /*
+                2. In the symbol table, set x to "not live" and "no next use."
+            */
+            if(result) {
+                c->result->value.symbol->live = false;
+                c->result->value.symbol->next_use = 0;
+            }
+
+            /*
+                3. In the symbol table, set y and z to "live" and the next uses of y and z to i.
+            */
+
+            if(x) {
+                c->x->value.symbol->live = true;
+                c->x->value.symbol->next_use = c->label;
+            }
+
+            if(y) {
+                c->y->value.symbol->live = true;
+                c->y->value.symbol->next_use = c->label;
+            }
+        }
+
+        statements = ll_next(statements);
+    }
+}
+
 LINKED_LIST* make_blocks(INTERMEDIATE_CODE* code_table) {
 
     LINKED_LIST* blocks = NULL;
-    BLOCK* current_block;
+    BLOCK* current_block = NULL;
 
     mark_leaders(code_table);
     
@@ -39,13 +102,31 @@ LINKED_LIST* make_blocks(INTERMEDIATE_CODE* code_table) {
         TAC* code = code_table->entries[i];
         if(code) {
             if(code->leader) {
+                if(current_block) {
+                    set_next_use_information(current_block);
+                    ll_reverse(&current_block->code);
+                }
                 current_block = new_code_block(code->label);
                 blocks = ll_insertfront(blocks, current_block);
             }
+
+            // All symbols should be live when they exit the block
+            if(code->x && code->x->meta == SYMBOL) {
+                code->x->value.symbol->live = true;
+            }
+
+            if(code->y && code->y->meta == SYMBOL) {
+                code->y->value.symbol->live = true;
+            }
+
+            if(code->result && code->result->meta == SYMBOL) {
+                code->result->value.symbol->live = true;
+            }
+
             current_block->code = ll_insertfront(current_block->code, code);
         }
     }
-
+    ll_reverse(&blocks);
     return blocks;
 }
 

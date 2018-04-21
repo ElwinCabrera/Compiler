@@ -3,15 +3,18 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 typedef struct symtab {
-   char* name;
-   char* extra;
-   int meta;
-   int width;
-   struct address* label;
-   struct symtype* type;
-   struct scope* scope;
+    bool live;
+    int next_use;
+    char* name;
+    char* extra;
+    int meta;
+    int width;
+    struct address* label;
+    struct symtype* type;
+    struct scope* scope;
 } SYMTAB;
 
 typedef struct scope {
