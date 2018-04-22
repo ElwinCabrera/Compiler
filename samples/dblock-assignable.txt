@@ -2,7 +2,9 @@
 
 {
 
-    [ string : x , y := true , z , x := "lol" ]
+    [ string : x , y := "true" , z , x := "lol" ]
 
     (* Empty Statement List Is A Syntax Error *)
+
+    x := "hi";
 }

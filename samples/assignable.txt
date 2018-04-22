@@ -1,5 +1,9 @@
+type arr : 1 -> integer
+
+
 
 {
+    [ arr: x ]
     (* 
         The 'reserve <assignable>;' pattern here is just used 
         as the easiest way to reach an "assignable" reduction for testing. 
@@ -15,7 +19,7 @@
         This is assignable because the syntax represents array access as well
     *)
 
-    reserve x();
+    reserve x(1);
 
     reserve x(true);
     reserve x(y);

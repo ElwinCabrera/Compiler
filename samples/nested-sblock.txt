@@ -6,6 +6,8 @@
         (* Double Nested S Block *)
         {
             (* Empty Statement List Is A Syntax Error *)
+            [ Boolean: x ]
+            x := true;
         }
     }
 }

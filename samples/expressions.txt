@@ -1,5 +1,5 @@
 {
-    [ integer : x, y; Boolean: j, k]
+    [ integer : x, y, z; Boolean: j, k]
 
     (*
         We are mostly looking at what happens after the

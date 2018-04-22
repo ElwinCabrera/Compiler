@@ -7,13 +7,16 @@ type x : 1 -> string
 type function2 : () -> x
 
 (* A function that takes one int and returns a 1d array of string *)
-type function3 : (int : i) -> x
+type function3 : (integer : i) -> x
 
 (* A function that takes two ints and returns a Boolean *)
-type function4 : (int : i, int: j) -> Boolean
+type function4 : (integer : i, integer: j) -> Boolean
 
 
 (* Empty S Block *)
 {
     (* Empty Statement List Is A Syntax Error *)
+    [ real: x := 4.5 ]
+    
+    x := x + 1;
 }
