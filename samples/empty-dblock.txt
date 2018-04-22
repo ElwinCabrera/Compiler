@@ -1,8 +1,0 @@
-(* Empty Definition List *)
-
-{
-    (* Empty D-Block Is Not Normally Possible *)
-    [ ]
-
-    (* Empty Statement List Is A Syntax Error *)
-}

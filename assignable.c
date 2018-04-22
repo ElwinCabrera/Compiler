@@ -212,8 +212,9 @@ void handle_memop(TAC_OP op, ASSIGNABLE* a) {
     ADDRESS* adr = assignable_lvalue(a);
     ADDRESS* width = NULL;
 
-
-    if(check_metatype(adr->type, MT_RECORD)) {
+    if(!adr) {
+        invalid_unary_expression(op, "NULL");
+    } else if(check_metatype(adr->type, MT_RECORD)) {
         int calc_width = 0;
         LINKED_LIST* symbols = adr->type->members->symbols;
         while(symbols) {

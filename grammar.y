@@ -490,7 +490,9 @@ assignable:
     }
     | assignable ablock {
         ADDRESS* a = assignable_rvalue($1);
-        if(check_metatype(a->type, MT_FUNCTION)) {
+        if(!a) {
+            $$ = NULL;
+        } else if(check_metatype(a->type, MT_FUNCTION)) {
             $$ = assignable_function(a, $2);
         } else if(check_metatype(a->type, MT_ARRAY)) {
             $$ = assignable_array(a, $2);
