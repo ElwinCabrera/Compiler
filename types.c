@@ -75,9 +75,6 @@ bool compare_typenames(char* t1, char* t2) {
 
 SYMTYPE* lval_type(TAC_OP op, SYMTYPE* lhs, SYMTYPE* rhs) {
     switch(op) {
-        case I_LOOKUP:
-        case I_ASSIGN:
-            return lhs;
         case I_IS_NULL:
         case I_NOT:
         case I_AND:
@@ -95,7 +92,7 @@ SYMTYPE* lval_type(TAC_OP op, SYMTYPE* lhs, SYMTYPE* rhs) {
         case I_ADD:
         case I_SUB:
             return lhs;
-        case I_ARRAY:
+        case I_ARRAY_ACCESS:
             return lhs->element_type;
         case I_CALL:
             return lhs->ret->type;

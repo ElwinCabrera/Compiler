@@ -31,18 +31,29 @@ ASSIGNABLE* assignable_record(ADDRESS* record, ADDRESS* member) {
 }
 
 ASSIGNABLE* assignable_array(ADDRESS* array, STACK* indices) {
+    
+    if(!array) {
+        return NULL;
+    }
+    
     int actual = 0;
     int expected = array->type->dimensions;
-    STACK* check_indices = indices;
+    int cur = array->type->dimensions;
 
-    while(check_indices) {
-        actual++;
-        EXPRESSION* index = stack_peek(check_indices);
-        SYMTYPE* actual = expression_type(index);
-        if(!check_typename(actual, "integer")) {
-            type_mismatch_error("integer", actual ? actual->name : NULL);
+    int result_width = 0;
+
+    while(indices) {
+        EXPRESSION* index = stack_peek(indices);
+        SYMTYPE* t = expression_type(index);
+        if(check_typename(t, "integer")) {
+            ADDRESS* a = exp_rvalue(index);
+            result_width += a->value.integer * cur;
+        } else {
+            type_mismatch_error("integer", t ? t->name : NULL);
         }
-        check_indices = check_indices->next;
+        cur--;
+        actual++;
+        indices = stack_pop(indices);
     }
 
     if(actual != expected) {
@@ -53,7 +64,7 @@ ASSIGNABLE* assignable_array(ADDRESS* array, STACK* indices) {
     ASSIGNABLE* assign = new_assignable();
     assign->meta = A_ARRAY;
     assign->array = array;
-    assign->indices = indices;
+    assign->array_offset = result_width;
 
     return assign;
 }
@@ -68,6 +79,7 @@ ASSIGNABLE* assignable_function(ADDRESS* fn, STACK* args) {
     LINKED_LIST* params = fn->type->parameters->symbols;
     int expected = 0;
     int actual = 0;
+
     while(params) {
         SYMTAB* param = ll_value(params);
         if(!args) {
@@ -112,8 +124,6 @@ ADDRESS* assignable_lvalue(ASSIGNABLE* a) {
         return NULL;
     }
 
-    INTERMEDIATE_CODE* code_table = get_intermediate_code();
-
     switch(a->meta) {
         case A_VARIABLE: {
             if(a->variable->type && a->variable->type->meta == MT_FUNCTION) {
@@ -122,22 +132,10 @@ ADDRESS* assignable_lvalue(ASSIGNABLE* a) {
             return a->variable;
         }
         case A_ARRAY: {
-            INTERMEDIATE_CODE* code_table = get_intermediate_code();
-            STACK* i = a->indices;
-            ADDRESS* array = assignable_rvalue(a);
-            while(i) {
-                EXPRESSION* e = stack_peek(i);
-                ADDRESS* result = i->next ? temp_address(array->type) : temp_address(array->type->element_type);
-                TAC* code = new_tac(I_ARRAY, array, exp_rvalue(e), result);
-                array = add_code(code_table, code);
-                i = i->next;
-            }
-            return array;
+             return a->array;
         }
         case A_RECORD: {
-            ADDRESS* result = temp_address(a->variable->type);
-            TAC* code = new_tac(I_LOOKUP, a->record, a->variable, result);
-            return add_code(code_table, code);
+            return a->record;
         default:
             return NULL;
         }
@@ -157,10 +155,17 @@ ADDRESS* assignable_rvalue(ASSIGNABLE* a) {
     switch(a->meta) {
         case A_VARIABLE:
             return a->variable;
-        case A_RECORD:
-            return assignable_lvalue(a);
+        case A_RECORD: {
+            INTERMEDIATE_CODE* code_table = get_intermediate_code();
+            ADDRESS* result = temp_address(a->variable->type);
+            TAC* access = new_tac(I_RECORD_ACCESS, a->record, a->variable, result);
+            return add_code(code_table, access);
+        }
         case A_ARRAY: {
-            return symbol_address(a->array->value.symbol);
+            INTERMEDIATE_CODE* code_table = get_intermediate_code();
+            ADDRESS* result = temp_address(a->array->type->element_type);
+            TAC* access = new_tac(I_ARRAY_ACCESS, a->array, int_address(a->array_offset), result);
+            return add_code(code_table, access);
         }
         default:
             return NULL;
@@ -173,44 +178,63 @@ void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
 
     SYMTYPE* a_type = adr ? adr->type : NULL;
     SYMTYPE* e_type = expression_type(e);
-    
-    if(!(a_type && (a_type == e_type)) && 
-        !((check_typename(e_type, "nullconst") &&
-        (a->meta == A_ARRAY || a->meta == A_RECORD)))
-    ) {
-        type_mismatch_error(a_type ? a_type->name : "NULL", e_type ? e_type->name : "NULL");
+    bool type_error = false;
+    if(a->meta == A_ARRAY) {
+        if(a_type->element_type != e_type && !check_typename(e_type, "nullconst")) {
+           type_error = true;
+        }
+
+        TAC* array = new_tac(I_ARRAY_ASSIGN, int_address(a->array_offset), exp_rvalue(e), a->array);
+        add_code(code_table, array);
+    } else if(a->meta == A_RECORD) {
+        if(a->variable->type != e_type && !check_typename(e_type, "nullconst")) {
+           type_error = true;
+        }
+        TAC* rec = new_tac(I_RECORD_ASSIGN, a->variable, exp_rvalue(e), a->record);
+        add_code(code_table, rec);
+    } else {
+        if(a_type != e_type) {
+            type_error = true;
+        }
+        TAC* var = new_tac(I_ASSIGN, adr, exp_rvalue(e), NULL);
+        add_code(code_table, var);
+        
     }
 
-    add_code(code_table, new_tac(I_ASSIGN, adr, exp_rvalue(e), NULL));
+    if(type_error) {
+        type_mismatch_error(a_type ? a_type->name : "NULL", e_type ? e_type->name : "NULL");
+    }
 }
 
 void handle_memop(TAC_OP op, ASSIGNABLE* a) {
     
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
-    ADDRESS* adr = assignable_rvalue(a);
-    int width = 0;
+    ADDRESS* adr = assignable_lvalue(a);
+    ADDRESS* width = NULL;
 
-    if(adr && check_metatype(adr->type, MT_RECORD)) {
+
+    if(check_metatype(adr->type, MT_RECORD)) {
+        int calc_width = 0;
         LINKED_LIST* symbols = adr->type->members->symbols;
         while(symbols) {
             SYMTAB* s = ll_value(symbols);
-            width += get_type_width(s->type);
+            calc_width += get_type_width(s->type);
             symbols = ll_next(symbols);
         }
-    } else if(adr && check_metatype(adr->type, MT_ARRAY)) {
-        STACK* sizes = a->indices;
-        width += get_type_width(adr->type->element_type);
-        while(sizes) {
-            EXPRESSION* e = stack_peek(sizes);
-            width *= e->value.constant->value.integer;
-            sizes = stack_pop(sizes);
-        }
-        width += 4 * adr->type->dimensions + 4;
-    }
-    
-    if(op == I_RESERVE) {
-        add_code(code_table, new_tac(op, int_address(width), NULL, adr));
+        adr->value.symbol->width = calc_width;
+        width = int_address(calc_width);
+        add_code(code_table, new_tac(op, width, NULL, adr));
+
     } else {
-        add_code(code_table, new_tac(op, adr, int_address(width), NULL));
+        if(op == I_RESERVE) {
+            int element_width = get_type_width(adr->type->element_type);
+            int base_width = 4 + 4 * adr->type->dimensions;
+            width = int_address(element_width * a->array_offset + base_width);
+        } else {
+            // TODO
+            width = int_address(0);
+        }
+
+        add_code(code_table, new_tac(op, width, NULL, adr));
     }
 }

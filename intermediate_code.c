@@ -96,8 +96,11 @@ void print_tac(TAC* code, FILE* f) {
         case I_ASSIGN:
             fprintf(f, "[%03d]\t %s = %s\n", code->label, x, y);
             break;
-        case I_LOOKUP:
-            fprintf(f, "[%03d]\t %s = LOOKUP %s %s\n", code->label, result, x, y);
+        case I_RECORD_ACCESS:
+            fprintf(f, "[%03d]\t %s = %s.%s\n", code->label, result, x, y);
+            break;
+        case I_RECORD_ASSIGN:
+            fprintf(f, "[%03d]\t %s.%s = %s\n", code->label, result, x, y);
             break;
         case I_ADD:
             fprintf(f, "[%03d]\t %s = %s + %s\n", code->label, result, x, y);
@@ -131,7 +134,7 @@ void print_tac(TAC* code, FILE* f) {
             fprintf(f, "[%03d]\t %s = i2r %s\n", code->label, result, x);
             break;
         case I_IS_NULL:
-            fprintf(f, "[%03d]\t %s = isNull %s\n", code->label, result, x);
+            fprintf(f, "[%03d]\t %s = %s == null\n", code->label, result, x);
             break;
         case I_NOT:
             fprintf(f, "[%03d]\t %s = not %s\n", code->label, result, x);
@@ -167,9 +170,12 @@ void print_tac(TAC* code, FILE* f) {
             fprintf(f, "[%03d]\t %s = malloc(%s)\n", code->label, result, x);
             break;
         case I_RELEASE:
-            fprintf(f, "[%03d]\t release(%s,%s)\n", code->label, x, y);
+            fprintf(f, "[%03d]\t release(%s,%s)\n", code->label, result, x);
             break;
-        case I_ARRAY:
+        case I_ARRAY_ASSIGN:
+            fprintf(f, "[%03d]\t %s[%s] = %s\n", code->label, result, x, y);
+            break;
+        case I_ARRAY_ACCESS:
             fprintf(f, "[%03d]\t %s = %s[%s]\n", code->label, result, x, y);
             break;
         case I_NOP:
@@ -190,9 +196,11 @@ void print_tac(TAC* code, FILE* f) {
 const char* get_op_string(TAC_OP op) {
     switch(op) {
         case I_ASSIGN:
-            return "assign";
-        case I_LOOKUP:
-            return "lookup";
+            return "=";
+        case I_RECORD_ACCESS:
+            return "x = y.z";
+        case I_RECORD_ASSIGN:
+            return "x.y = z";
         case I_ADD:
             return "+";
         case I_SUB:
@@ -237,8 +245,10 @@ const char* get_op_string(TAC_OP op) {
             return "reserve";
         case I_RELEASE:
             return "release";
-        case I_ARRAY:
-            return "array";
+        case I_ARRAY_ACCESS:
+            return "=[]";
+        case I_ARRAY_ASSIGN:
+            return "[]=";
         default:
             return NULL;
     }

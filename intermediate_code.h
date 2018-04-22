@@ -6,7 +6,10 @@
 
 typedef enum tac_op {
     I_ASSIGN,
-    I_LOOKUP,
+    I_RECORD_ASSIGN,
+    I_RECORD_ACCESS,
+    I_ARRAY_ASSIGN,
+    I_ARRAY_ACCESS,
     I_ADD,
     I_SUB,
     I_MULTIPLY,
@@ -22,7 +25,6 @@ typedef enum tac_op {
     I_OR,
     I_PARAM,
     I_CALL,
-    I_ARRAY,
     I_RETURN,
     I_TEST,
     I_TEST_FALSE,

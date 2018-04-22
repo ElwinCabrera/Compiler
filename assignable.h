@@ -2,6 +2,7 @@
 #define ASSIGNABLE_H
 
 #include "expression.h"
+#include "stack.h"
 
 typedef enum assign_type {
     A_VARIABLE,
@@ -14,7 +15,7 @@ typedef struct assignable {
     struct address* variable;
     struct address* record;
     struct address* array;
-    struct stack* indices;
+    int array_offset;
     
 } ASSIGNABLE;
 
