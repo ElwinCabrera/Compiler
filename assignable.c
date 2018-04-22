@@ -184,12 +184,30 @@ void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
     add_code(code_table, new_tac(I_ASSIGN, adr, exp_rvalue(e), NULL));
 }
 
+
+
+int get_width(ADDRESS *adr) {
+    int width = 0;
+    int dimension = adr->type->dimension;
+    if (adr->type->meta == MT_ARRAY){
+    
+// Probably not the correct calculation
+        width = adr->type->element_type->width;
+        width = width * dimension;
+        return width;
+    }
+    width = adr->type->width;
+    return width;
+    
+    
+}
+
 void handle_memop(TAC_OP op, ASSIGNABLE* a) {
     
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_rvalue(a);
-    int width = get_type_width(adr->type);
-    
+    //int width = get_type_width(adr->type);
+    int width = get_width(adr);
     if(op == I_RESERVE) {
         add_code(code_table, new_tac(op, int_address(width), NULL, adr));
     } else {
