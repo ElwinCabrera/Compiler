@@ -2,6 +2,8 @@
 #define ASSEMBLY_H
 
 #include "registers.h"
+#include "code_blocks.h"
+#include "intermediate_code.h"
 
 typedef enum asm_op {
 
@@ -74,10 +76,10 @@ typedef enum condition_code {
 } CONDITION;
 
 typedef enum i_type {
-    I_ATYPE,
-    I_ITYPE,
-    I_JTYPE,
-    I_BTYPE,
+    IT_A,
+    IT_I,
+    IT_J,
+    IT_B,
 } I_TYPE;
 
 typedef struct assembly {
@@ -86,10 +88,17 @@ typedef struct assembly {
     REG rd;
     REG rs1;
     REG rs2;
-    bool S;
-    bool C;
+    bool s;
+    bool c;
     CONDITION cond;
     int immediate;
 } ASSEMBLY;
+
+void create_assembly_block(struct block*);
+void create_assembly(int, struct tac*, REG, REG, REG);
+void add_atype(ASM_OP, REG, REG, REG, bool, bool, CONDITION);
+void add_itype(ASM_OP, REG, REG, int);
+void add_jtype(int);
+void add_btype(ASM_OP, int, bool, CONDITION);
 
 #endif

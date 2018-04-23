@@ -2,6 +2,12 @@
 #define REGISTERS_H
 
 #include "linked_list.h"
+#include "symbol_table.h"
+#include "intermediate_code.h"
+
+typedef struct register_destricptors {
+    struct linked_list* registers[31];
+} REGISTER_DESCRIPTORS;
 
 typedef enum reg {
     ZERO,
@@ -39,7 +45,8 @@ typedef enum reg {
 } REG;
 
 LINKED_LIST* get_register_descriptor(REG);
-void add_variable_to_register(REG, struct symtab*);
-void remove_variable_from_register(REG, struct symtab*);
+void add_variable_to_register(REG, struct symbol*);
+void remove_variable_from_register(REG, struct symbol*);
+void get_reg(struct tac*, int*, int*, int*);
 
 #endif
