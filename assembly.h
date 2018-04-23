@@ -83,6 +83,7 @@ typedef enum i_type {
 } I_TYPE;
 
 typedef struct assembly {
+    int label;
     I_TYPE type; 
     ASM_OP op;
     REG rd;
@@ -94,11 +95,13 @@ typedef struct assembly {
     int immediate;
 } ASSEMBLY;
 
+const char* get_asm_mnemonic(ASM_OP);
+const char* get_condition_str(CONDITION);
 void create_assembly_block(struct block*);
 void create_assembly(int, struct tac*, REG, REG, REG);
-void add_atype(ASM_OP, REG, REG, REG, bool, bool, CONDITION);
-void add_itype(ASM_OP, REG, REG, int);
-void add_jtype(int);
-void add_btype(ASM_OP, int, bool, CONDITION);
+void add_atype(int, ASM_OP, REG, REG, REG, bool, bool, CONDITION);
+void add_itype(int, ASM_OP, REG, REG, int);
+void add_jtype(int, int);
+void add_btype(int, ASM_OP, int, bool, CONDITION);
 
 #endif
