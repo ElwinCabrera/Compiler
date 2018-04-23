@@ -77,8 +77,6 @@ SYMTYPE* lval_type(TAC_OP op, SYMTYPE* lhs, SYMTYPE* rhs) {
     switch(op) {
         case I_IS_NULL:
         case I_NOT:
-        case I_AND:
-        case I_OR:
         case I_LESS_THAN:
         case I_EQUAL:
             return find_type(known_types, "Boolean");

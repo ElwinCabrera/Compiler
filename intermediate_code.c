@@ -139,12 +139,12 @@ void print_tac(TAC* code, FILE* f) {
         case I_NOT:
             fprintf(f, "[%03d]\t %s = not %s\n", code->label, result, x);
             break;
-        case I_AND:
-            fprintf(f, "[%03d]\t %s = %s AND %s\n", code->label, result, x, y);
-            break;
-        case I_OR:
-            fprintf(f, "[%03d]\t %s = %s OR %s\n", code->label, result, x, y);
-            break;
+        // case I_AND:
+        //     fprintf(f, "[%03d]\t %s = %s AND %s\n", code->label, result, x, y);
+        //     break;
+        // case I_OR:
+        //     fprintf(f, "[%03d]\t %s = %s OR %s\n", code->label, result, x, y);
+        //     break;
         case I_PARAM:
             fprintf(f, "[%03d]\t param %s\n", code->label, x);
             break;
@@ -223,10 +223,10 @@ const char* get_op_string(TAC_OP op) {
             return "isNull";
         case I_NOT:
             return "!";
-        case I_AND:
-            return "&";
-        case I_OR:
-            return "|";
+        // case I_AND:
+        //     return "&";
+        // case I_OR:
+        //     return "|";
         case I_PARAM:
             return "param";
         case I_CALL:

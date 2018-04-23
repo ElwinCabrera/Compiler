@@ -80,6 +80,7 @@ typedef enum i_type {
     IT_I,
     IT_J,
     IT_B,
+    IT_NOP,
 } I_TYPE;
 
 typedef struct assembly {
@@ -99,6 +100,7 @@ const char* get_asm_mnemonic(ASM_OP);
 const char* get_condition_str(CONDITION);
 void create_assembly_block(struct block*);
 void create_assembly(int, struct tac*, REG, REG, REG);
+void add_nop(int);
 void add_atype(int, ASM_OP, REG, REG, REG, bool, bool, CONDITION);
 void add_itype(int, ASM_OP, REG, REG, int);
 void add_jtype(int, int);

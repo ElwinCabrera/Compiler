@@ -2,6 +2,8 @@
 #include <string.h>
 #include "assembly.h"
 #include "code_blocks.h"
+#include "intermediate_code.h"
+#include "address.h"
 
 static LINKED_LIST* assembly_code;
 
@@ -11,6 +13,8 @@ void process_code_blocks(LINKED_LIST* blocks) {
         create_assembly_block(ll_value(blocks));
         blocks = ll_next(blocks);
     }
+
+    ll_reverse(&assembly_code);
 }
 
 void create_assembly_block(BLOCK* block) {
@@ -36,6 +40,99 @@ void create_assembly_block(BLOCK* block) {
 
 void create_assembly(int label, TAC* code, REG rd, REG rs1, REG rs2) {
     
+    switch(code->op) {
+        case I_NOP: {
+            add_nop(label);
+            break;
+        }
+        case I_ASSIGN: {
+
+            break;
+        }
+        case I_RECORD_ACCESS: {
+
+            break;
+        }
+        case I_RECORD_ASSIGN: {
+
+            break;
+        }
+        case I_ARRAY_ACCESS: {
+
+            break;
+        }
+        case I_ARRAY_ASSIGN: {
+
+            break;
+        }
+        case I_CALL:
+            add_btype(label, ASM_BRANCHL, code->x->value.symbol->label->value.label, false, 0);
+            break;
+        case I_RETURN:
+            add_btype(label, ASM_BRANCHR, 0, false, 0);
+            break;
+        case I_GOTO:
+            add_btype(label, ASM_JMP, code->result->value.label, false, 0);
+            break;
+        case I_ADD: {
+            
+            break;
+        }
+        case I_SUB: {
+
+            break;
+        }
+        case I_MULTIPLY: {
+
+            break;
+        }
+        case I_DIVIDE: {
+
+            break;
+        }
+        case I_MODULUS: {
+
+            break;
+        }
+        case I_LESS_THAN: {
+
+            break;
+        }
+        case I_EQUAL: {
+
+            break;
+        } case I_NOT: {
+
+            break;
+        } case I_PARAM: {
+
+            break;
+        } case I_TEST: {
+
+            break;
+        } case I_TEST_FALSE: {
+
+            break;
+        } case I_TEST_NOTEQUAL: {
+
+            break;
+        } case I_RESERVE: {
+
+            break;
+        } case I_RELEASE: {
+
+            break;
+        } case I_INT2REAL: {
+
+            break;
+        } case I_REAL2INT: {
+
+            break;
+        } default: 
+            printf("Unsupported ASM translation: %d", code->op);
+            break;
+    }
+
 }
 
 void print_asm_code(FILE* f) {
@@ -51,10 +148,13 @@ void print_asm_code(FILE* f) {
         ASSEMBLY* a = ll_value(asm_list);
         if(a->label != label) {
             label = a->label;
-            fprintf(f, "LABEL%d:", label);
+            fprintf(f, "LABEL%02d:", label);
         }
         
         switch(a->type) {
+            case IT_NOP:
+                fprintf(f, "\t\t NOP\n");
+                break;
             case IT_A:
                 fprintf(f, "\t\t %s%s%s%s R%d R%d", 
                     get_asm_mnemonic(a->op),
@@ -79,11 +179,14 @@ void print_asm_code(FILE* f) {
                 fprintf(f, "\t\t J %d\n", a->immediate);
                 break;
             case IT_B:
-                fprintf(f, "\t\t %s%s%s %d\n", 
+                fprintf(f, "\t\t %s%s%s", 
                     get_asm_mnemonic(a->op),
                     get_condition_str(a->cond),
-                    a->c ? "C" : "",
-                    a->immediate);
+                    a->c ? "C" : "");
+                if(a->immediate) {
+                    fprintf(f, " LABEL%02d", a->immediate);
+                }
+                fprintf(f, "\n");
                 break;
         }
 
@@ -162,6 +265,13 @@ ASSEMBLY* new_asm(int label) {
     memset(asm_code, 0, sizeof(ASSEMBLY));
     asm_code->label = label;
     return asm_code;
+}
+
+void add_nop(int label) {
+    ASSEMBLY* a = new_asm(label);
+    a->op = ASM_NOP;
+    a->type = IT_NOP;
+    assembly_code = ll_insertfront(assembly_code, a);
 }
 
 void add_atype(int label, ASM_OP op, REG rd, REG rs1, REG rs2, bool s, bool c, CONDITION cond) {

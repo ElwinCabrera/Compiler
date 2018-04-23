@@ -71,7 +71,12 @@ EXPRESSION* unary_expression(TAC_OP op, EXPRESSION* x) {
     }
     SYMTYPE* result_type = lval_type(op, tx, NULL);
     ADDRESS* a = temp_address(result_type);
-    TAC* code = new_tac(op, exp_rvalue(x), NULL, a);
+    TAC* code;
+    if(op == I_IS_NULL) {
+        code = new_tac(I_EQUAL, exp_rvalue(x), null_address(), a);
+    } else {
+        code = new_tac(op, exp_rvalue(x), NULL, a);
+    }
     return temp_expression(add_code(code_table, code));
 }
 
@@ -140,12 +145,6 @@ TC_RESULT type_check_binary_expression(int op, EXPRESSION* x, EXPRESSION* y) {
     SYMTYPE* rhs = expression_type(y);
 
     switch(op) {
-        case I_AND:
-        case I_OR:
-            if(check_typename(lhs, "Boolean") && check_typename(rhs, "Boolean")) {
-                return PASS;
-            }
-            return FAIL;
         case I_MODULUS:
             if(check_typename(lhs, "integer") && check_typename(rhs, "integer")) {
                 return PASS;
