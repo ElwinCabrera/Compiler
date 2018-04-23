@@ -9,6 +9,7 @@
 #include "linked_list.h"
 
 extern void argument_count_mismatch(int, int);
+extern void invalid_unary_expression(int, char*);
 extern void type_mismatch_error(char*, char*);
 
 ASSIGNABLE* new_assignable() {
@@ -81,7 +82,7 @@ ASSIGNABLE* assignable_function(ADDRESS* fn, STACK* args) {
     int actual = 0;
 
     while(params) {
-        SYMTAB* param = ll_value(params);
+        SYMBOL* param = ll_value(params);
         if(!args) {
             while(params) { params = ll_next(params); expected++; }
             argument_count_mismatch(expected, actual);
@@ -218,7 +219,7 @@ void handle_memop(TAC_OP op, ASSIGNABLE* a) {
         int calc_width = 0;
         LINKED_LIST* symbols = adr->type->members->symbols;
         while(symbols) {
-            SYMTAB* s = ll_value(symbols);
+            SYMBOL* s = ll_value(symbols);
             calc_width += get_type_width(s->type);
             symbols = ll_next(symbols);
         }

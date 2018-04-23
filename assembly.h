@@ -1,6 +1,8 @@
 #ifndef ASSEMBLY_H
 #define ASSEMBLY_H
 
+#include "registers.h"
+
 typedef enum asm_op {
 
     // A Type
@@ -70,41 +72,6 @@ typedef enum condition_code {
     GT, //Z-Clear, N=V
     LE, //Z-Set || N != V
 } CONDITION;
-
-typedef enum reg {
-    ZERO,
-    ARG0,
-    ARG1,
-    ARG2,
-    ARG3,
-    T0,
-    T1,
-    T2,
-    T3,
-    T4,
-    T5,
-    T6,
-    T7,
-    S0,
-    S1,
-    S2,
-    S3,
-    S4,
-    S5,
-    POSNEG,
-    NEGPOS,
-    COUNTER_P,
-    COUNTER_M,
-    HEAP,
-    FRAME,
-    STACK,
-    LINK0,
-    LINK1,
-    LINK2,
-    LINK3,
-    PC,
-    CPSR,
-} REG;
 
 typedef enum i_type {
     I_ATYPE,
