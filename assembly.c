@@ -35,7 +35,7 @@ void create_assembly_block(BLOCK* block) {
 }
 
 void create_assembly(int label, TAC* code, REG rd, REG rs1, REG rs2) {
-    printf("Hello\n");
+    
 }
 
 void print_asm_code(FILE* f) {
