@@ -714,13 +714,15 @@ void initialize_structs() {
     code_table = get_intermediate_code();
     types = get_type_container();
     symbols = get_symbol_table();
-
-    new_type(MT_PRIMITIVE, "string", 4);
+    
     new_type(MT_PRIMITIVE, "real", 8);
     new_type(MT_PRIMITIVE, "Boolean", 1);
     new_type(MT_PRIMITIVE, "integer", 4);
-    new_type(MT_PRIMITIVE, "character", 1);
     new_type(MT_PRIMITIVE, "nullconst", 4);
+    SYMTYPE* character = new_type(MT_PRIMITIVE, "character", 1);
+    SYMTYPE* str = new_type(MT_ARRAY, "string", 4);
+    str->dimensions = 1;
+    str->element_type = character;
 }
 
 SYMTYPE* new_type(int type, char* name, int width) {
