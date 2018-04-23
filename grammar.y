@@ -11,6 +11,7 @@
 #include "linked_list.h"
 
 static int scope_counter = 0;
+static bool had_error = false;
 static STACK* errors;
 static int yyerrstatus;
 SYMBOL_TABLE* symbols;
@@ -742,6 +743,10 @@ SYMBOL* find_symbol(char* name) {
     Error Handling
 */
 
+bool check_error_status() {
+    return had_error;
+}
+
 void notify_error(char* e) {
     yyerror(e);
     errors = stack_push(errors, strdup(e));
@@ -836,5 +841,5 @@ void syntax_error(char* expected) {
 }
 
 void yyerror (char *s) {
-
+    had_error = true;
  }

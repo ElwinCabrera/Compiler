@@ -5,6 +5,13 @@
 
 static LINKED_LIST* assembly_code;
 
+void process_code_blocks(LINKED_LIST* blocks) {
+
+    while(blocks) {
+        create_assembly_block(ll_value(blocks));
+        blocks = ll_next(blocks);
+    }
+}
 
 void create_assembly_block(BLOCK* block) {
 
@@ -22,12 +29,13 @@ void create_assembly_block(BLOCK* block) {
 
         get_reg(code, &rd, &rs1, &rs2);
         create_assembly(block->label, code, rd, rs1, rs2);
+        code_list = ll_next(code_list);
     }
 
 }
 
 void create_assembly(int label, TAC* code, REG rd, REG rs1, REG rs2) {
-
+    printf("Hello\n");
 }
 
 void print_asm_code(FILE* f) {
@@ -78,6 +86,8 @@ void print_asm_code(FILE* f) {
                     a->immediate);
                 break;
         }
+
+        asm_list = ll_next(asm_list);
     }
 
 

@@ -103,5 +103,8 @@ void add_atype(int, ASM_OP, REG, REG, REG, bool, bool, CONDITION);
 void add_itype(int, ASM_OP, REG, REG, int);
 void add_jtype(int, int);
 void add_btype(int, ASM_OP, int, bool, CONDITION);
+void process_code_blocks(LINKED_LIST*);
+void print_asm_code(FILE*);
+
 
 #endif

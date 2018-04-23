@@ -7,10 +7,12 @@
 #include "intermediate_code.h"
 #include "code_blocks.h"
 #include "linked_list.h"
+#include "assembly.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
 extern void* set_asc_file(FILE*);
+extern bool check_error_status();
 
 FILE *inputFile;
 
@@ -81,11 +83,12 @@ int main(int argc, char* argv[])
             }
             free(symbol_file_path);
             print_symbol_table(get_symbol_table(), symbol_file);
+            fclose(symbol_file);
         }
         
+        INTERMEDIATE_CODE* code_table = get_intermediate_code();
 
-        if(ir || blocks) { //specify to print ir
-            INTERMEDIATE_CODE* code_table = get_intermediate_code();
+        if(ir) { //specify to print ir
             char* ir_file_path = malloc(strlen(program) + 4);
             sprintf(ir_file_path, "%s%s", program, ".ir");
             FILE* ir_file = fopen(ir_file_path, "w");
@@ -93,15 +96,37 @@ int main(int argc, char* argv[])
                 printf("ERROR(%d): Could not open file %s for writing\n", errno, ir_file_path);
             }
             free(ir_file_path);
-            
-            if(ir) {
-                print_intermediate_code(code_table, ir_file);
-            } else {
-                LINKED_LIST* blocks = make_blocks(code_table);
-                print_blocks(blocks, ir_file);
-            }
+            print_intermediate_code(code_table, ir_file);
+            fclose(ir_file);
         }
 
+        LINKED_LIST* code_blocks = make_blocks(code_table);
+
+        if(blocks) {
+            char* bl_file_path = malloc(strlen(program) + 4);
+            sprintf(bl_file_path, "%s%s", program, ".bl");
+            FILE* bl_file = fopen(bl_file_path, "w");
+            if(!bl_file) {
+                printf("ERROR(%d): Could not open file %s for writing\n", errno, bl_file_path);
+            }
+            free(bl_file_path);
+            print_blocks(code_blocks, bl_file);
+            fclose(bl_file);
+        }
+
+        if(check_error_status() == 0) {
+            process_code_blocks(code_blocks);
+            // char* output_file_path = malloc(strlen(program) + 3);
+            // sprintf(output_file_path, "%s%s", program, ".s");
+            // FILE* output_file = fopen(output_file_path, "w");
+            // if(!output_file) {
+            //     printf("ERROR(%d): Could not open file %s for writing\n", errno, output_file_path);
+            // }
+            // free(output_file_path);
+            //print_asm_code(output_file);
+            print_asm_code(NULL);
+            //fclose(output_file);
+        }
 
         return 0;
     }
