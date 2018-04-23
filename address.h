@@ -4,15 +4,15 @@
 #include <stdbool.h>
 
 typedef enum atype {
-    SYMBOL,
-    INT_CONSTANT,
-    REAL_CONSTANT,
-    BOOLEAN_CONSTANT,
-    CHAR_CONSTANT,
-    STRING_CONSTANT,
-    NULL_CONSTANT,
-    TEMPORARY,
-    LABEL,
+    AT_SYMBOL,
+    AT_INT,
+    AT_REAL,
+    AT_BOOLEAN,
+    AT_CHAR,
+    AT_STRING,
+    AT_NULL,
+    AT_TEMPORARY,
+    AT_LABEL,
 } ATYPE;
 
 typedef struct address {
@@ -26,8 +26,7 @@ typedef struct address {
         double real;
         char character;
         char* string;
-        struct symtab* symbol;
-        int temporary;
+        struct symbol* symbol;
         int null;
         int label;
         struct assignable* array;
@@ -36,7 +35,7 @@ typedef struct address {
 
 ADDRESS* label_address(int);
 ADDRESS* temp_address(struct symtype*);
-ADDRESS* symbol_address(struct symtab*);
+ADDRESS* symbol_address(struct symbol*);
 ADDRESS* int_address(int);
 ADDRESS* boolean_address(int);
 ADDRESS* real_address(double);

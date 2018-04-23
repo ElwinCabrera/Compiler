@@ -6,6 +6,15 @@
 #include "stack.h"
 #include "linked_list.h"
 
+static SYMBOL_TABLE* symbols;
+
+SYMBOL_TABLE* get_symbol_table() {
+  if(!symbols) {
+    symbols = malloc(sizeof(SYMBOL_TABLE));
+  }
+  return symbols;
+}
+
 SCOPE* new_scope(SCOPE* parent, int id)
 {
   SCOPE *new = malloc(sizeof(SCOPE));
@@ -37,13 +46,13 @@ SCOPE* exit_scope(SCOPE* current)
     something exists in a scope, we have to check the symbol table of
     every parent if it doesn't exist in the current scope.
 */
-SYMTAB* find_in_scope(SCOPE* s, char* target) {
+SYMBOL* find_in_scope(SCOPE* s, char* target) {
 
   if(s == NULL) {
     return NULL;
   }
 
-  SYMTAB* sym = find_entry(s->symbols, target);
+  SYMBOL* sym = find_entry(s->symbols, target);
 
   if(sym == NULL) {
     sym = find_in_scope(s->parent, target);
@@ -55,13 +64,13 @@ SYMTAB* find_in_scope(SCOPE* s, char* target) {
 /*
   Searches down a symbol table from a parent node
 */
-SYMTAB* find_in_children(SCOPE* s, char* target)
+SYMBOL* find_in_children(SCOPE* s, char* target)
 {
   if(s == NULL) {
     return NULL;
   }
 
-  SYMTAB* sym = find_entry(s->symbols, target);
+  SYMBOL* sym = find_entry(s->symbols, target);
 
   if(sym == NULL) {
    LINKED_LIST* child = s->children;
@@ -77,8 +86,8 @@ SYMTAB* find_in_children(SCOPE* s, char* target)
   return sym;
 }
 
-SYMTAB* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
-  SYMTAB *insertNew  = malloc(sizeof(SYMTAB));
+SYMBOL* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
+  SYMBOL* insertNew  = malloc(sizeof(SYMBOL));
   
   if(extra) { insertNew->extra = strdup(extra); } 
 
@@ -102,18 +111,18 @@ LINKED_LIST* add_symbols_to_scope(SCOPE* scope, LINKED_LIST* symbols)
 }
 
 bool name_match_symbol(LINKED_LIST* l, void* name) {
-  SYMTAB* s = ll_value(l);
+  SYMBOL* s = ll_value(l);
   return s && s->name && strcmp(s->name, name) == 0;
 }
 
-SYMTAB* find_entry(LINKED_LIST* start, char* name)
+SYMBOL* find_entry(LINKED_LIST* start, char* name)
 {
   return ll_find(start, name, name_match_symbol);
 }
 
 bool size_comparator(LINKED_LIST* a, LINKED_LIST* b) {
-  SYMTAB* a_val = ll_value(a);
-  SYMTAB* b_val = ll_value(b);
+  SYMBOL* a_val = ll_value(a);
+  SYMBOL* b_val = ll_value(b);
 
   return get_type_width(a_val->type) < get_type_width(b_val->type) ? false : true;
 }
@@ -124,30 +133,37 @@ void reorder_symbols(SCOPE* s) {
   }
 }
 
-void print_symbol_table(SCOPE* symbol_table, FILE* f) {
-  if(!symbol_table) {
+void print_symbol_table(SYMBOL_TABLE* st, FILE* f) {
+  if(st) {
+    print_scope(st->current_scope, f);
+  }
+}
+
+void print_scope(SCOPE* sc, FILE* f) {
+  
+  if(!sc) {
     return;
   }
 
-  LINKED_LIST* s = symbol_table->symbols;
+  LINKED_LIST* s = sc->symbols;
   
   while(s) {
-    SYMTAB* symbol = ll_value(s);
-    print_symbol(symbol, symbol_table->id, f);
+    SYMBOL* symbol = ll_value(s);
+    print_symbol(symbol, sc->id, f);
     s = ll_next(s);
   }
   
-  LINKED_LIST* children = symbol_table->children;
+  LINKED_LIST* children = sc->children;
 
   while(children) {
     SCOPE* scope = ll_value(children);
-    print_symbol_table(scope, f);
+    print_scope(scope, f);
     children = ll_next(children);
   }
 }
 
-void print_symbol(SYMTAB * symbol, int scope, FILE* f) {
-  if(!symbol) {
+void print_symbol(SYMBOL* symbol, int scope, FILE* f) {
+  if(!symbol || symbol->meta == ST_TEMPORARY) {
     return;
   }
 

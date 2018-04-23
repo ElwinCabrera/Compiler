@@ -11,9 +11,9 @@
 #include "linked_list.h"
 
 static int scope_counter = 0;
-static SCOPE* symbols;
 static STACK* errors;
 static int yyerrstatus;
+SYMBOL_TABLE* symbols;
 INTERMEDIATE_CODE* code_table;
 TYPE_CONTAINER* types;
 
@@ -56,8 +56,8 @@ SCOPE* close_scope();
 */
 SYMTYPE* new_type(int, char*, int);
 SYMTYPE* lookup_type(char*);
-SYMTAB* find_symbol(char*);
-SYMTAB* insert_new_symbol(SYMTYPE*, char*, int, char*);
+SYMBOL* find_symbol(char*);
+SYMBOL* insert_new_symbol(SYMTYPE*, char*, int, char*);
 
 %}
 
@@ -196,38 +196,38 @@ definition:
         if(type) {
             type->element_type = $6;
 
-            if($4->meta != INT_CONSTANT) { 
+            if($4->meta != AT_INT) { 
                 type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
             } else {
                 type->dimensions = $4->value.integer;
             }
         }
 
-        insert_new_symbol(type, $2, TYPE, "atype");
+        insert_new_symbol(type, $2, ST_TYPE, "atype");
     }
     | check_type_literal identifier COLON constant check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_ARRAY, $2, 4);
         if(type) {
             type->element_type = $6;
-            if($4->meta != INT_CONSTANT) { 
+            if($4->meta != AT_INT) { 
                 type_mismatch_error("constant integer", $4->type ? $4->type->name : "NULL");
             } else {
                 type->dimensions = $4->value.integer;
             }
         }
 
-        insert_new_symbol(type, $2, TYPE, "atype");
+        insert_new_symbol(type, $2, ST_TYPE, "atype");
     }
     | check_type_literal identifier COLON pblock check_arrow type_specifier {
         SYMTYPE* type = new_type(MT_FUNCTION, $2, 4);
         if(type) {
             type->parameters = $4;
-            type->ret = new_symbol($6, $2, LOCAL, "local");
+            type->ret = new_symbol($6, $2, ST_RETURN, "local");
         }
-        insert_new_symbol(type, $2, TYPE, "ftype");
+        insert_new_symbol(type, $2, ST_TYPE, "ftype");
     }
     | FUNCTION identifier COLON type_specifier next_instruction {
-        SYMTAB* s = insert_new_symbol($4, $2, FUNCTION, "function");
+        SYMBOL* s = insert_new_symbol($4, $2, ST_FUNCTION, "function");
         function_context = stack_push(function_context, s);
         s->label = label_address($5);
     } sblock { 
@@ -242,7 +242,7 @@ definition:
         add_symbols_to_scope($4, $6);
         reorder_symbols($4);
         t->members = $4;
-        insert_new_symbol(t, $2, TYPE, "rtype");
+        insert_new_symbol(t, $2, ST_TYPE, "rtype");
     }
     ;
 
@@ -297,26 +297,26 @@ declaration:
 identifier_list:
     identifier assign_op constant COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
-        SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
+        SYMBOL* s = new_symbol(type, $1, ST_LOCAL, "local");
         ADDRESS* a = symbol_address(s);
         handle_assignment(assignable_variable(a), const_expression($3));
         $$ = ll_insertfront($5, s);
     }
     | identifier assign_op constant {
         SYMTYPE* type = stack_peek(symbol_context);
-        SYMTAB* s = new_symbol(type, $1, LOCAL, "local");
+        SYMBOL* s = new_symbol(type, $1, ST_LOCAL, "local");
         ADDRESS* a = symbol_address(s);
         handle_assignment(assignable_variable(a), const_expression($3));
-        $$ = ll_new(new_symbol(type, $1, LOCAL, "local"));
+        $$ = ll_new(new_symbol(type, $1, ST_LOCAL, "local"));
     }
     | identifier COMMA identifier_list {
         SYMTYPE* type = stack_peek(symbol_context);
-        $$ = ll_insertfront($3, new_symbol(type, $1, LOCAL, "local"));
+        $$ = ll_insertfront($3, new_symbol(type, $1, ST_LOCAL, "local"));
 
     }
     | identifier {
         SYMTYPE* type = stack_peek(symbol_context);
-        $$ = ll_new(new_symbol(type, $1, LOCAL, "local"));
+        $$ = ll_new(new_symbol(type, $1, ST_LOCAL, "local"));
     }
     ;
 
@@ -445,8 +445,8 @@ case:
 
 assignable:
     identifier { 
-        SYMTAB* s = NULL;
-        SYMTAB* fn = stack_peek(function_context);
+        SYMBOL* s = NULL;
+        SYMBOL* fn = stack_peek(function_context);
 
         if(fn) {
             if(strcmp(fn->name, $1) == 0) {
@@ -476,7 +476,7 @@ assignable:
                 incorrect_type_error(a->value.symbol->name, "record");
                 $$ = NULL;
             } else {
-                SYMTAB* s = find_entry(a->value.symbol->type->members->symbols, $3); 
+                SYMBOL* s = find_entry(a->value.symbol->type->members->symbols, $3); 
                 if(!s) {
                     symbol_not_found_error($3, "record member");
                     $$ = NULL;
@@ -689,33 +689,30 @@ check_arrow:
     Makes compiling the compiler a bit easier
 */
 
-SCOPE** get_symbol_table() {
-    return &symbols;
-}
-
 STACK** get_errors() {
     return &errors;
 }
 
 SCOPE* open_scope() {
-    symbols = new_scope(symbols, scope_counter++);
-    return symbols;
+    symbols->current_scope = new_scope(symbols->current_scope, scope_counter++);
+    return symbols->current_scope;
 }
 
 SCOPE* close_scope() {
-    symbols =  exit_scope(symbols);
-    return symbols;
+    symbols->current_scope = exit_scope(symbols->current_scope);
+    return symbols->current_scope;
 }
 
-SYMTAB* insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
-    SYMTAB* s = new_symbol(type, name, meta, extra);
-    add_symbols_to_scope(symbols, ll_new(s));
+SYMBOL* insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
+    SYMBOL* s = new_symbol(type, name, meta, extra);
+    add_symbols_to_scope(symbols->current_scope, ll_new(s));
     return s;
 }
 
 void initialize_structs() {
     code_table = get_intermediate_code();
     types = get_type_container();
+    symbols = get_symbol_table();
 
     new_type(MT_PRIMITIVE, "string", 4);
     new_type(MT_PRIMITIVE, "real", 8);
@@ -737,8 +734,8 @@ SYMTYPE* lookup_type(char* name) {
     return find_type(types, name);
 }
 
-SYMTAB* find_symbol(char* name) {
-    return find_in_scope(symbols, name);
+SYMBOL* find_symbol(char* name) {
+    return find_in_scope(symbols->current_scope, name);
 }
 
 /*

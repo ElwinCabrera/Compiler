@@ -10,10 +10,6 @@
 
 extern int yyparse();
 extern void yyset_in(FILE *);
-
-// Defined in grammar.y
-// Returns the symbol table the parser uses
-extern SCOPE** get_symbol_table();
 extern void* set_asc_file(FILE*);
 
 FILE *inputFile;
@@ -84,7 +80,7 @@ int main(int argc, char* argv[])
                 printf("ERROR(%d): Could not open file %s for writing\n", errno, symbol_file_path);
             }
             free(symbol_file_path);
-            print_symbol_table(*get_symbol_table(), symbol_file);
+            print_symbol_table(get_symbol_table(), symbol_file);
         }
         
 

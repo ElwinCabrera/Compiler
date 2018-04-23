@@ -4,6 +4,7 @@
 #include "symbol_table.h"
 #include "types.h"
 #include "assignable.h"
+#include "linked_list.h"
 
 static int temporary_count = 0;
 
@@ -28,8 +29,12 @@ ADDRESS* new_address() {
 */
 ADDRESS* temp_address(SYMTYPE* t) {
     ADDRESS* a = new_address();
-    a->meta = TEMPORARY;
-    a->value.temporary = temporary_count++;
+    a->meta = AT_TEMPORARY;
+    char name[12];
+    sprintf(name, "t%d", temporary_count++);
+    a->value.symbol = new_symbol(t, name, ST_TEMPORARY, "generated");
+    SYMBOL_TABLE* st = get_symbol_table();
+    add_symbols_to_scope(st->current_scope, ll_new(a->value.symbol));
     a->type = t;
     return a;
 }
@@ -37,9 +42,9 @@ ADDRESS* temp_address(SYMTYPE* t) {
 /*
     Creates an address from a symbol table entry
 */
-ADDRESS* symbol_address(SYMTAB* s) {
+ADDRESS* symbol_address(SYMBOL* s) {
     ADDRESS* a = new_address();
-    a->meta = SYMBOL;
+    a->meta = AT_SYMBOL;
     a->value.symbol = s;
     a->type = s ? s->type : NULL;
     return a;
@@ -51,7 +56,7 @@ ADDRESS* symbol_address(SYMTAB* s) {
 */
 ADDRESS* label_address(int n) {
     ADDRESS* a = new_address();
-    a->meta = LABEL;
+    a->meta = AT_LABEL;
     a->value.label = n;
     a->type = NULL;
     return a;
@@ -62,7 +67,7 @@ ADDRESS* label_address(int n) {
 */
 ADDRESS* int_address(int n) {
     ADDRESS* a = new_address();
-    a->meta = INT_CONSTANT;
+    a->meta = AT_INT;
     a->value.integer = n;
     a->type = find_type(get_type_container(), "integer");
     return a;
@@ -73,7 +78,7 @@ ADDRESS* int_address(int n) {
 */
 ADDRESS* boolean_address(int b) {
     ADDRESS* a = new_address();
-    a->meta = BOOLEAN_CONSTANT;
+    a->meta = AT_BOOLEAN;
     a->value.boolean = b;
     a->type = find_type(get_type_container(), "Boolean");
     return a;
@@ -84,7 +89,7 @@ ADDRESS* boolean_address(int b) {
 */
 ADDRESS* real_address(double d) {
     ADDRESS* a = new_address();
-    a->meta = REAL_CONSTANT;
+    a->meta = AT_REAL;
     a->value.real = d;
     a->type = find_type(get_type_container(), "real");
     return a;
@@ -95,7 +100,7 @@ ADDRESS* real_address(double d) {
 */
 ADDRESS* char_address(char c) {
     ADDRESS* a = new_address();
-    a->meta = CHAR_CONSTANT;
+    a->meta = AT_CHAR;
     a->value.character = c;
     a->type = find_type(get_type_container(), "character");
     return a;
@@ -106,7 +111,7 @@ ADDRESS* char_address(char c) {
 */
 ADDRESS* string_address(char* s) {
     ADDRESS* a = new_address();
-    a->meta = STRING_CONSTANT;
+    a->meta = AT_STRING;
     a->value.string = s;
     a->type = find_type(get_type_container(), "string");
     return a;
@@ -118,7 +123,7 @@ ADDRESS* string_address(char* s) {
 ADDRESS* null_address() {
     ADDRESS* a = new_address();
     a->value.null = 0;
-    a->meta = NULL_CONSTANT;
+    a->meta = AT_NULL;
     a->type = find_type(get_type_container(), "nullconst");
     return a;
 }
@@ -133,35 +138,33 @@ char* create_address_string(ADDRESS* a) {
     }
 
     switch(a->meta) {
-        case STRING_CONSTANT:
+        case AT_STRING:
             return strdup(a->value.string);
-        case CHAR_CONSTANT: {
+        case AT_CHAR: {
             char* tmp = malloc(2 * sizeof(char));
             sprintf(tmp, "'%c'", a->value.character);
             return tmp;
         }
-        case INT_CONSTANT: {
+        case AT_INT: {
             char* tmp = malloc(20 * sizeof(char));
             sprintf(tmp, "%d", a->value.integer);
             return tmp;
         }
-        case REAL_CONSTANT: {
+        case AT_REAL: {
             char* tmp = malloc(20 * sizeof(char));
             sprintf(tmp, "%f", a->value.real);
             return tmp;
         }
-        case NULL_CONSTANT:
+        case AT_NULL:
             return strdup("null");
-        case BOOLEAN_CONSTANT:
+        case AT_BOOLEAN:
             return a->value.boolean ? strdup("true") : strdup("false");
-        case SYMBOL:
+        case AT_SYMBOL:
             return a->value.symbol ? strdup(a->value.symbol->name) : NULL;
-        case TEMPORARY: {
-            char* tmp = malloc(10 * sizeof(char));
-            sprintf(tmp, "t%d", a->value.temporary);
-            return tmp;
+        case AT_TEMPORARY: {
+            return a->value.symbol ? strdup(a->value.symbol->name) : NULL;
         }
-        case LABEL: {
+        case AT_LABEL: {
             char* tmp = malloc(10 * sizeof(char));
             sprintf(tmp, "L%d", a->value.label);
             return tmp;

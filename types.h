@@ -15,7 +15,7 @@ typedef struct symtype {
     TTYPE meta;
     char* name;
     struct scope* parameters;
-    struct symtab* ret;
+    struct symbol* ret;
     struct scope* members;
     struct symtype* element_type;
     int dimensions;
