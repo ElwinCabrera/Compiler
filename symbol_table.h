@@ -30,8 +30,13 @@ typedef struct symbol {
     struct scope* scope;
 } SYMBOL;
 
+typedef enum sc_type {
+    SCT_PAMARETERS,
+} SC_TYPE;
+
 typedef struct scope {
     int id;
+    
     struct linked_list* symbols;
     struct linked_list* children;
     struct scope* parent;

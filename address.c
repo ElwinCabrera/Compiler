@@ -5,6 +5,7 @@
 #include "types.h"
 #include "assignable.h"
 #include "linked_list.h"
+#include "data_block.h"
 
 static int temporary_count = 0;
 
@@ -18,8 +19,7 @@ static int temporary_count = 0;
 */
 ADDRESS* new_address() {
     ADDRESS* a = malloc(sizeof(ADDRESS));
-    a->live = false;
-    a->next_use = 0;
+    memset(a, 0, sizeof(ADDRESS));
     return a;
 };
 
@@ -92,6 +92,7 @@ ADDRESS* real_address(double d) {
     a->meta = AT_REAL;
     a->value.real = d;
     a->type = find_type(get_type_container(), "real");
+    a->block = store_in_data_block(a);
     return a;
 };
 
@@ -114,6 +115,7 @@ ADDRESS* string_address(char* s) {
     a->meta = AT_STRING;
     a->value.string = s;
     a->type = find_type(get_type_container(), "string");
+    a->block = store_in_data_block(a);
     return a;
 };
 

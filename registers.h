@@ -10,6 +10,7 @@ typedef struct register_destricptors {
 } REGISTER_DESCRIPTORS;
 
 typedef enum reg {
+    NO_REGISTER = -1,
     ZERO,
     ARG0,
     ARG1,

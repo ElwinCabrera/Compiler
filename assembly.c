@@ -4,6 +4,7 @@
 #include "code_blocks.h"
 #include "intermediate_code.h"
 #include "address.h"
+#include "data_block.h"
 
 static LINKED_LIST* assembly_code;
 
@@ -27,9 +28,9 @@ void create_assembly_block(BLOCK* block) {
 
     while(code_list) {
         TAC* code = ll_value(code_list);
-        int rd = -1;
-        int rs1 = -1;
-        int rs2 = -1;
+        REG rd = NO_REGISTER;
+        REG rs1 = NO_REGISTER;
+        REG rs2 = NO_REGISTER;
 
         get_reg(code, &rd, &rs1, &rs2);
         create_assembly(block->label, code, rd, rs1, rs2);
@@ -38,7 +39,26 @@ void create_assembly_block(BLOCK* block) {
 
 }
 
-void create_assembly(int label, TAC* code, REG rd, REG rs1, REG rs2) {
+bool pointer_match(LINKED_LIST* l, void* symbol) {
+    void* p = ll_value(l);
+    return p == symbol;
+}
+
+void create_assembly(int label, TAC* code, REG result, REG x, REG y) {
+
+    if(x != NO_REGISTER) {
+        LINKED_LIST* reg_descriptor = get_register_descriptor(x);
+        if(!ll_find(reg_descriptor, code->x->value.symbol, pointer_match)) {
+            add_itype(label, ASM_ADDI, x, x, 0);
+        }
+    }
+
+    if(y != NO_REGISTER) {
+        LINKED_LIST* reg_descriptor = get_register_descriptor(y);
+        if(!ll_find(reg_descriptor, code->x->value.symbol, pointer_match)) {
+            
+        }
+    }
     
     switch(code->op) {
         case I_NOP: {
@@ -75,7 +95,7 @@ void create_assembly(int label, TAC* code, REG rd, REG rs1, REG rs2) {
             add_btype(label, ASM_JMP, code->result->value.label, false, 0);
             break;
         case I_ADD: {
-            
+
             break;
         }
         case I_SUB: {
@@ -140,12 +160,17 @@ void print_asm_code(FILE* f) {
         f = stdout;
     }
 
-    int label = -1;
+    int label = 0;
+
+    print_data_block(f);
+
+    fprintf(f, "MAIN:    ");
 
     LINKED_LIST* asm_list = assembly_code;
 
     while(asm_list) {
         ASSEMBLY* a = ll_value(asm_list);
+        
         if(a->label != label) {
             label = a->label;
             fprintf(f, "LABEL%02d:", label);

@@ -17,8 +17,7 @@ typedef enum atype {
 
 typedef struct address {
     ATYPE meta;
-    int next_use;
-    bool live;
+    struct data* block;
     struct symtype* type;
     union {
         int integer;
