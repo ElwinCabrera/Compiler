@@ -99,12 +99,12 @@ SYMBOL* insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list case_list;
 
-%left L_PARENTHESIS R_PARENTHESIS
 %left IS_NULL;
+%left ADD SUB_OR_NEG;
 %left MUL DIV REM;
 %left AND OR EQUAL_TO LESS_THAN;
-%left ADD SUB_OR_NEG;
 %right pre_unary_prec
+%left L_PARENTHESIS R_PARENTHESIS
 
 %token <string> T_INTEGER
 %token <string> T_REAL
@@ -231,6 +231,8 @@ definition:
         SYMBOL* s = insert_new_symbol($4, $2, ST_FUNCTION, "function");
         function_context = stack_push(function_context, s);
         s->label = label_address($5);
+        TAC* code = new_tac(I_FN_START, NULL, NULL, symbol_address(s));
+        add_code(code_table, code);
     } sblock { 
         ADDRESS* a = symbol_address($4->ret);
         add_code(code_table, new_tac(I_RETURN, NULL, NULL, a));
@@ -325,6 +327,7 @@ sblock:
     L_BRACE open_scope dblock {
         add_symbols_to_scope($2, $3);
         reorder_symbols($2);
+        add_code(code_table, new_tac(I_STACK_VARS, NULL, NULL, scope_address($2)));
     } statement_list close_scope check_r_brace {
         $$ = $2;
     }
@@ -706,6 +709,9 @@ SCOPE* close_scope() {
 
 SYMBOL* insert_new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
     SYMBOL* s = new_symbol(type, name, meta, extra);
+    if(find_entry(symbols->current_scope->symbols, name)) {
+        redefinition_error(extra, name); 
+    }
     add_symbols_to_scope(symbols->current_scope, ll_new(s));
     return s;
 }
