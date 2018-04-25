@@ -93,16 +93,16 @@ typedef struct assembly {
     bool s;
     bool c;
     CONDITION cond;
-    int immediate;
+    struct location* immediate;
 } ASSEMBLY;
 
 const char* get_asm_mnemonic(ASM_OP);
 const char* get_condition_str(CONDITION);
 void create_assembly_block(struct block*);
-void create_assembly(int, struct tac*, REG, REG, REG);
+void create_assembly(int, struct tac*);
 void add_nop(int);
 void add_atype(int, ASM_OP, REG, REG, REG, bool, bool, CONDITION);
-void add_itype(int, ASM_OP, REG, REG, int);
+void add_itype(int, ASM_OP, REG, REG, struct location*);
 void add_jtype(int, int);
 void add_btype(int, ASM_OP, int, bool, CONDITION);
 void process_code_blocks(LINKED_LIST*);

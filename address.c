@@ -130,6 +130,13 @@ ADDRESS* null_address() {
     return a;
 }
 
+ADDRESS* scope_address(SCOPE* s) {
+    ADDRESS* a = new_address();
+    a->value.scope = s;
+    a->meta = AT_SCOPE;
+    return a;
+}
+
 /*
     Creates a string represenation of an address
     Be sure to free() this

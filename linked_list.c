@@ -9,6 +9,11 @@ LINKED_LIST* ll_new(void* value) {
     return new;
 }
 
+bool pointer_match(LINKED_LIST* l, void* symbol) {
+    void* p = ll_value(l);
+    return p == symbol;
+}
+
 void* ll_find(LINKED_LIST* l, void* match, bool accessor(LINKED_LIST*, void*)) {
 
     while(l) {
@@ -193,4 +198,29 @@ void* ll_remove(LINKED_LIST** ref, void* match, bool accessor(LINKED_LIST*, void
         cur = ll_next(cur);
     }
     return NULL;
+}
+
+int ll_length(LINKED_LIST* l) {
+    int i = 0;
+    while(l) {
+        i++;
+        l = ll_next(l);
+    }
+    return i;
+}
+
+void ll_free(LINKED_LIST** ref) {
+    if(!ref) {
+        return;
+    }
+
+    LINKED_LIST* cur = *ref;
+
+    while(cur) {
+        LINKED_LIST* temp = cur;
+        cur = ll_next(cur);
+        free(temp);
+    }
+
+    *ref = NULL;
 }

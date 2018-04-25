@@ -94,7 +94,7 @@ void print_tac(TAC* code, FILE* f) {
 
     switch(code->op) {
         case I_ASSIGN:
-            fprintf(f, "[%03d]\t %s = %s\n", code->label, x, y);
+            fprintf(f, "[%03d]\t %s = %s\n", code->label, result, x);
             break;
         case I_RECORD_ACCESS:
             fprintf(f, "[%03d]\t %s = %s.%s\n", code->label, result, x, y);
@@ -180,6 +180,8 @@ void print_tac(TAC* code, FILE* f) {
             break;
         case I_NOP:
             fprintf(f, "[%03d]\t NOP\n", code->label);
+            break;
+        case I_FN_START:
             break;
         default:
             fprintf(f, "UNKNOWN OP: %d\n", code->op);

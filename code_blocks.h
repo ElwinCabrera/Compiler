@@ -3,12 +3,11 @@
 
 #include <stdio.h>
 #include "intermediate_code.h"
-#
 
 typedef struct block {
     int label;
     struct linked_list* code;
-    struct linked_list* register_descriptors;
+    struct linked_list* edges;
 } BLOCK;
 
 void print_blocks(struct linked_list*, FILE*);

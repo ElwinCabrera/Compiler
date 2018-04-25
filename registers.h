@@ -45,9 +45,12 @@ typedef enum reg {
     CPSR,
 } REG;
 
-LINKED_LIST* get_register_descriptor(REG);
+LINKED_LIST** get_register_descriptor(REG);
+void clear_temporary_registers();
 void add_variable_to_register(REG, struct symbol*);
 void remove_variable_from_register(REG, struct symbol*);
 void get_reg(struct tac*, int*, int*, int*);
+REG get_dest_register(struct address*);
+REG get_source_register(struct address*);
 
 #endif

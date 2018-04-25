@@ -33,6 +33,8 @@ typedef enum tac_op {
     I_RESERVE,
     I_RELEASE,
     I_NOP,
+    I_FN_START,
+    I_STACK_VARS,
 } TAC_OP;
 
 typedef struct tac {

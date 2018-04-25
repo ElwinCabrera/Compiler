@@ -93,7 +93,71 @@ EXPRESSION* binary_expression(TAC_OP op, EXPRESSION* x, EXPRESSION* y) {
             return temp_expression(NULL);
         case PASS: {
             SYMTYPE* result_type = lval_type(op, tx, ty);
-            TAC* code = new_tac(op, exp_rvalue(x), exp_rvalue(y), temp_address(result_type));
+            ADDRESS* xa = exp_rvalue(x);
+            ADDRESS* ya = exp_rvalue(y);
+            TAC* code;
+            if(xa && xa->meta == AT_INT && ya && ya->meta == AT_INT) {
+                ADDRESS* a;
+                switch(op) {
+                    case I_ADD:
+                        a = int_address(xa->value.integer + ya->value.integer);
+                        break;
+                    case I_SUB:
+                        a = int_address(xa->value.integer - ya->value.integer);
+                        break;
+                    case I_MULTIPLY:
+                        a = int_address(xa->value.integer * ya->value.integer);
+                        break;
+                    case I_DIVIDE:
+                        if(ya->value.integer == 0) {
+                            
+                        } else {
+                            a = int_address(xa->value.integer / ya->value.integer);
+                        }
+                        break;
+                    case I_MODULUS:
+                        if(ya->value.integer == 0) {
+                            
+                        } else {
+                            a = int_address(xa->value.integer % ya->value.integer);
+                        }
+                        break;
+                    case I_LESS_THAN:
+                        a = boolean_address(xa->value.integer < ya->value.integer);
+                        break;
+                    default:
+                        printf("You can't compare two integer constants with op %d\n", op);
+                        break;
+                }
+                ADDRESS* result = temp_address(result_type);
+                code = new_tac(I_ASSIGN, result, a, result);
+            } else if(xa && xa->meta == AT_REAL && ya && ya->meta == AT_INT) {
+                ADDRESS* a;
+                switch(op) {
+                    case I_ADD:
+                        a = real_address(xa->value.real + ya->value.real);
+                        break;
+                    case I_SUB:
+                        a = real_address(xa->value.real - ya->value.real);
+                        break;
+                    case I_MULTIPLY:
+                        a = real_address(xa->value.real * ya->value.real);
+                        break;
+                    case I_DIVIDE:
+                        a = real_address(xa->value.real / ya->value.real);
+                        break;
+                    case I_LESS_THAN:
+                        a = boolean_address(xa->value.real < ya->value.real);
+                        break;
+                    default:
+                        printf("You can't compare two real constants with op %d\n", op);
+                        break;
+                }
+                ADDRESS* result = temp_address(result_type);
+                code = new_tac(I_ASSIGN, result, a, result);
+            } else {
+                code = new_tac(op, xa, ya, temp_address(result_type));
+            }
             return temp_expression(add_code(code_table, code));
         }
         case COERCE_RHS: {
@@ -159,6 +223,16 @@ TC_RESULT type_check_binary_expression(int op, EXPRESSION* x, EXPRESSION* y) {
             int right = check_typename(rhs, "integer") ? 1 : check_typename(rhs, "real") ? 2 : 0;
             if(!left || !right) {
                 return FAIL;
+            }
+
+            if(y->meta == E_CONSTANT) {
+                if( y->value.constant->meta == AT_INT &&  y->value.constant->value.integer == 0) {
+                    
+                    return FAIL;
+                } else if( y->value.constant->meta == AT_REAL &&  y->value.constant->value.real == 0) {
+                    
+                    return FAIL;
+                }
             }
 
             if(left > right) {

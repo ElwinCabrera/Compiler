@@ -173,12 +173,13 @@ ADDRESS* assignable_rvalue(ASSIGNABLE* a) {
     }
 }
 
-void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
+ADDRESS* handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_lvalue(a);
 
     SYMTYPE* a_type = adr ? adr->type : NULL;
     SYMTYPE* e_type = expression_type(e);
+    ADDRESS* result = NULL;
     bool type_error = false;
     if(a->meta == A_ARRAY) {
         if(a_type->element_type != e_type && !check_typename(e_type, "nullconst")) {
@@ -186,25 +187,27 @@ void handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
         }
 
         TAC* array = new_tac(I_ARRAY_ASSIGN, int_address(a->array_offset), exp_rvalue(e), a->array);
-        add_code(code_table, array);
+        result = add_code(code_table, array);
     } else if(a->meta == A_RECORD) {
         if(a->variable->type != e_type && !check_typename(e_type, "nullconst")) {
            type_error = true;
         }
         TAC* rec = new_tac(I_RECORD_ASSIGN, a->variable, exp_rvalue(e), a->record);
-        add_code(code_table, rec);
+        result = add_code(code_table, rec);
     } else {
         if(a_type != e_type) {
             type_error = true;
         }
-        TAC* var = new_tac(I_ASSIGN, adr, exp_rvalue(e), NULL);
-        add_code(code_table, var);
+        TAC* var = new_tac(I_ASSIGN, exp_rvalue(e), NULL, adr);
+        result = add_code(code_table, var);
         
     }
 
     if(type_error) {
         type_mismatch_error(a_type ? a_type->name : "NULL", e_type ? e_type->name : "NULL");
     }
+
+    return result;
 }
 
 void handle_memop(TAC_OP op, ASSIGNABLE* a) {

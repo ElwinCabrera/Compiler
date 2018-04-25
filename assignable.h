@@ -25,7 +25,7 @@ ASSIGNABLE* assignable_array(struct address*, struct stack*);
 ASSIGNABLE* assignable_function(struct address*, struct stack*);
 struct address* assignable_lvalue(ASSIGNABLE*);
 struct address* assignable_rvalue(ASSIGNABLE*);
-void handle_assignment(ASSIGNABLE*, struct expression*);
+struct address* handle_assignment(ASSIGNABLE*, struct expression*);
 void handle_memop(TAC_OP, ASSIGNABLE*);
 
 #endif

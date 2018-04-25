@@ -13,6 +13,7 @@ typedef enum atype {
     AT_NULL,
     AT_TEMPORARY,
     AT_LABEL,
+    AT_SCOPE,
 } ATYPE;
 
 typedef struct address {
@@ -29,6 +30,7 @@ typedef struct address {
         int null;
         int label;
         struct assignable* array;
+        struct scope* scope;
     } value;
 } ADDRESS;
 
@@ -41,6 +43,7 @@ ADDRESS* real_address(double);
 ADDRESS* char_address(char);
 ADDRESS* string_address(char*);
 ADDRESS* null_address();
+ADDRESS* scope_address(struct scope*);
 int get_width(ADDRESS*);
 char* create_address_string(ADDRESS*);
 

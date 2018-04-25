@@ -28,10 +28,12 @@ typedef struct symbol {
     struct address* label;
     struct symtype* type;
     struct scope* scope;
+    struct linked_list* address_descriptor;
 } SYMBOL;
 
 typedef enum sc_type {
     SCT_PAMARETERS,
+    SCT_
 } SC_TYPE;
 
 typedef struct scope {

@@ -29,6 +29,7 @@ typedef struct linked_list {
     void* value;
 } LINKED_LIST;
 
+bool pointer_match(LINKED_LIST*, void*);
 void* ll_find(LINKED_LIST*, void*, bool(LINKED_LIST*, void*));
 bool ll_hasnext(LINKED_LIST* l);
 LINKED_LIST* ll_new(void*);
@@ -39,5 +40,8 @@ LINKED_LIST* ll_next(LINKED_LIST*);
 void* ll_value(LINKED_LIST*);
 void ll_mergesort(LINKED_LIST**, void*);
 void ll_reverse(LINKED_LIST** ref);
+int ll_length(LINKED_LIST*);
+void ll_free(LINKED_LIST**);
+void* ll_remove(LINKED_LIST**, void*, bool(LINKED_LIST*, void*));
 
 #endif
