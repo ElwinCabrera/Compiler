@@ -50,7 +50,7 @@ char* create_location_str(LOCATION* l) {
             break;
         case W_MEMORY:
             str = malloc(12 * sizeof(char));
-            sprintf(str, "%04x", l->value.pointer);
+            sprintf(str, "0x%04x", l->value.pointer);
             break;
         case W_CONSTANT:
             str = malloc(12 * sizeof(char));

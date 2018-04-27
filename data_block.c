@@ -5,7 +5,7 @@
 #include "linked_list.h"
 #include "address.h"
 
-static DATA_BLOCK* _data;
+static DATA_BLOCK* _data = NULL;
 
 int string_count = 0;
 int real_count = 0;
@@ -13,6 +13,7 @@ int real_count = 0;
 DATA_BLOCK* get_data_block() {
     if(!_data) {
         _data = malloc(sizeof(DATA_BLOCK));
+        memset(_data, 0, sizeof(DATA_BLOCK));
     }
     return _data;
 }

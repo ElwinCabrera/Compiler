@@ -116,16 +116,16 @@ int main(int argc, char* argv[])
 
         if(check_error_status() == 0) {
             process_code_blocks(code_blocks);
-            // char* output_file_path = malloc(strlen(program) + 3);
-            // sprintf(output_file_path, "%s%s", program, ".s");
-            // FILE* output_file = fopen(output_file_path, "w");
-            // if(!output_file) {
-            //     printf("ERROR(%d): Could not open file %s for writing\n", errno, output_file_path);
-            // }
-            // free(output_file_path);
-            //print_asm_code(output_file);
-            print_asm_code(NULL);
-            //fclose(output_file);
+            char* output_file_path = malloc(strlen(program) + 3);
+            sprintf(output_file_path, "%s%s", program, ".s");
+            FILE* output_file = fopen(output_file_path, "w");
+            if(!output_file) {
+                printf("ERROR(%d): Could not open file %s for writing\n", errno, output_file_path);
+            }
+            free(output_file_path);
+            print_asm_code(output_file);
+            //print_asm_code(NULL);
+            fclose(output_file);
         }
 
         return 0;

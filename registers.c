@@ -54,6 +54,12 @@ bool match_same_register(LINKED_LIST* l, void* reg) {
     return where->type == W_REGISTER && where->value.reg == (long) reg;
 }
 
+REG get_parameter_register(ADDRESS* a) {
+    if(!a) {
+        return NO_REGISTER;
+    }
+}
+
 REG get_dest_register(ADDRESS* a) {
     if(!a) {
         printf("Tried to cried a destination register for a null address.\n");

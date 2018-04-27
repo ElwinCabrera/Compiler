@@ -15,6 +15,7 @@ INTERMEDIATE_CODE* get_intermediate_code() {
     if(!intermediate_code) {
         // Allocate room for 1000 three-address codes
         intermediate_code = malloc(sizeof(INTERMEDIATE_CODE));
+        memset(intermediate_code, 0, sizeof(INTERMEDIATE_CODE));
         intermediate_code->capacity = 1000;
         intermediate_code->entries = malloc(sizeof(TAC) * 1000);
         intermediate_code->next_instruction = 0;
@@ -182,6 +183,7 @@ void print_tac(TAC* code, FILE* f) {
             fprintf(f, "[%03d]\t NOP\n", code->label);
             break;
         case I_FN_START:
+        case I_STACK_VARS:
             break;
         default:
             fprintf(f, "UNKNOWN OP: %d\n", code->op);

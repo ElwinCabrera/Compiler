@@ -9,7 +9,7 @@
 #include "location.h"
 #include "types.h"
 
-static LINKED_LIST* assembly_code;
+static LINKED_LIST* assembly_code = NULL;
 
 void process_code_blocks(LINKED_LIST* blocks) {
 
@@ -63,9 +63,11 @@ void asm_parameter(int block, ADDRESS* a) {
         Can pick the argument registers if they're empty,
         otherwise put onto stack frame
     */
+
+    //REG rs = get_parameter_register(a);
 }
 
-void asm_function_call(int block, SYMBOL* fn, int argc){
+void asm_function_call(int block, TAC* code) {
 
     /*
         Params have been pushed, this just needs to adjust
@@ -76,11 +78,29 @@ void asm_function_call(int block, SYMBOL* fn, int argc){
         space
     */
 
+    SYMBOL* fn = code->x->value.symbol;
+
     if(!fn) {
         return;
     }
+    
+    // Space for return value
+    add_itype(block, ASM_ADDI, STACK, STACK, const_location(4));
+
+    // Write the control link
+
+    add_itype(block, ASM_ADDI, STACK, STACK, const_location(4));
+    add_itype(block, ASM_STR, STACK, PC, const_location(0));
+
 
     add_btype(block, ASM_BRANCHL, fn->label->value.label, false, 0);
+
+    /*
+        Next instruction is executed on return from the function:
+        Return stack to control link address and then place the return 
+        value into the temporary.
+    */
+    
 }
 
 void asm_function_return(int block, SYMBOL* fn) {
@@ -115,6 +135,15 @@ void asm_assignment(int block, TAC* code) {
     /*
         RD = RS1
     */
+
+    REG rs1 = get_source_register(code->x);
+    REG rd = get_dest_register(code->result);
+
+    if(rs1 == NO_REGISTER) {
+        add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+    } else {
+        add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
+    }
 }
 
 
@@ -127,7 +156,13 @@ void asm_add(int block, TAC* code) {
     REG rd = get_dest_register(code->result);
     
     if(check_typename(code->result->type, "integer")) {
-
+        if(rs1 == NO_REGISTER) {
+            add_itype(block, ASM_ADDI, rd, rs2, const_location(code->x->value.integer));
+        } else if(rs2 == NO_REGISTER) {
+            add_itype(block, ASM_ADDI, rd, rs1, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
+        }
     } else {
         /*
             Floating point arithmetic
@@ -146,7 +181,18 @@ void asm_sub(int block, TAC* code) {
     REG rd = get_dest_register(code->result);
 
     if(check_typename(code->result->type, "integer")) {
-
+        if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
+            // Unary minus
+            add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
+            add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
+        } else if(rs1 == NO_REGISTER) {
+            add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->x->value.integer));
+            add_atype(block, ASM_ADD, rd, NEGPOS, rs1, false, false, false);
+        } else if(rs2 == NO_REGISTER) {
+            add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+        }
     } else {
         /*
             Floating point arithmetic
@@ -174,6 +220,18 @@ void asm_modulus(int block, TAC* code) {
 
 void asm_less_than(int block, TAC* code) {
 
+    REG rs1 = get_source_register(code->x);
+    REG rs2 = get_source_register(code->y);
+    REG rd = get_dest_register(code->result);
+
+    if(rs1 == NO_REGISTER) {
+
+    } else if(rs2 == NO_REGISTER) {
+
+    } else {
+        add_atype(block, I_SUB, rd, rs1, rs2, true, false, false);
+        add_atype(block, I_ADD, rd, ZERO, ZERO, false, false, PZ);
+    }
 }
 
 void asm_equal(int block, TAC* code) {
@@ -195,10 +253,13 @@ void asm_not(int block, TAC* code) {
     REG rs = get_source_register(code->x);
     REG rd = get_dest_register(code->result);
     if(rs == NO_REGISTER) {
-        // Constant
+        if(code->x->value.boolean) {
+            add_atype(block, ASM_NOT, rd, ZERO, NO_REGISTER, false, false, false);
+        } else {
+            add_atype(block, ASM_ADD, rd, ZERO, ZERO, false, false, false);
+        }
     } else {
-        add_atype(block, ASM_ADD, POSNEG, rs, ZERO, false, false, false);
-        add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
+        add_atype(block, ASM_NOT, rd, rs, NO_REGISTER, false, false, false);
     }
 
 }
@@ -246,19 +307,63 @@ void asm_conditional_branch_not_equal(int block, TAC* code) {
 }
 
 void asm_array_access(int block, TAC* code) {
-    
+    REG rs1 = get_source_register(code->x);
+    REG rd = get_dest_register(code->result);
+    int width = get_type_width(code->x->type->element_type);
+    int dimension_spots = code->x->type->dimensions * 4;
+    add_itype(block, ASM_LDR, rd, rs1, memory_location(12 + dimension_spots + (width * code->y->value.integer)));
 }
 
 void asm_array_assign(int block, TAC* code) {
-
+    REG rs1 = get_source_register(code->y);
+    REG rd = get_dest_register(code->result);
+    int width = get_type_width(code->result->type->element_type);
+    int dimension_spots = code->result->type->dimensions * 4;
+    add_itype(block, ASM_ADDI, rd, rd, memory_location(4 + dimension_spots + (width * code->x->value.integer)));
+    if(rs1 == NO_REGISTER) {
+        add_itype(block, ASM_STR, rd, ZERO, const_location(code->y->value.integer));
+    } else {
+        add_itype(block, ASM_STR, rd, rs1, const_location(0));
+    }
 }
 
 void asm_record_access(int block, TAC* code) {
-    
+    REG rs1 = get_source_register(code->x);
+    REG rd = get_dest_register(code->result);
+
+    LINKED_LIST* symbols = code->x->type->members ? code->x->type->members->symbols : NULL;
+    int offset = 0;
+    while(symbols) {
+        SYMBOL* s = ll_value(symbols);
+        if(s == code->y->value.symbol) {
+            break;
+        } else {
+            offset += get_type_width(s->type);
+        }
+        symbols = ll_next(symbols);
+    }
+
+    add_itype(block, ASM_LDR, rd, rs1, memory_location(offset));
 }
 
 void asm_record_assign(int block, TAC* code) {
+    REG rs1 = get_source_register(code->x);
+    REG rd = get_dest_register(code->result);
 
+    LINKED_LIST* symbols = code->result->type->members ? code->result->type->members->symbols : NULL;
+    int offset = 0;
+    while(symbols) {
+        SYMBOL* s = ll_value(symbols);
+        if(s == code->y->value.symbol) {
+            break;
+        } else {
+            offset += get_type_width(s->type);
+        }
+        symbols = ll_next(symbols);
+    }
+
+    add_itype(block, ASM_ADDI, rd, rd, memory_location(offset));
+    add_itype(block, ASM_STR, rd, rs1, memory_location(0));
 }
 
 void create_assembly(int label, TAC* code) {
@@ -271,7 +376,7 @@ void create_assembly(int label, TAC* code) {
             asm_stack_variables(label, code->result->value.scope);
             break;
         case I_CALL:
-            asm_function_call(label, code->x->value.symbol, code->y->value.integer);
+            asm_function_call(label, code);
             break;
         case I_FN_START:
             asm_function_setup(label, code->result->value.symbol);
@@ -359,7 +464,7 @@ void print_asm_code(FILE* f) {
 
     print_data_block(f);
 
-    fprintf(f, "MAIN:");
+    fprintf(f, "MAIN");
 
     LINKED_LIST* asm_list = assembly_code;
 
@@ -368,14 +473,14 @@ void print_asm_code(FILE* f) {
         
         if(a->label != label) {
             label = a->label;
-            fprintf(f, "LABEL%02d:", label);
+            fprintf(f, "\nLABEL%02d ", label);
         } else {
             fprintf(f, "\t");
         }
         
         switch(a->type) {
             case IT_NOP:
-                fprintf(f, "\t\t NOP\n");
+                fprintf(f, "\t\t NOP 0 0 0\n");
                 break;
             case IT_A:
                 fprintf(f, "\t\t %s%s%s%s R%d R%d", 
@@ -477,7 +582,7 @@ const char* get_asm_mnemonic(ASM_OP op) {
         case ASM_SUBI: return "SUBI";   
         case ASM_XNORI: return "XNORI";  
         case ASM_XORI: return "XORI";   
-        case ASM_JMP: return "JMP";
+        case ASM_JMP: return "J";
         case ASM_BRANCH: return "B";     
         case ASM_BRANCHL: return "BL";
         case ASM_BRANCHR: return "BR";
