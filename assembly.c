@@ -274,6 +274,8 @@ void asm_conditional_branch(int block, TAC* code) {
         */
         if(code->x->value.boolean) {
             add_btype(block, ASM_BRANCH, code->result->value.label, false, false);
+        } else {
+            add_atype(block, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
         }
     } else {
         add_atype(block, ASM_AND, rs, rs, ZERO, true, false, false);
@@ -291,6 +293,8 @@ void asm_conditional_branch_false(int block, TAC* code) {
         */
         if(!code->x->value.boolean) {
             add_btype(block, ASM_BRANCH, code->result->value.label, false, false);
+        } else {
+            add_atype(block, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
         }
     } else {
         add_atype(block, ASM_AND, rs, rs, ZERO, true, false, false);

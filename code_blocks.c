@@ -139,12 +139,14 @@ void mark_leaders(INTERMEDIATE_CODE* code_table) {
 
             if(code->op != I_RETURN) {
                 ADDRESS* label = code->result;
-                
+
                 if(code->op == I_CALL) {
                     label = code->x->value.symbol->label;
                 }
 
-                code_table->entries[label->value.label]->leader = true;
+                if(label) {
+                    code_table->entries[label->value.label]->leader = true;
+                }
             }
 
             if(i + 1 < code_table->next_instruction) {

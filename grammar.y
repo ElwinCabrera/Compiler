@@ -327,7 +327,7 @@ sblock:
     L_BRACE open_scope dblock {
         add_symbols_to_scope($2, $3);
         reorder_symbols($2);
-        add_code(code_table, new_tac(I_STACK_VARS, NULL, NULL, scope_address($2)));
+        //add_code(code_table, new_tac(I_STACK_VARS, NULL, NULL, scope_address($2)));
     } statement_list close_scope check_r_brace {
         $$ = $2;
     }
