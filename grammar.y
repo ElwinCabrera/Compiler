@@ -275,7 +275,7 @@ parameter_declaration:
     ;
 
 dblock:
-    check_l_bracket declaration_list check_r_bracket {
+    L_BRACKET declaration_list check_r_bracket {
         $$ = $2;
     }
     ;
@@ -328,10 +328,10 @@ sblock:
         add_symbols_to_scope($2, $3);
         reorder_symbols($2);
         //add_code(code_table, new_tac(I_STACK_VARS, NULL, NULL, scope_address($2)));
-    } statement_list close_scope check_r_brace {
+    } check_statement_list close_scope check_r_brace {
         $$ = $2;
     }
-    | L_BRACE open_scope statement_list close_scope check_r_brace {
+    | L_BRACE open_scope check_statement_list close_scope check_r_brace {
         $$ = $2;
     }
     ;
@@ -476,7 +476,24 @@ assignable:
         ADDRESS* a = assignable_rvalue($1);
         
         if(a) {
-            if(!check_metatype(a->type, MT_RECORD)) {
+
+            if(check_metatype(a->type, MT_ARRAY)) {
+                char* id = $3;
+                if(id && strlen(id) >= 2 && id[0] == '_') {
+                    int j = atoi(id + 1);
+                    if(j >= a->type->dimensions || (j == 0 && (id[1] != '0' || strlen(id) > 2))) {
+                        syntax_error("Invalid dimension in array length check");
+                    } else {
+                        // FIX THIS: Need the integer val of address of
+                        // the array + 4* dimension
+                        ADDRESS* a = int_address(0);
+                        $$ = assignable_variable(a);
+                    }
+                } else {
+                    syntax_error("Invalid identifier in array length check");
+                }
+
+            } else if(!check_metatype(a->type, MT_RECORD)) {
                 incorrect_type_error(a->value.symbol->name, "record");
                 $$ = NULL;
             } else {
@@ -636,6 +653,13 @@ pre_unary_operator:
 
 /* Syntax Errors */
 
+check_statement_list:
+    statement_list
+    | error {
+        syntax_error("Expected a statement list");
+    }
+    ;
+
 check_type_literal:
     TYPE
     | error {
@@ -654,13 +678,6 @@ check_r_parenthesis:
     R_PARENTHESIS
     | error {
         syntax_error(") expected to match opening (");
-    }
-    ;
-
-check_l_bracket:
-    L_BRACKET
-    | error {
-        syntax_error("[ expected to open declaration block");
     }
     ;
 
