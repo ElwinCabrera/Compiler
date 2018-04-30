@@ -55,7 +55,7 @@ SYMTYPE* expression_type(EXPRESSION* e) {
                 case A_RECORD:
                     return e->value.assignable->variable->type;
                 case A_ARRAY:
-                    return e->value.assignable->array->type;
+                    return e->value.assignable->array->type->element_type;
             }
         default:
             return NULL;
@@ -124,6 +124,9 @@ EXPRESSION* binary_expression(TAC_OP op, EXPRESSION* x, EXPRESSION* y) {
                         break;
                     case I_LESS_THAN:
                         a = boolean_address(xa->value.integer < ya->value.integer);
+                        break;
+                    case I_EQUAL:
+                        a = boolean_address(xa->value.integer == ya->value.integer);
                         break;
                     default:
                         printf("You can't compare two integer constants with op %d\n", op);
