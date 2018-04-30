@@ -181,17 +181,22 @@ void asm_sub(int block, TAC* code) {
     REG rd = get_dest_register(code->result);
 
     if(check_typename(code->result->type, "integer")) {
-        if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
-            // Unary minus
-            add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
-            add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
-        } else if(rs1 == NO_REGISTER) {
-            add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->x->value.integer));
-            add_atype(block, ASM_ADD, rd, NEGPOS, rs1, false, false, false);
-        } else if(rs2 == NO_REGISTER) {
-            add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
+
+        if(!code->y) {
+
         } else {
-            add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+            // if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
+            //     // Unary minus
+            //     add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
+            //     add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
+            // } else if(rs1 == NO_REGISTER) {
+            //     add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->x->value.integer));
+            //     add_atype(block, ASM_ADD, rd, NEGPOS, rs1, false, false, false);
+            // } else if(rs2 == NO_REGISTER) {
+            //     add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
+            // } else {
+            //     add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+            // }
         }
     } else {
         /*
