@@ -174,6 +174,12 @@ ADDRESS* assignable_rvalue(ASSIGNABLE* a) {
 }
 
 ADDRESS* handle_assignment(ASSIGNABLE* a, EXPRESSION* e) {
+    
+    if(!a) {
+        return NULL;
+    }
+
+    
     INTERMEDIATE_CODE* code_table = get_intermediate_code();
     ADDRESS* adr = assignable_lvalue(a);
 
