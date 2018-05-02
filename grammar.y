@@ -648,6 +648,7 @@ post_unary_operator:
 
 pre_unary_operator:
     SUB_OR_NEG
+    | ADD
     | NOT
     | INT2REAL
     | REAL2INT

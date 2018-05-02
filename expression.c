@@ -69,6 +69,11 @@ EXPRESSION* unary_expression(TAC_OP op, EXPRESSION* x) {
     if(!type_check_unary_expression(op, x)) {
         invalid_unary_expression(op, tx ? tx->name : "NULL");
     }
+
+    if(op == I_ADD) {
+        return x;
+    }
+
     SYMTYPE* result_type = lval_type(op, tx, NULL);
     ADDRESS* a = temp_address(result_type);
     TAC* code;
@@ -192,6 +197,7 @@ TC_RESULT type_check_unary_expression(int op, EXPRESSION* x) {
         case I_INT2REAL:
             return check_typename(lhs, "integer") ? PASS : FAIL;
         case I_SUB:
+        case I_ADD:
             return (check_typename(lhs, "integer") | check_typename(lhs, "real")) ? PASS : FAIL;
         case I_IS_NULL:
             return x && (x->meta == E_ASSIGNABLE && x->value.assignable->meta != A_VARIABLE) ? PASS : FAIL;
