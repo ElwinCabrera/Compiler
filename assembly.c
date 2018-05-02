@@ -176,33 +176,33 @@ void asm_sub(int block, TAC* code) {
         RD = RS1 - RS2
     */
 
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
+    // REG rs1 = get_source_register(code->x);
+    // REG rs2 = get_source_register(code->y);
+    // REG rd = get_dest_register(code->result);
 
-    if(check_typename(code->result->type, "integer")) {
+    // if(check_typename(code->result->type, "integer")) {
 
-        if(!code->y) {
+    //     if(!code->y) {
 
-        } else {
-            // if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
-            //     // Unary minus
-            //     add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
-            //     add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
-            // } else if(rs1 == NO_REGISTER) {
-            //     add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->x->value.integer));
-            //     add_atype(block, ASM_ADD, rd, NEGPOS, rs1, false, false, false);
-            // } else if(rs2 == NO_REGISTER) {
-            //     add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
-            // } else {
-            //     add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
-            // }
-        }
-    } else {
-        /*
-            Floating point arithmetic
-        */
-    }
+    //     } else {
+    //         if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
+    //             // Unary minus
+    //             add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
+    //             add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
+    //         } else if(rs1 == NO_REGISTER) {
+    //             add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->x->value.integer));
+    //             add_atype(block, ASM_ADD, rd, NEGPOS, rs1, false, false, false);
+    //         } else if(rs2 == NO_REGISTER) {
+    //             add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
+    //         } else {
+    //             add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+    //         }
+    //     }
+    // } else {
+    //     /*
+    //         Floating point arithmetic
+    //     */
+    // }
 }
 
 void asm_multiply(int block, TAC* code) {
@@ -241,15 +241,15 @@ void asm_less_than(int block, TAC* code) {
 
 void asm_equal(int block, TAC* code) {
     
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
+    // REG rs1 = get_source_register(code->x);
+    // REG rs2 = get_source_register(code->y);
+    // REG rd = get_dest_register(code->result);
 
-    if(rs1 == NO_REGISTER) {
+    // if(rs1 == NO_REGISTER) {
 
-    } else if(rs2 == NO_REGISTER) {
+    // } else if(rs2 == NO_REGISTER) {
 
-    }
+    // }
 
 }
 

@@ -56,13 +56,27 @@ bool match_same_register(LINKED_LIST* l, void* reg) {
 
 REG get_parameter_register(ADDRESS* a) {
     if(!a) {
-        return NO_REGISTER;
+        return NULL_ADDRESS;
     }
+
+    for(int i = ARG0; i <= ARG3; i++) {
+        LINKED_LIST* descriptor = *get_register_descriptor(i);
+        if(!descriptor) {
+            add_address_to_descriptor(i, a);
+            LOCATION* l = register_location(i);
+            a->value.symbol->address_descriptor = ll_insertfront(a->value.symbol->address_descriptor, l);
+            return i;
+        } else if(ll_find(descriptor, a, pointer_match)) {
+            return i;
+        }
+    }
+
+    return NO_REGISTER;
 }
 
 REG get_dest_register(ADDRESS* a) {
     if(!a) {
-        printf("Tried to cried a destination register for a null address.\n");
+        printf("Tried to create a destination register for a null address.\n");
         return NO_REGISTER;
     }
 
@@ -71,7 +85,7 @@ REG get_dest_register(ADDRESS* a) {
     }
 
     if(a->meta != AT_SYMBOL && a->meta != AT_TEMPORARY) {
-        printf("Tried to cried a destination register for a non-symbol.\n");
+        printf("Tried to create a destination register for a non-symbol.\n");
         return NO_REGISTER;
     }
 
@@ -104,11 +118,11 @@ REG get_dest_register(ADDRESS* a) {
 REG get_source_register(ADDRESS* a) {
     
     if(!a) {
-        return NO_REGISTER;
+        return NULL_ADDRESS;
     }
 
     if(a->meta != AT_SYMBOL && a->meta != AT_TEMPORARY) {
-        return NO_REGISTER;
+        return CONST_ADDRESS;
     }
 
     LOCATION* where = ll_find(a->value.symbol->address_descriptor, NULL, match_first_register);

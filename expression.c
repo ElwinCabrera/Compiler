@@ -133,8 +133,8 @@ EXPRESSION* binary_expression(TAC_OP op, EXPRESSION* x, EXPRESSION* y) {
                         break;
                 }
                 ADDRESS* result = temp_address(result_type);
-                code = new_tac(I_ASSIGN, result, a, result);
-            } else if(xa && xa->meta == AT_REAL && ya && ya->meta == AT_INT) {
+                code = new_tac(I_ASSIGN, a, NULL, result);
+            } else if(xa && xa->meta == AT_REAL && ya && ya->meta == AT_REAL) {
                 ADDRESS* a;
                 switch(op) {
                     case I_ADD:
@@ -157,7 +157,7 @@ EXPRESSION* binary_expression(TAC_OP op, EXPRESSION* x, EXPRESSION* y) {
                         break;
                 }
                 ADDRESS* result = temp_address(result_type);
-                code = new_tac(I_ASSIGN, result, a, result);
+                code = new_tac(I_ASSIGN, a, NULL, result);
             } else {
                 code = new_tac(op, xa, ya, temp_address(result_type));
             }

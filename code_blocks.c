@@ -7,6 +7,8 @@
 BLOCK* new_code_block(int i) {
     BLOCK* b = malloc(sizeof(BLOCK));
     b->code = NULL;
+    b->live_on_exit = NULL;
+    b->edges = NULL;
     b->label = i;
     return b;
 }

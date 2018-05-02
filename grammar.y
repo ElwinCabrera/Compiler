@@ -1,4 +1,5 @@
 %{
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "stack.h"
@@ -99,11 +100,12 @@ SYMBOL* insert_new_symbol(SYMTYPE*, char*, int, char*);
 %type <integer> next_instruction;
 %type <stack> ablock argument_list non_empty_argument_list case_list;
 
-%left IS_NULL;
+%left AND OR;
+%left EQUAL_TO LESS_THAN;
 %left ADD SUB_OR_NEG;
 %left MUL DIV REM;
-%left AND OR EQUAL_TO LESS_THAN;
 %right pre_unary_prec
+%left IS_NULL;
 %left L_PARENTHESIS R_PARENTHESIS
 
 %token <string> T_INTEGER
