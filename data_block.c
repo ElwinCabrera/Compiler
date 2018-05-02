@@ -82,23 +82,19 @@ DATA* new_string_data(ADDRESS* a){
 DATA* store_in_data_block(ADDRESS* a) {
 
     DATA_BLOCK* db = get_data_block();
-    
-    LINKED_LIST* constants = db->constants;
 
-    DATA* d = ll_find(constants, a, match_const);
+    DATA* d = NULL;
 
-    if(!d) {
-        switch(a->meta) {
-            case AT_REAL:
-                d = new_real_data(a);
-                break;
-            case AT_STRING:
-                d = new_string_data(a);
-                break;
-            default:
-                printf("Improperly storing data in data block\n");
-                break;
-        }
+    switch(a->meta) {
+        case AT_REAL:
+            d = new_real_data(a);
+            break;
+        case AT_STRING:
+            d = new_string_data(a);
+            break;
+        default:
+            printf("Improperly storing data in data block\n");
+            break;
     }
 
     db->constants = ll_insertfront(db->constants, d);
