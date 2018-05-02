@@ -122,7 +122,7 @@ REG get_source_register(ADDRESS* a) {
     }
 
     if(a->meta != AT_SYMBOL && a->meta != AT_TEMPORARY) {
-        return CONST_ADDRESS;
+        return CONST_VALUE;
     }
 
     LOCATION* where = ll_find(a->value.symbol->address_descriptor, NULL, match_first_register);

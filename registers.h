@@ -11,7 +11,7 @@ typedef struct register_destricptors {
 
 typedef enum reg {
     NULL_ADDRESS = -3,
-    CONST_ADDRESS = -2,
+    CONST_VALUE = -2,
     NO_REGISTER = -1,
     ZERO,
     ARG0,

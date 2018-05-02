@@ -127,7 +127,7 @@ void asm_heap_reserve(int block, ADDRESS* a, int size) {
     
     REG r = get_dest_register(a);
     add_atype(block, ASM_ADD, r, HEAP, ZERO, false, false, false);
-    add_itype(block, ASM_ADDI, HEAP, HEAP, const_location(size));
+    add_itype(block, ASM_SUBI, HEAP, HEAP, const_location(size));
 }
 
 
@@ -136,14 +136,6 @@ void asm_assignment(int block, TAC* code) {
         RD = RS1
     */
 
-    REG rs1 = get_source_register(code->x);
-    REG rd = get_dest_register(code->result);
-
-    if(rs1 == NO_REGISTER) {
-        add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
-    } else {
-        add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
-    }
 }
 
 
@@ -156,9 +148,9 @@ void asm_add(int block, TAC* code) {
     REG rd = get_dest_register(code->result);
     
     if(check_typename(code->result->type, "integer")) {
-        if(rs1 == NO_REGISTER) {
+        if(rs1 == CONST_VALUE) {
             add_itype(block, ASM_ADDI, rd, rs2, const_location(code->x->value.integer));
-        } else if(rs2 == NO_REGISTER) {
+        } else if(rs2 == CONST_VALUE) {
             add_itype(block, ASM_ADDI, rd, rs1, const_location(code->y->value.integer));
         } else {
             add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
