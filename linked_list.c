@@ -56,20 +56,20 @@ LINKED_LIST* ll_append(LINKED_LIST* head, LINKED_LIST* node) {
 }
 
 LINKED_LIST* ll_insertfront(LINKED_LIST* head, void* value) {
-    LINKED_LIST* new = malloc(sizeof(LINKED_LIST));
+    LINKED_LIST* new = ll_new(value);
     new->next = head;
-    new->value = value;
     return new;
 }
 
 LINKED_LIST* ll_insertback(LINKED_LIST* head, void* value) {
-    LINKED_LIST* new = malloc(sizeof(LINKED_LIST));
-    new->value = value;
+    LINKED_LIST* new = ll_new(value);
 
     if(!head) {
         return new;
     }
+
     LINKED_LIST* tail = head;
+
     while(ll_hasnext(tail)) {
         tail = ll_next(tail);
     }
