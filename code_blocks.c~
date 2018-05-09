@@ -27,7 +27,7 @@ void print_blocks(LINKED_LIST* l, FILE* f) {
 		printf("%d %d %d\n",code->result,code->x,code->y);
             code_list = ll_next(code_list);
         }
-	//print_graph(gr);
+	print_graph(gr);
 	optimize(gr);
 	code_list = b->code;
 	while(code_list) {

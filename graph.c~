@@ -127,7 +127,7 @@ VALNUM *find_node_with_address(GRAPH *gr,ADDRESS *add){
 	while(head!=NULL){
 		VALNUM *node = head->value;
 		ADDRESS *cur_add = node->result;
-		if(cur_add == add){
+		if(cur_add->value == add->value){
 			result = node;
 		} 
 		head = ll_next(head);
