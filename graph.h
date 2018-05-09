@@ -9,10 +9,10 @@
 typedef struct valnum {
 	TAC_OP op;
 	int number;
-	TAC *instruction;
+	TAC *code;
 	struct valnum* left;
 	struct valnum* right;
-	ADDRESS * value;
+	ADDRESS * result;
 } VALNUM;
 
 
@@ -29,5 +29,5 @@ VALNUM *find_node_with_address(GRAPH *,ADDRESS *);
 void process_tac(GRAPH *, TAC *);
 void add_to_graph(GRAPH *,VALNUM *);
 void print_graph(GRAPH*);
-
+void optimize(GRAPH *);
 #endif
