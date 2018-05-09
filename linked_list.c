@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "linked_list.h"
 
 LINKED_LIST* ll_new(void* value) {
@@ -67,15 +68,12 @@ LINKED_LIST* ll_insertback(LINKED_LIST* head, void* value) {
     if(!head) {
         return new;
     }
-
     LINKED_LIST* tail = head;
-
     while(ll_hasnext(tail)) {
         tail = ll_next(tail);
     }
 
     tail->next = new;
-    
     return head;
 }
 
