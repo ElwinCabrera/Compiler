@@ -134,7 +134,31 @@ void asm_heap_reserve(int block, ADDRESS* a, int size) {
 void asm_assignment(int block, TAC* code) {
     /*
         RD = RS1
+        or
+        RD = constant
     */
+    
+    REG rs1 = get_source_register(code->x);
+    REG rs2 = get_source_register(code->y);
+    REG rd = get_dest_register(code->result);
+    
+    if(rs1 == CONST_VALUE){
+    	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+    } else if (rs2 == CONST_VALUE) {
+    	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
+    } else {
+    
+    	if(rs1 ==NO_REGISTER){
+    		add_atype(block, ASM_ADD, rd, rs2, ZERO, false, false, false);
+    	} else if (rs2 == NO_REGISTER){
+    		add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
+    	} else {
+    		
+    	}
+    }
+    
+    
+    
 
 }
 
@@ -152,8 +176,12 @@ void asm_add(int block, TAC* code) {
             add_itype(block, ASM_ADDI, rd, rs2, const_location(code->x->value.integer));
         } else if(rs2 == CONST_VALUE) {
             add_itype(block, ASM_ADDI, rd, rs1, const_location(code->y->value.integer));
-        } else {
+        }else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE ){
+        	add_itype(block, ASM_ADDI, rs1, ZERO, const_location(code->x->value.integer));
+        	add_itype(block, ASM_ADDI, rs2, ZERO, const_location(code->y->value.integer));
             add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
+        } else {
+        	add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
         }
     } else {
         /*
@@ -168,51 +196,105 @@ void asm_sub(int block, TAC* code) {
         RD = RS1 - RS2
     */
 
-    // REG rs1 = get_source_register(code->x);
-    // REG rs2 = get_source_register(code->y);
-    // REG rd = get_dest_register(code->result);
+     REG rs1 = get_source_register(code->x);
+     REG rs2 = get_source_register(code->y);
+     REG rd = get_dest_register(code->result);
 
-    // if(check_typename(code->result->type, "integer")) {
+     if(check_typename(code->result->type, "integer")) {
 
-    //     if(!code->y) {
+         if(!code->y) {
 
-    //     } else {
-    //         if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
-    //             // Unary minus
-    //             add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
-    //             add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
-    //         } else if(rs1 == NO_REGISTER) {
-    //             add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->x->value.integer));
-    //             add_atype(block, ASM_ADD, rd, NEGPOS, rs1, false, false, false);
-    //         } else if(rs2 == NO_REGISTER) {
-    //             add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
-    //         } else {
-    //             add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
-    //         }
-    //     }
-    // } else {
-    //     /*
-    //         Floating point arithmetic
-    //     */
-    // }
+         } else {
+             if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
+                 // Unary minus
+                 add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
+                 add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
+             } else if(rs1 == NO_REGISTER) {
+                 add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->y->value.integer));
+                 add_atype(block, ASM_ADD, rd, NEGPOS, rs2, false, false, false);
+             } else if(rs2 == NO_REGISTER) {
+                 add_itype(block, ASM_SUBI, rd, rs1, const_location(code->x->value.integer));
+             } else {
+                 add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+             }
+         }
+     } else {
+         /*
+             Floating point arithmetic
+         */
+     }
+     
+     
 }
 
 void asm_multiply(int block, TAC* code) {
     /*
         JMP to multiply routine
     */
+    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(code->x);
+    REG rs2 = get_source_register(code->y);
+    
+    if(check_typename(code->result->type, "integer")) {
+    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+    }
+    
+    /* TODO:
+    		-have it branch to the right location 'div_and_mod'
+    			-possible fix: just put all the constant subrutines at the beginning and 
+    							give them constant labels that dont change.
+    							e.x. like 'LABEL01' this one never changes 
+    */
+     
+    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    
 }
 
 void asm_divide(int block, TAC* code) {
     /*
         JMP to divide routine
     */
+    
+REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(code->x);
+    REG rs2 = get_source_register(code->y);
+    
+    if(check_typename(code->result->type, "integer")) {
+    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+    }
+    /* TODO:
+    		-have it branch to the right location 'div_and_mod'
+    			-possible fix: just put all the constant subrutines at the beginning and 
+    							give them constant labels that dont change.
+    							e.x. like 'LABEL01' this one never changes 
+    */
+     
+    add_btype(block, ASM_BRANCHL, 1, false, false); 
 }
 
 void asm_modulus(int block, TAC* code) {
     /*
         JMP to modulus routine
     */
+    
+    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(code->x);
+    REG rs2 = get_source_register(code->y);
+    
+    if(check_typename(code->result->type, "integer")) {
+    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+    }
+    /* TODO:
+    		-have it branch to the right location 'div_and_mod'
+    			-possible fix: just put all the constant subrutines at the beginning and 
+    							give them constant labels that dont change.
+    							e.x. like 'LABEL01' this one never changes 
+    */
+     
+    add_btype(block, ASM_BRANCHL, 1, false, false); 
 }
 
 void asm_less_than(int block, TAC* code) {
@@ -233,15 +315,16 @@ void asm_less_than(int block, TAC* code) {
 
 void asm_equal(int block, TAC* code) {
     
-    // REG rs1 = get_source_register(code->x);
-    // REG rs2 = get_source_register(code->y);
-    // REG rd = get_dest_register(code->result);
+     REG rs1 = get_source_register(code->x);
+     REG rs2 = get_source_register(code->y);
+     REG rd = get_dest_register(code->result);
 
-    // if(rs1 == NO_REGISTER) {
-
-    // } else if(rs2 == NO_REGISTER) {
-
-    // }
+     if(rs1 == NO_REGISTER) {
+     	add_atype(block, ASM_SUB, rd, rs2, ZERO, true, false, false );
+		
+     } else if(rs2 == NO_REGISTER) {
+		add_atype(block, ASM_SUB, rd, rs1, ZERO, true, false, false );
+     }
 
 }
 
@@ -523,7 +606,112 @@ void print_asm_code(FILE* f) {
 
         asm_list = ll_next(asm_list);
     }
+    
+    //Arguments:
+    //R1 = A0 = 1st operand
+    //R2 = A1 = 2nd operand
+    
+    //Other Registers Used:
+    //T1, T3, T4, T5
+    
+    //Return:
+    //T2  = result 
+    
+    fprintf(f, "\nMultiply");
+    fprintf(f, "\tSUBS T2 R1 R0\n");
+    fprintf(f, "\t\t\tBPZ checkPos2\n");
+    fprintf(f, "\t\t\tADD R19 R1 R0\n");
+    fprintf(f, "\t\t\tADD R1 R20 R0\n");
+    fprintf(f, "\t\t\tADDI T3 R0 #1\n");
+    fprintf(f, "checkPos2");
+    fprintf(f, "\tSUBS T2 R2 R0\n");
+    fprintf(f, "\t\t\tBPZ doMult\n");
+    fprintf(f, "\t\t\tADD R19 R2 R0\n");
+    fprintf(f, "\t\t\tADD T1 R20 R0\n");
+    fprintf(f, "\t\t\tXOR T3 T3 T3\n");
+    fprintf(f, "doMult");
+    fprintf(f, "\t\tXOR T2 T2 T2\n");
+    fprintf(f, "\t\t\tADDI T4 T4 #1\n");
+    fprintf(f, "MultLoop");
+    fprintf(f, "\tADD T2 T2 R1\n");
+    fprintf(f, "\t\t\tSUBS R2 R2 T4\n");
+    fprintf(f, "\t\t\tBNE MultLoop\n");
+    fprintf(f, "\t\t\tSUBS T3 T3 R0\n");
+    fprintf(f, "\t\t\tBEQ multDone\n");
+    fprintf(f, "\t\t\tADD R19 T2 R0\n");
+    fprintf(f, "\t\t\tADD T2 R20 R0\n");
+    fprintf(f, "multDone");
+    fprintf(f, "\tADD R0 R0 R0\n");
+    fprintf(f, "\t\t\tBR");
+    
+    
+    
+	//Arguments:
+	//R1 = AO = dividend , R2 = A1 = divisor
 
+	//Other Registers Used:
+	//T0 =  = counter for 15 bit division, initially 15
+	//T1 =  =quotient 
+	//T2 =  =remainder 
+	//T3 =  =dividend's negative flag
+	//T4 =  =divisors neg flag 
+	//T5 =  =logical AND and logical OR of T3 & T4
+	//T6 = scratch
+
+	//Return:
+	//R13 = S0 = quotient
+	//R14 = S1 = remainder
+	
+	fprintf(f,"\ndiv_and_mod");
+	fprintf(f,"\t\tADDI T3 R0 #0\n");
+	fprintf(f,"\t\t\t\tADDI T4 R0 #0\n");
+	fprintf(f,"\t\t\t\tSUBS T6 R1 R0\n");
+	fprintf(f,"\t\t\t\tBPZ checkDivisorNeg\n");
+	fprintf(f,"\t\t\t\tADDI T3 R0 #1\n");
+	fprintf(f,"\t\t\t\tADDI R19 R1 #0\n");
+	fprintf(f,"\t\t\t\tADDI R1 R20 #0\n");
+	fprintf(f,"checkDivisorNeg");
+	fprintf(f,"\tSUBS T6 R2 R0\n");
+	fprintf(f,"\t\t\t\tBPZ doDivision\n");
+	fprintf(f,"\t\t\t\tADDI T4 R0 #1\n");
+	fprintf(f,"\t\t\t\tADDI R19 R2 #0\n");
+	fprintf(f,"\t\t\t\tADDI T2 R20 #0\n");
+	fprintf(f,"doDivision");
+	fprintf(f,"\t\tADDI T0 R0 #15\n");
+	fprintf(f,"\t\t\t\tADDI T1 R0 #0\n");
+	fprintf(f,"\t\t\t\tLSL R2 R2 T0\n");
+	fprintf(f,"\t\t\t\tADDI T2 R1 #0\n");
+	fprintf(f,"divisionLoop");
+	fprintf(f,"\tSUBS T2 T2 R2\n");
+	fprintf(f,"\t\t\t\tBLT remainderLT0\n");
+	fprintf(f,"\t\t\t\tADDI T6 R0 #1\n");
+	fprintf(f,"\t\t\t\tLSL T1 T1 T6\n");
+	fprintf(f,"\t\t\t\tADDI T1 T1 #1\n");
+	fprintf(f,"divisorRS");
+	fprintf(f,"\t\tLSR R2 R2 T6\n");
+	fprintf(f,"\t\t\t\tSUBS T6 T0 R0\n");
+	fprintf(f,"\t\t\t\tBLE exitDivision\n");
+	fprintf(f,"\t\t\t\tSUBI T0 T0 #1\n");
+	fprintf(f,"\t\t\t\tB divisionLoop\n");
+	fprintf(f,"remainderLT0");
+	fprintf(f,"\tADD T2 T2 R2\n");
+	fprintf(f,"\t\t\t\tADDI T6 R0 #1\n");
+	fprintf(f,"\t\t\t\tLSL T1 T1 T6\n");
+	fprintf(f,"\t\t\t\tB divisorRS\n");
+	fprintf(f,"exitDivision");
+	fprintf(f,"\tOR T5 T3 T4\n");
+	fprintf(f,"\t\t\t\tSUBS T6 T5 R0\n");
+	fprintf(f,"\t\t\t\tBEQ divisionDone\n");
+	fprintf(f,"\t\t\t\tAND T5 T3 T4\n");
+	fprintf(f,"\t\t\t\tSUBS T6 T5 R0\n");
+	fprintf(f,"\t\t\t\tBEQ divisionDone\n");
+	fprintf(f,"\t\t\t\tADD R19 T1 R0\n");
+	fprintf(f,"\t\t\t\tADD T1 R20 R0\n");
+	fprintf(f,"divisionDone");
+	fprintf(f,"\tADD R13 T1 R0\n");
+	fprintf(f,"\t\t\t\tADD R14 T2 R0\n");
+	fprintf(f,"\t\t\t\tBR\n");
+	
 
 }
 
@@ -621,12 +809,25 @@ void add_atype(int label, ASM_OP op, REG rd, REG rs1, REG rs2, bool s, bool c, C
     Probably want to restrict this int to a short
 */
 void add_itype(int label, ASM_OP op, REG rd, REG rs1, LOCATION* immediate) {
+
+	if (immediate->value.constant > 0xFFFF){
+		add_itype(label, ASM_ADDI, rd, ZERO, const_location(immediate->value.constant & 0xFFFF));
+    	int im = immediate->value.constant >> 16;
+    	add_itype(label, ASM_LUI, rd, ZERO, const_location(im));
+    	add_atype(label, op, rd, rs1, rd, false, false, false);
+    	return;
+    	 
+    }
+    
     ASSEMBLY* a = new_asm(label);
     a->type = IT_I;
     a->op = op;
     a->rd = rd;
     a->rs1 = rs1;
-    a->immediate = immediate;
+    a->immediate = immediate ;
+    
+    
+    
     assembly_code = ll_insertfront(assembly_code, a);
 }
 
