@@ -137,28 +137,17 @@ void asm_assignment(int block, TAC* code) {
         or
         RD = constant
     */
-    
+
     REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
-    
-    if(rs1 == CONST_VALUE){
-    	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
-    	
-    } else if (rs2 == CONST_VALUE){
-    	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
-    	
-    } else if ( rs2 != CONST_VALUE && rs1 != CONST_VALUE) {
-    	if(rs1 == NULL_ADDRESS){
-    		add_atype(block, ASM_ADD, rd, rs2, ZERO, false, false, false);
-    	}else if(rs2 == NULL_ADDRESS){
-    		add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
-    	}
-    	
+
+    if(rs1 == CONST_VALUE) {
+        REG rd = get_dest_register(code->result);
+        add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+    } else {
+        LOCATION* l = register_location(rs1);
+        code->result->value.symbol->address_descriptor = ll_insertfront(code->result->value.symbol->address_descriptor, l);
     }
-
 }
-
 
 void asm_add(int block, TAC* code) {
     /*
@@ -174,9 +163,7 @@ void asm_add(int block, TAC* code) {
         } else if(rs2 == CONST_VALUE) {
             add_itype(block, ASM_ADDI, rd, rs1, const_location(code->y->value.integer));
         }else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE ){
-        	add_itype(block, ASM_ADDI, rs1, ZERO, const_location(code->x->value.integer));
-        	add_itype(block, ASM_ADDI, rs2, ZERO, const_location(code->y->value.integer));
-            add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
+
         } else {
         	add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
         }
@@ -835,7 +822,7 @@ void add_atype(int label, ASM_OP op, REG rd, REG rs1, REG rs2, bool s, bool c, C
 */
 void add_itype(int label, ASM_OP op, REG rd, REG rs1, LOCATION* immediate) {
 
-	if (immediate->value.constant > 0xFFFF){
+	if (immediate->type == W_CONSTANT && immediate->value.constant > 0xFFFF){
 		add_itype(label, ASM_ADDI, rd, ZERO, const_location(immediate->value.constant & 0xFFFF));
     	int im = immediate->value.constant >> 16;
     	add_itype(label, ASM_LUI, rd, ZERO, const_location(im));
