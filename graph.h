@@ -29,5 +29,5 @@ VALNUM *find_node_with_address(GRAPH *,ADDRESS *);
 void process_tac(GRAPH *, TAC *);
 void add_to_graph(GRAPH *,VALNUM *);
 void print_graph(GRAPH*);
-void optimize(GRAPH *);
+void optimize_common_exp(GRAPH *);
 #endif

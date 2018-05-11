@@ -24,11 +24,10 @@ void print_blocks(LINKED_LIST* l, FILE* f) {
         while(code_list) {
             TAC* code = ll_value(code_list);
 	    process_tac(gr,code);
-		printf("%d %d %d\n",code->result,code->x,code->y);
             code_list = ll_next(code_list);
         }
 	//print_graph(gr);
-	optimize(gr);
+	optimize_common_exp(gr);
 	code_list = b->code;
 	while(code_list) {
 		TAC *code = ll_value(code_list);

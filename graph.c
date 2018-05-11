@@ -8,7 +8,7 @@
 #include "linked_list.h"
 #include "code_blocks.h"
 #include "intermediate_code.h"
-
+#include <stdbool.h>
 
 VALNUM* newNode(TAC_OP OP,int number, TAC *code, VALNUM *left, VALNUM *right, ADDRESS *value){
 	VALNUM *node = malloc(sizeof(VALNUM));
@@ -95,7 +95,7 @@ void process_tac(GRAPH *gr, TAC *code){
 	
 }
 
-void optimize(GRAPH *gr){
+void optimize_common_exp(GRAPH *gr){
 	// optimization, changing all the code
 	LINKED_LIST *head = gr->head;
 	while(head){
@@ -127,7 +127,7 @@ VALNUM *find_node_with_address(GRAPH *gr,ADDRESS *add){
 	while(head!=NULL){
 		VALNUM *node = head->value;
 		ADDRESS *cur_add = node->result;
-		if(cur_add == add){
+		if(is_same_address(cur_add,add)){
 			result = node;
 		} 
 		head = ll_next(head);
@@ -141,7 +141,6 @@ VALNUM *find_node_with_expression(GRAPH *gr,TAC_OP op, VALNUM *left, VALNUM *rig
 		VALNUM *node = head->value;
 		TAC_OP cur = node->op;
 		if(node->op == cur && node->left == left && node->right == right){
-			printf("YEAH\n");
 			return node;
 		}
 		head = ll_next(head);

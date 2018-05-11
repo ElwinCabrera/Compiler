@@ -194,13 +194,14 @@ bool is_same_address(ADDRESS *a, ADDRESS *b){
 		return true;
 	if(a->meta != b->meta)
 		return false;
-	if(a->meta == AT_SYMBOL){
+	printf("CHECKING RN\n");
+	if(a->meta == AT_SYMBOL){printf("NOT SYM\n");
 		return (a->value.symbol == b->value.symbol);
 		}
-	if(a->meta == AT_INT){
+	if(a->meta == AT_INT){printf("NOT INT\n");
 		return (a->value.integer == b->value.integer);
 		}
-	if(a->meta == AT_REAL){
+	if(a->meta == AT_REAL){printf("AHA\n");
 		return (a->value.real == b->value.real);
 		}
 	return false;
