@@ -1,0 +1,13 @@
+// DATA
+
+
+// END DATA
+
+MAIN			 NOP 0 0 0
+
+LABEL01 		 NOP 0 0 0
+
+LABEL02 		 ADD R7 R5 R6
+			 ADD R8 R5 R6
+
+LABEL10 		 NOP 0 0 0

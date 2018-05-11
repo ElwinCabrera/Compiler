@@ -27,7 +27,7 @@ void print_blocks(LINKED_LIST* l, FILE* f) {
             code_list = ll_next(code_list);
         }
 	//print_graph(gr);
-	optimize(gr);
+	optimize_dead_code(gr);
 	code_list = b->code;
 	while(code_list) {
 		TAC *code = ll_value(code_list);

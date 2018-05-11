@@ -20,15 +20,6 @@ void print_blocks(LINKED_LIST* l, FILE* f) {
         BLOCK* b = ll_value(l);
         fprintf(f ? f : stdout, "Block %d\n", b->label);
         LINKED_LIST* code_list = b->code;
-	GRAPH *gr = newGraph();
-        while(code_list) {
-            TAC* code = ll_value(code_list);
-	    process_tac(gr,code);
-            code_list = ll_next(code_list);
-        }
-	//print_graph(gr);
-	optimize_common_exp(gr);
-	code_list = b->code;
 	while(code_list) {
 		TAC *code = ll_value(code_list);
 		print_tac(code, f);	

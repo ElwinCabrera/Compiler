@@ -95,7 +95,7 @@ void process_tac(GRAPH *gr, TAC *code){
 	
 }
 
-void optimize(GRAPH *gr){
+void optimize_common_exp(GRAPH *gr){
 	// optimization, changing all the code
 	LINKED_LIST *head = gr->head;
 	while(head){
@@ -121,6 +121,50 @@ void optimize(GRAPH *gr){
 
 }
 
+bool is_live_node(VALNUM *node){
+	if(!node->code)
+		return false;
+	return node->code->x_live || node->code->y_live || node->code->result_live;
+}
+
+void optimize_dead_code(GRAPH *gr){
+	// need to check every root nodes
+	// if the two children are live, else delete
+	int parent[gr->current->number+1];
+	//find the parents of all node
+	LINKED_LIST *head = gr->head;
+	while(head){
+		VALNUM *node = head->value;
+		parent[node->number] = -1;
+		if(node->left)
+			parent[node->left->number] = node->number;
+		if(node->right)
+			parent[node->right->number] = node->number;
+		head = ll_next(head);
+	}
+	bool changed = true;
+	printf("ELIMINATING\n");
+	while(changed){
+		changed = false;
+		head = gr->head;
+		while(head){
+			VALNUM *node = head->value;
+			if(parent[node->number] == -1 && is_live_node(node) == false){
+				if (node->code)
+					node->code->op = I_NOP;
+				parent[node->number] = -2;
+				if(node->left)
+					parent[node->left->number] = -1;
+				if(node->right)
+					parent[node->right->number] = -1;
+				changed = true;
+			}
+			head = ll_next(head);
+		}
+	}
+}
+
+
 VALNUM *find_node_with_address(GRAPH *gr,ADDRESS *add){
 	VALNUM *result = NULL;
 	LINKED_LIST *head = gr->head;
@@ -139,9 +183,14 @@ VALNUM *find_node_with_expression(GRAPH *gr,TAC_OP op, VALNUM *left, VALNUM *rig
 	LINKED_LIST *head = gr->head;
 	while(head!=NULL){
 		VALNUM *node = head->value;
-		TAC_OP cur = node->op;
-		if(node->op == cur && node->left == left && node->right == right){
+		if(node->op == op && node->left == left && node->right == right){
 			return node;
+		}
+		if(op == I_MULTIPLY || op == I_ADD){
+			//account for commutativity for + *
+			if(node->left == right && node->right == left){
+				return node;
+			}		
 		}
 		head = ll_next(head);
 	}

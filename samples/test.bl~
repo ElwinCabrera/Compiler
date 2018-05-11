@@ -1,0 +1,19 @@
+Block 0
+[000]	 goto L2
+
+Block 1
+[001]	 NOP
+
+Block 2
+[002]	 t0 = c + b
+[003]	 a = t0
+[004]	 t1 = d - a
+[005]	 b = t1
+[006]	 t2 = c + b
+[007]	 c = t2
+[008]	 t3 = t1
+[009]	 d = t3
+
+Block 10
+[010]	 goto L1
+
