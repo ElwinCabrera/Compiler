@@ -93,7 +93,7 @@ void asm_function_call(int block, TAC* code) {
     add_itype(block, ASM_STR, STACK, PC, const_location(0));
 
 
-    add_btype(block, ASM_BRANCHL, fn->label->value.label, false, 0);
+    add_btype(block, ASM_BRANCHL, label_location(fn->label->value.label), false, 0);
 
     /*
         Next instruction is executed on return from the function:
@@ -144,21 +144,18 @@ void asm_assignment(int block, TAC* code) {
     
     if(rs1 == CONST_VALUE){
     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
-    } else if (rs2 == CONST_VALUE) {
+    	
+    } else if (rs2 == CONST_VALUE){
     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
-    } else {
-    
-    	if(rs1 ==NO_REGISTER){
+    	
+    } else if ( rs2 != CONST_VALUE && rs1 != CONST_VALUE) {
+    	if(rs1 == NULL_ADDRESS){
     		add_atype(block, ASM_ADD, rd, rs2, ZERO, false, false, false);
-    	} else if (rs2 == NO_REGISTER){
+    	}else if(rs2 == NULL_ADDRESS){
     		add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
-    	} else {
-    		
     	}
+    	
     }
-    
-    
-    
 
 }
 
@@ -202,21 +199,18 @@ void asm_sub(int block, TAC* code) {
 
      if(check_typename(code->result->type, "integer")) {
 
-         if(!code->y) {
-
+         if(rs2 == NULL_ADDRESS) {
+			// Unary minus
+			add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
+            add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
          } else {
-             if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
-                 // Unary minus
-                 add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
-                 add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
-             } else if(rs1 == NO_REGISTER) {
-                 add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->y->value.integer));
-                 add_atype(block, ASM_ADD, rd, NEGPOS, rs2, false, false, false);
-             } else if(rs2 == NO_REGISTER) {
-                 add_itype(block, ASM_SUBI, rd, rs1, const_location(code->x->value.integer));
-             } else {
-                 add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
-             }
+         	if(rs1 == CONST_VALUE){
+         		add_itype(block, ASM_SUBI, rd, rs2, const_location(code->x->value.integer));
+         	} else if (rs2 == CONST_VALUE) {
+         		add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
+         	}else {
+             add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+            }
          }
      } else {
          /*
@@ -236,18 +230,27 @@ void asm_multiply(int block, TAC* code) {
     REG rs2 = get_source_register(code->y);
     
     if(check_typename(code->result->type, "integer")) {
-    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
-    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
-    }
+        if(rs1 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG0, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+        }
     
+        if(rs2 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG1, ZERO, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        }
+    }
     /* TODO:
-    		-have it branch to the right location 'div_and_mod'
+    		-have it branch to the right location 'multiply'
     			-possible fix: just put all the constant subrutines at the beginning and 
     							give them constant labels that dont change.
     							e.x. like 'LABEL01' this one never changes 
     */
      
-    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    add_btype(block, ASM_BRANCHL, strlabel_location("multiply"), false, false); 
+    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
     
 }
 
@@ -256,13 +259,22 @@ void asm_divide(int block, TAC* code) {
         JMP to divide routine
     */
     
-REG rd = get_dest_register(code->result);
+    REG rd = get_dest_register(code->result);
     REG rs1 = get_source_register(code->x);
     REG rs2 = get_source_register(code->y);
     
     if(check_typename(code->result->type, "integer")) {
-    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
-    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        if(rs1 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG0, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+        }
+    
+        if(rs2 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG1, ZERO, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        }
     }
     /* TODO:
     		-have it branch to the right location 'div_and_mod'
@@ -271,7 +283,8 @@ REG rd = get_dest_register(code->result);
     							e.x. like 'LABEL01' this one never changes 
     */
      
-    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
+    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
 }
 
 void asm_modulus(int block, TAC* code) {
@@ -284,8 +297,17 @@ void asm_modulus(int block, TAC* code) {
     REG rs2 = get_source_register(code->y);
     
     if(check_typename(code->result->type, "integer")) {
-    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
-    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        if(rs1 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG0, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+        }
+    
+        if(rs2 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG1, ZERO, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        }
     }
     /* TODO:
     		-have it branch to the right location 'div_and_mod'
@@ -294,7 +316,8 @@ void asm_modulus(int block, TAC* code) {
     							e.x. like 'LABEL01' this one never changes 
     */
      
-    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
+    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
 }
 
 void asm_less_than(int block, TAC* code) {
@@ -353,13 +376,13 @@ void asm_conditional_branch(int block, TAC* code) {
             otherwise insert nothing. Note we end up w/ dead code
         */
         if(code->x->value.boolean) {
-            add_btype(block, ASM_BRANCH, code->result->value.label, false, false);
+            add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, false);
         } else {
             add_atype(block, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
         }
     } else {
         add_atype(block, ASM_AND, rs, rs, ZERO, true, false, false);
-        add_btype(block, ASM_BRANCH, code->result->value.label, false, NE);
+        add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, NE);
     }
 }
 
@@ -372,22 +395,22 @@ void asm_conditional_branch_false(int block, TAC* code) {
             otherwise insert nothing. Note we end up w/ dead code
         */
         if(!code->x->value.boolean) {
-            add_btype(block, ASM_BRANCH, code->result->value.label, false, false);
+            add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, false);
         } else {
             add_atype(block, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
         }
     } else {
         add_atype(block, ASM_AND, rs, rs, ZERO, true, false, false);
-        add_btype(block, ASM_BRANCH, code->result->value.label, false, EQ);
+        add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, EQ);
     }
 }
 
 void asm_conditional_branch_not_equal(int block, TAC* code) {
     REG rs1 = get_source_register(code->x);
     REG rd = get_dest_register(code->x);
-    add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
+    add_itype(block, ASM_ADDI, rd, ZERO, label_location(code->y->value.integer));
     add_atype(block, ASM_SUB, rd, rs1, rd, true, false, false);
-    add_btype(block, ASM_BRANCH, code->result->value.label, false, EQ);
+    add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, EQ);
 }
 
 void asm_array_access(int block, TAC* code) {
@@ -469,7 +492,7 @@ void create_assembly(int label, TAC* code) {
             asm_function_return(label, code->result->value.symbol);
             break;
         case I_GOTO:
-            add_btype(label, ASM_JMP, code->result->value.label, false, 0);
+            add_jtype(label, label_location(code->result->value.label));
             break;
         case I_ASSIGN:
             asm_assignment(label, code);
@@ -598,7 +621,9 @@ void print_asm_code(FILE* f) {
                     get_condition_str(a->cond),
                     a->c ? "C" : "");
                 if(a->immediate) {
-                    fprintf(f, " LABEL%02d",  a->immediate->value.constant);
+                    char* immediate = create_location_str(a->immediate);
+                    fprintf(f, " %s", immediate);
+                    free(immediate);
                 }
                 fprintf(f, "\n");
                 break;
@@ -617,7 +642,7 @@ void print_asm_code(FILE* f) {
     //Return:
     //T2  = result 
     
-    fprintf(f, "\nMultiply");
+    fprintf(f, "\nmultiply");
     fprintf(f, "\tSUBS T2 R1 R0\n");
     fprintf(f, "\t\t\tBPZ checkPos2\n");
     fprintf(f, "\t\t\tADD R19 R1 R0\n");
@@ -831,21 +856,19 @@ void add_itype(int label, ASM_OP op, REG rd, REG rs1, LOCATION* immediate) {
     assembly_code = ll_insertfront(assembly_code, a);
 }
 
-void add_jtype(int label, int immediate) {
+void add_jtype(int label, LOCATION* w) {
     ASSEMBLY* a = new_asm(label);
     a->type = IT_J;
     a->op = ASM_JMP;
-    a->immediate = const_location(immediate);
+    a->immediate = w;
     assembly_code = ll_insertfront(assembly_code, a);
 }
 
-void add_btype(int label, ASM_OP op, int immediate, bool c, CONDITION cond) {
+void add_btype(int label, ASM_OP op, LOCATION* immediate, bool c, CONDITION cond) {
     ASSEMBLY* a = new_asm(label);
     a->type = IT_B;
     a->op = op;
-    if(immediate) {
-        a->immediate = const_location(immediate);
-    }
+    a->immediate = immediate;
     a->c = c;
     a->cond = cond;
     assembly_code = ll_insertfront(assembly_code, a);
