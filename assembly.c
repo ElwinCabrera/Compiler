@@ -144,24 +144,23 @@ void asm_assignment(int block, TAC* code) {
     
     if(rs1 == CONST_VALUE){
     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
-    } else if (rs2 == CONST_VALUE) {
+    	
+    } else if (rs2 == CONST_VALUE){
     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
-    } else {
-    
-    	if(rs1 ==NO_REGISTER){
+    	
+    } else if ( rs2 != CONST_VALUE && rs1 != CONST_VALUE) {
+    	if(rs1 == NULL_ADDRESS){
     		add_atype(block, ASM_ADD, rd, rs2, ZERO, false, false, false);
-    	} else if (rs2 == NO_REGISTER){
+    	}else if(rs2 == NULL_ADDRESS){
     		add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
-    	} else {
-    		
     	}
+    	
     }
     
     
     
 
 }
-
 
 void asm_add(int block, TAC* code) {
     /*
@@ -191,10 +190,11 @@ void asm_add(int block, TAC* code) {
 
 }
 
-void asm_sub(int block, TAC* code) {
+vvoid asm_sub(int block, TAC* code) {
     /*
         RD = RS1 - RS2
     */
+   
 
      REG rs1 = get_source_register(code->x);
      REG rs2 = get_source_register(code->y);
@@ -202,21 +202,18 @@ void asm_sub(int block, TAC* code) {
 
      if(check_typename(code->result->type, "integer")) {
 
-         if(!code->y) {
-
+         if(rs2 == NULL_ADDRESS) {
+			// Unary minus
+			add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
+            add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
          } else {
-             if(rs1 == NO_REGISTER && rs2 == NO_REGISTER) {
-                 // Unary minus
-                 add_itype(block, ASM_ADDI, POSNEG, ZERO, const_location(code->x->value.integer));
-                 add_atype(block, ASM_ADD, rd, NEGPOS, ZERO, false, false, false);
-             } else if(rs1 == NO_REGISTER) {
-                 add_itype(block, ASM_ADDI, POSNEG, rs2, const_location(code->y->value.integer));
-                 add_atype(block, ASM_ADD, rd, NEGPOS, rs2, false, false, false);
-             } else if(rs2 == NO_REGISTER) {
-                 add_itype(block, ASM_SUBI, rd, rs1, const_location(code->x->value.integer));
-             } else {
-                 add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
-             }
+         	if(rs1 == CONST_VALUE){
+         		add_itype(block, ASM_SUBI, rd, rs2, const_location(code->x->value.integer));
+         	} else if (rs2 == CONST_VALUE) {
+         		add_itype(block, ASM_SUBI, rd, rs1, const_location(code->y->value.integer));
+         	}else {
+             add_atype(block, ASM_SUB, rd, rs1, rs2, false, false, false);
+            }
          }
      } else {
          /*
@@ -318,14 +315,33 @@ void asm_equal(int block, TAC* code) {
      REG rs1 = get_source_register(code->x);
      REG rs2 = get_source_register(code->y);
      REG rd = get_dest_register(code->result);
-
-     if(rs1 == NO_REGISTER) {
-     	add_atype(block, ASM_SUB, rd, rs2, ZERO, true, false, false );
-		
-     } else if(rs2 == NO_REGISTER) {
-		add_atype(block, ASM_SUB, rd, rs1, ZERO, true, false, false );
+     
+     add_itype(block, ASM_ADDI, rd, ZERO, const_location(0));
+     
+     if (rs1 == CONST_VALUE) {
+     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+     	add_atype(block, ASM_SUB, rd, rd, rs2, true, false, false);
+     	
+     	 
+     } else if (rs2 == CONST_VALUE){
+     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, rd, rs1, rd, true, false, false);
+     	 
+     } else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE){
+     	add_itype(block, ASM_ADDI, LINK1, ZERO, const_location(code->x->value.integer));
+     	add_itype(block, ASM_ADDI, LINK2, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, rd, LINK1, LINK2, true, false, false);
+     	
+     } else {
+     	add_atype(block, ASM_SUB, rd, rs1, rs2, true, false, false);
      }
-
+     
+     add_itype(block, ASM_ADDI, rd, ZERO, const_location(4));
+     add_atype(block, ASM_AND, rd, rd,CPSR, false, false, false);
+     
+     add_itype(block, ASM_ADDI, LINK1, ZERO, const_location(2));
+     add_atype(block, ASM_LSR, rd, rd, LINK1, false, false, false);
+  
 }
 
 void asm_not(int block, TAC* code) {
