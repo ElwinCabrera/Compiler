@@ -84,13 +84,13 @@ void asc_print(FILE* f, LINE* l) {
     }
 
     if(l->lineno >= 0) {
-        fprintf(f, "%d:", l->lineno);
+        fprintf(f, "%02d:", l->lineno);
         char* scopes = scope_str(l->scope);
         if(scopes) {
             fprintf(f, "%s", scopes);
             free(scopes);
         }
-        fprintf(f, "\t\t\t %s\n", l->text);
+        fprintf(f, "\t\t\t\t %s\n", l->text);
     } else {
         fprintf(f, "%s\n", l->text);
     }
@@ -117,9 +117,10 @@ void asc_append(char* str) {
         strcat(l->text, token);
         token = strtok(NULL, "\n\r");
         while(token != NULL)  {
+            asc_line_scope(get_symbol_table()->current_scope);
             asc_new_line(++lineno);
-            LINE* l = ll_value(asc_internal->lines);
-            strcat(l->text, token);
+            LINE* nl = ll_value(asc_internal->lines);
+            strcat(nl->text, token);
             token = strtok(NULL, "\n\r");
         }
     }
@@ -130,6 +131,8 @@ void asc_print_file() {
     if(!asc_internal) {
         return;
     }
+
+    asc_line_scope(get_symbol_table()->current_scope);
 
     ll_reverse(&asc_internal->lines);
 
