@@ -8,6 +8,20 @@ LOCATION* new_location() {
     return l;
 }
 
+LOCATION* label_location(int w) {
+    LOCATION* l = new_location();
+    l->type = W_LABEL;
+    l->value.constant = w;
+    return l;
+}
+
+LOCATION* strlabel_location(char* str) {
+    LOCATION* l = new_location();
+    l->type = W_STRLABEL;
+    l->value.strlabel = strdup(str);
+    return l;
+}
+
 LOCATION* register_location(REG r) {
     LOCATION* l = new_location();
     l->type = W_REGISTER;
@@ -51,6 +65,13 @@ char* create_location_str(LOCATION* l) {
         case W_MEMORY:
             str = malloc(12 * sizeof(char));
             sprintf(str, "0x%04x", l->value.pointer);
+            break;
+        case W_STRLABEL:
+            str = strdup(l->value.strlabel);
+            break;
+        case W_LABEL:
+            str = malloc(16 * sizeof(char));
+            sprintf(str, "LABEL%d", l->value.constant);
             break;
         case W_CONSTANT:
             str = malloc(12 * sizeof(char));

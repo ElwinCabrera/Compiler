@@ -76,7 +76,7 @@ typedef enum condition_code {
 } CONDITION;
 
 typedef enum i_type {
-    IT_A,
+    IT_A = 1,
     IT_I,
     IT_J,
     IT_B,
@@ -103,8 +103,8 @@ void create_assembly(int, struct tac*);
 void add_nop(int);
 void add_atype(int, ASM_OP, REG, REG, REG, bool, bool, CONDITION);
 void add_itype(int, ASM_OP, REG, REG, struct location*);
-void add_jtype(int, int);
-void add_btype(int, ASM_OP, int, bool, CONDITION);
+void add_jtype(int, struct location*);
+void add_btype(int, ASM_OP, struct location*, bool, CONDITION);
 void process_code_blocks(LINKED_LIST*);
 void print_asm_code(FILE*);
 

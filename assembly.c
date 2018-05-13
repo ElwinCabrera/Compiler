@@ -8,6 +8,7 @@
 #include "registers.h"
 #include "location.h"
 #include "types.h"
+#include "stack.h"
 
 static LINKED_LIST* assembly_code = NULL;
 
@@ -38,18 +39,66 @@ void create_assembly_block(BLOCK* block) {
     clear_temporary_registers();
 }
 
+int compute_stack_space(SCOPE* s, int base_offset) {
+
+    if(!s) {
+        return base_offset;
+    }
+
+    reorder_symbols(s);
+
+    LINKED_LIST* syms = s->symbols;
+
+    int space_needed = base_offset;
+
+    while(syms) {
+        SYMBOL* s = ll_value(syms);
+        s->stack_offset = space_needed;
+        printf("Offset for %s: %d\n", s->name, space_needed);
+        space_needed += get_type_width(s->type);
+        syms = ll_next(syms);
+    }
+
+
+    int pad_4 = (space_needed % 4);
+
+    if(pad_4 > 0) {
+        space_needed += (4 - pad_4);
+    }
+
+    LINKED_LIST* children = s->children;
+    
+    int children_max = space_needed;
+    
+    while(children) {
+        SCOPE* child_s = ll_value(children);
+        int width = compute_stack_space(child_s, space_needed);
+        
+        if(width > children_max) {
+            children_max = width;
+        }
+
+        children = ll_next(children);
+    }
+
+    return children_max;
+}
+
 void asm_stack_variables(int block, SCOPE* s) {
     /*
         Whenever you enter a scope that has sybols, allocate
         space on the stack for those
     */
+    int space = compute_stack_space(s, 0);
+    add_itype(block, ASM_ADDI, SP, TOP_SP, const_location(space));
+    printf("Needed stack space for scope %d: %d\n", s->id, space);
 }
 
 void asm_function_setup(int block, SYMBOL* fn) {
 
     /*
-        Anything that needs to be done before the 
-        stack vars are declared
+        Anything that needs to be done immediately
+        before control transfers to callee
     */
 
     if(!fn) {
@@ -58,6 +107,8 @@ void asm_function_setup(int block, SYMBOL* fn) {
 
 }
 
+STACK* params = NULL;
+
 void asm_parameter(int block, ADDRESS* a) {
     /*
         Can pick the argument registers if they're empty,
@@ -65,6 +116,7 @@ void asm_parameter(int block, ADDRESS* a) {
     */
 
     //REG rs = get_parameter_register(a);
+    params = stack_push(params, a);
 }
 
 void asm_function_call(int block, TAC* code) {
@@ -85,15 +137,12 @@ void asm_function_call(int block, TAC* code) {
     }
     
     // Space for return value
-    add_itype(block, ASM_ADDI, STACK, STACK, const_location(4));
+
 
     // Write the control link
 
-    add_itype(block, ASM_ADDI, STACK, STACK, const_location(4));
-    add_itype(block, ASM_STR, STACK, PC, const_location(0));
 
-
-    add_btype(block, ASM_BRANCHL, fn->label->value.label, false, 0);
+    add_btype(block, ASM_BRANCHL, label_location(fn->label->value.label), false, 0);
 
     /*
         Next instruction is executed on return from the function:
@@ -137,29 +186,16 @@ void asm_assignment(int block, TAC* code) {
         or
         RD = constant
     */
-    
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
-    
-    if(rs1 == CONST_VALUE){
-    	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
-    	
-    } else if (rs2 == CONST_VALUE){
-    	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
-    	
-    } else if ( rs2 != CONST_VALUE && rs1 != CONST_VALUE) {
-    	if(rs1 == NULL_ADDRESS){
-    		add_atype(block, ASM_ADD, rd, rs2, ZERO, false, false, false);
-    	}else if(rs2 == NULL_ADDRESS){
-    		add_atype(block, ASM_ADD, rd, rs1, ZERO, false, false, false);
-    	}
-    	
-    }
-    
-    
-    
 
+    REG rs1 = get_source_register(code->x);
+
+    if(rs1 == CONST_VALUE) {
+        REG rd = get_dest_register(code->result);
+        add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+    } else {
+        LOCATION* l = register_location(rs1);
+        code->result->value.symbol->address_descriptor = ll_insertfront(code->result->value.symbol->address_descriptor, l);
+    }
 }
 
 void asm_add(int block, TAC* code) {
@@ -176,9 +212,7 @@ void asm_add(int block, TAC* code) {
         } else if(rs2 == CONST_VALUE) {
             add_itype(block, ASM_ADDI, rd, rs1, const_location(code->y->value.integer));
         }else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE ){
-        	add_itype(block, ASM_ADDI, rs1, ZERO, const_location(code->x->value.integer));
-        	add_itype(block, ASM_ADDI, rs2, ZERO, const_location(code->y->value.integer));
-            add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
+
         } else {
         	add_atype(block, ASM_ADD, rd, rs1, rs2, false, false, false);
         }
@@ -190,7 +224,7 @@ void asm_add(int block, TAC* code) {
 
 }
 
-vvoid asm_sub(int block, TAC* code) {
+void asm_sub(int block, TAC* code) {
     /*
         RD = RS1 - RS2
     */
@@ -233,18 +267,27 @@ void asm_multiply(int block, TAC* code) {
     REG rs2 = get_source_register(code->y);
     
     if(check_typename(code->result->type, "integer")) {
-    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
-    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
-    }
+        if(rs1 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG0, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+        }
     
+        if(rs2 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG1, ZERO, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        }
+    }
     /* TODO:
-    		-have it branch to the right location 'div_and_mod'
+    		-have it branch to the right location 'multiply'
     			-possible fix: just put all the constant subrutines at the beginning and 
     							give them constant labels that dont change.
     							e.x. like 'LABEL01' this one never changes 
     */
      
-    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    add_btype(block, ASM_BRANCHL, strlabel_location("multiply"), false, false); 
+    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
     
 }
 
@@ -253,13 +296,22 @@ void asm_divide(int block, TAC* code) {
         JMP to divide routine
     */
     
-REG rd = get_dest_register(code->result);
+    REG rd = get_dest_register(code->result);
     REG rs1 = get_source_register(code->x);
     REG rs2 = get_source_register(code->y);
     
     if(check_typename(code->result->type, "integer")) {
-    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
-    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        if(rs1 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG0, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+        }
+    
+        if(rs2 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG1, ZERO, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        }
     }
     /* TODO:
     		-have it branch to the right location 'div_and_mod'
@@ -268,7 +320,8 @@ REG rd = get_dest_register(code->result);
     							e.x. like 'LABEL01' this one never changes 
     */
      
-    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
+    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
 }
 
 void asm_modulus(int block, TAC* code) {
@@ -281,8 +334,17 @@ void asm_modulus(int block, TAC* code) {
     REG rs2 = get_source_register(code->y);
     
     if(check_typename(code->result->type, "integer")) {
-    	add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
-    	add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        if(rs1 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG0, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG0, rs1, ZERO, false, false, false);
+        }
+    
+        if(rs2 == CONST_VALUE) {
+            add_itype(block, ASM_ADDI, ARG1, ZERO, const_location(code->y->value.integer));
+        } else {
+            add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
+        }
     }
     /* TODO:
     		-have it branch to the right location 'div_and_mod'
@@ -291,7 +353,8 @@ void asm_modulus(int block, TAC* code) {
     							e.x. like 'LABEL01' this one never changes 
     */
      
-    add_btype(block, ASM_BRANCHL, 1, false, false); 
+    add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
+    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
 }
 
 void asm_less_than(int block, TAC* code) {
@@ -369,13 +432,13 @@ void asm_conditional_branch(int block, TAC* code) {
             otherwise insert nothing. Note we end up w/ dead code
         */
         if(code->x->value.boolean) {
-            add_btype(block, ASM_BRANCH, code->result->value.label, false, false);
+            add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, false);
         } else {
             add_atype(block, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
         }
     } else {
         add_atype(block, ASM_AND, rs, rs, ZERO, true, false, false);
-        add_btype(block, ASM_BRANCH, code->result->value.label, false, NE);
+        add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, NE);
     }
 }
 
@@ -388,22 +451,22 @@ void asm_conditional_branch_false(int block, TAC* code) {
             otherwise insert nothing. Note we end up w/ dead code
         */
         if(!code->x->value.boolean) {
-            add_btype(block, ASM_BRANCH, code->result->value.label, false, false);
+            add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, false);
         } else {
             add_atype(block, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
         }
     } else {
         add_atype(block, ASM_AND, rs, rs, ZERO, true, false, false);
-        add_btype(block, ASM_BRANCH, code->result->value.label, false, EQ);
+        add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, EQ);
     }
 }
 
 void asm_conditional_branch_not_equal(int block, TAC* code) {
     REG rs1 = get_source_register(code->x);
     REG rd = get_dest_register(code->x);
-    add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
+    add_itype(block, ASM_ADDI, rd, ZERO, label_location(code->y->value.integer));
     add_atype(block, ASM_SUB, rd, rs1, rd, true, false, false);
-    add_btype(block, ASM_BRANCH, code->result->value.label, false, EQ);
+    add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, EQ);
 }
 
 void asm_array_access(int block, TAC* code) {
@@ -485,7 +548,7 @@ void create_assembly(int label, TAC* code) {
             asm_function_return(label, code->result->value.symbol);
             break;
         case I_GOTO:
-            add_btype(label, ASM_JMP, code->result->value.label, false, 0);
+            add_jtype(label, label_location(code->result->value.label));
             break;
         case I_ASSIGN:
             asm_assignment(label, code);
@@ -564,7 +627,7 @@ void print_asm_code(FILE* f) {
 
     print_data_block(f);
 
-    fprintf(f, "MAIN");
+    fprintf(f, "MAIN\t");
 
     LINKED_LIST* asm_list = assembly_code;
 
@@ -574,16 +637,16 @@ void print_asm_code(FILE* f) {
         if(a->label != label) {
             label = a->label;
             fprintf(f, "\nLABEL%02d ", label);
-        } else {
-            fprintf(f, "\t");
+        } else if(label != 0) {
+            fprintf(f, "\t\t");
         }
         
         switch(a->type) {
             case IT_NOP:
-                fprintf(f, "\t\t NOP 0 0 0\n");
+                fprintf(f, "\t\tNOP 0 0 0\n");
                 break;
             case IT_A:
-                fprintf(f, "\t\t %s%s%s%s R%d R%d", 
+                fprintf(f, "\t\t%s%s%s%s R%d R%d", 
                     get_asm_mnemonic(a->op),
                     get_condition_str(a->cond),
                     a->s ? "S" : "",
@@ -591,13 +654,13 @@ void print_asm_code(FILE* f) {
                     a->rd,
                     a->rs1);
                 if(a->rs2 >= 0) {
-                    fprintf(f, " R%d", a->rs2);
+                    fprintf(f, "R%d", a->rs2);
                 }
                 fprintf(f, "\n");
                 break;
             case IT_I: {
                 char* immediate = create_location_str(a->immediate);
-                fprintf(f, "\t\t %s R%d R%d %s\n", 
+                fprintf(f, "\t\t%s R%d R%d %s\n", 
                     get_asm_mnemonic(a->op),
                     a->rd,
                     a->rs1,
@@ -606,15 +669,17 @@ void print_asm_code(FILE* f) {
                 break;
             }
             case IT_J:
-                fprintf(f, "\t\t J LABEL%d\n", a->immediate->value.constant);
+                fprintf(f, "\t\tJ LABEL%d\n", a->immediate->value.constant);
                 break;
             case IT_B:
-                fprintf(f, "\t\t %s%s%s", 
+                fprintf(f, "\t\t%s%s%s", 
                     get_asm_mnemonic(a->op),
                     get_condition_str(a->cond),
                     a->c ? "C" : "");
                 if(a->immediate) {
-                    fprintf(f, " LABEL%02d",  a->immediate->value.constant);
+                    char* immediate = create_location_str(a->immediate);
+                    fprintf(f, " %s", immediate);
+                    free(immediate);
                 }
                 fprintf(f, "\n");
                 break;
@@ -633,32 +698,32 @@ void print_asm_code(FILE* f) {
     //Return:
     //T2  = result 
     
-    fprintf(f, "\nMultiply");
-    fprintf(f, "\tSUBS T2 R1 R0\n");
-    fprintf(f, "\t\t\tBPZ checkPos2\n");
-    fprintf(f, "\t\t\tADD R19 R1 R0\n");
-    fprintf(f, "\t\t\tADD R1 R20 R0\n");
-    fprintf(f, "\t\t\tADDI T3 R0 #1\n");
+    fprintf(f, "\nmultiply");
+    fprintf(f, "\t\tSUBS T2 R1 R0\n");
+    fprintf(f, "\t\t\t\tBPZ checkPos2\n");
+    fprintf(f, "\t\t\t\tADD R19 R1 R0\n");
+    fprintf(f, "\t\t\t\tADD R1 R20 R0\n");
+    fprintf(f, "\t\t\t\tADDI T3 R0 #1\n");
     fprintf(f, "checkPos2");
-    fprintf(f, "\tSUBS T2 R2 R0\n");
-    fprintf(f, "\t\t\tBPZ doMult\n");
-    fprintf(f, "\t\t\tADD R19 R2 R0\n");
-    fprintf(f, "\t\t\tADD T1 R20 R0\n");
-    fprintf(f, "\t\t\tXOR T3 T3 T3\n");
+    fprintf(f, "\t\tSUBS T2 R2 R0\n");
+    fprintf(f, "\t\t\t\tBPZ doMult\n");
+    fprintf(f, "\t\t\t\tADD R19 R2 R0\n");
+    fprintf(f, "\t\t\t\tADD T1 R20 R0\n");
+    fprintf(f, "\t\t\t\tXOR T3 T3 T3\n");
     fprintf(f, "doMult");
-    fprintf(f, "\t\tXOR T2 T2 T2\n");
-    fprintf(f, "\t\t\tADDI T4 T4 #1\n");
+    fprintf(f, "\t\t\tXOR T2 T2 T2\n");
+    fprintf(f, "\t\t\t\tADDI T4 T4 #1\n");
     fprintf(f, "MultLoop");
-    fprintf(f, "\tADD T2 T2 R1\n");
-    fprintf(f, "\t\t\tSUBS R2 R2 T4\n");
-    fprintf(f, "\t\t\tBNE MultLoop\n");
-    fprintf(f, "\t\t\tSUBS T3 T3 R0\n");
-    fprintf(f, "\t\t\tBEQ multDone\n");
-    fprintf(f, "\t\t\tADD R19 T2 R0\n");
-    fprintf(f, "\t\t\tADD T2 R20 R0\n");
+    fprintf(f, "\t\tADD T2 T2 R1\n");
+    fprintf(f, "\t\t\t\tSUBS R2 R2 T4\n");
+    fprintf(f, "\t\t\t\tBNE MultLoop\n");
+    fprintf(f, "\t\t\t\tSUBS T3 T3 R0\n");
+    fprintf(f, "\t\t\t\tBEQ multDone\n");
+    fprintf(f, "\t\t\t\tADD R19 T2 R0\n");
+    fprintf(f, "\t\t\t\tADD T2 R20 R0\n");
     fprintf(f, "multDone");
-    fprintf(f, "\tADD R0 R0 R0\n");
-    fprintf(f, "\t\t\tBR");
+    fprintf(f, "\t\tADD R0 R0 R0\n");
+    fprintf(f, "\t\t\t\tBR");
     
     
     
@@ -826,7 +891,7 @@ void add_atype(int label, ASM_OP op, REG rd, REG rs1, REG rs2, bool s, bool c, C
 */
 void add_itype(int label, ASM_OP op, REG rd, REG rs1, LOCATION* immediate) {
 
-	if (immediate->value.constant > 0xFFFF){
+	if (immediate->type == W_CONSTANT && immediate->value.constant > 0xFFFF){
 		add_itype(label, ASM_ADDI, rd, ZERO, const_location(immediate->value.constant & 0xFFFF));
     	int im = immediate->value.constant >> 16;
     	add_itype(label, ASM_LUI, rd, ZERO, const_location(im));
@@ -847,21 +912,19 @@ void add_itype(int label, ASM_OP op, REG rd, REG rs1, LOCATION* immediate) {
     assembly_code = ll_insertfront(assembly_code, a);
 }
 
-void add_jtype(int label, int immediate) {
+void add_jtype(int label, LOCATION* w) {
     ASSEMBLY* a = new_asm(label);
     a->type = IT_J;
     a->op = ASM_JMP;
-    a->immediate = const_location(immediate);
+    a->immediate = w;
     assembly_code = ll_insertfront(assembly_code, a);
 }
 
-void add_btype(int label, ASM_OP op, int immediate, bool c, CONDITION cond) {
+void add_btype(int label, ASM_OP op, LOCATION* immediate, bool c, CONDITION cond) {
     ASSEMBLY* a = new_asm(label);
     a->type = IT_B;
     a->op = op;
-    if(immediate) {
-        a->immediate = const_location(immediate);
-    }
+    a->immediate = immediate;
     a->c = c;
     a->cond = cond;
     assembly_code = ll_insertfront(assembly_code, a);

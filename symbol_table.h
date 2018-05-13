@@ -29,6 +29,7 @@ typedef struct symbol {
     struct symtype* type;
     struct scope* scope;
     struct linked_list* address_descriptor;
+    int stack_offset;
 } SYMBOL;
 
 typedef enum sc_type {

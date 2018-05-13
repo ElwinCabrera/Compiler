@@ -9,6 +9,7 @@ typedef struct block {
     struct linked_list* code;
     struct linked_list* edges;
     struct linked_list* live_on_exit;
+    struct linked_list* vars;
 } BLOCK;
 
 void print_blocks(struct linked_list*, FILE*);

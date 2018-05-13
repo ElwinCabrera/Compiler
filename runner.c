@@ -8,6 +8,7 @@
 #include "code_blocks.h"
 #include "linked_list.h"
 #include "assembly.h"
+#include "asc.h"
 
 extern int yyparse();
 extern void yyset_in(FILE *);
@@ -68,11 +69,16 @@ int main(int argc, char* argv[])
                 printf("ERROR(%d): Could not open file %s for writing\n", errno, asc_file_path);
             }
             free(asc_file_path);
-            set_asc_file(asc_file);
+            asc_init(asc_file);
         }
 
         yyset_in(inputFile);
-        printf("yyparse exit code: %d\n", yyparse());
+        
+        if(yyparse()) {
+            printf("WARNING: Unhandled syntax errors in compilation");
+        }
+
+        asc_print_file();
 
         if(st) { //specify to print symbol table
             char* symbol_file_path = malloc(strlen(program) + 4);

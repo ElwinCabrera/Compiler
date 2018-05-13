@@ -11,6 +11,7 @@ static SYMBOL_TABLE* symbols;
 SYMBOL_TABLE* get_symbol_table() {
   if(!symbols) {
     symbols = malloc(sizeof(SYMBOL_TABLE));
+    symbols->current_scope = NULL;
   }
   return symbols;
 }
@@ -94,6 +95,7 @@ SYMBOL* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
   insertNew->name = strdup(name);
   insertNew->meta = meta;
   insertNew->type = type;
+  insertNew->stack_offset = 0;
   insertNew->scope = NULL;
 
   return insertNew;
@@ -163,7 +165,7 @@ void print_scope(SCOPE* sc, FILE* f) {
 }
 
 void print_symbol(SYMBOL* symbol, int scope, FILE* f) {
-  if(!symbol || symbol->meta == ST_TEMPORARY) {
+  if(!symbol) {
     return;
   }
 
