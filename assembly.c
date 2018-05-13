@@ -10,6 +10,9 @@
 #include "types.h"
 #include "stack.h"
 
+static bool USED_DIVIDE = false;
+static bool USED_MULTIPLY = false;
+
 static LINKED_LIST* assembly_code = NULL;
 
 void process_code_blocks(LINKED_LIST* blocks) {
@@ -54,7 +57,7 @@ int compute_stack_space(SCOPE* s, int base_offset) {
     while(syms) {
         SYMBOL* s = ll_value(syms);
         s->stack_offset = space_needed;
-        printf("Offset for %s: %d\n", s->name, space_needed);
+        // printf("Offset for %s: %d\n", s->name, space_needed);
         space_needed += get_type_width(s->type);
         syms = ll_next(syms);
     }
@@ -91,7 +94,7 @@ void asm_stack_variables(int block, SCOPE* s) {
     */
     int space = compute_stack_space(s, 0);
     add_itype(block, ASM_ADDI, SP, TOP_SP, const_location(space));
-    printf("Needed stack space for scope %d: %d\n", s->id, space);
+    // printf("Needed stack space for scope %d: %d\n", s->id, space);
 }
 
 void asm_function_setup(int block, SYMBOL* fn) {
@@ -278,16 +281,13 @@ void asm_multiply(int block, TAC* code) {
         } else {
             add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
         }
+
+        
+        add_btype(block, ASM_BRANCHL, strlabel_location("multiply"), false, false); 
+        add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
+    } else {
+        add_atype(block, ASM_AND, ZERO, ZERO, ZERO, false, false, false);
     }
-    /* TODO:
-    		-have it branch to the right location 'multiply'
-    			-possible fix: just put all the constant subrutines at the beginning and 
-    							give them constant labels that dont change.
-    							e.x. like 'LABEL01' this one never changes 
-    */
-     
-    add_btype(block, ASM_BRANCHL, strlabel_location("multiply"), false, false); 
-    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
     
 }
 
@@ -312,16 +312,13 @@ void asm_divide(int block, TAC* code) {
         } else {
             add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
         }
+
+        add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
+        add_atype(block, ASM_ADD, rd, S0, ZERO, false, false, false);
+    } else {
+        add_atype(block, ASM_AND, rd, ZERO, ZERO, false, false, false);
     }
-    /* TODO:
-    		-have it branch to the right location 'div_and_mod'
-    			-possible fix: just put all the constant subrutines at the beginning and 
-    							give them constant labels that dont change.
-    							e.x. like 'LABEL01' this one never changes 
-    */
      
-    add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
-    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
 }
 
 void asm_modulus(int block, TAC* code) {
@@ -345,16 +342,15 @@ void asm_modulus(int block, TAC* code) {
         } else {
             add_atype(block, ASM_ADD, ARG1, rs2, ZERO, false, false, false);
         }
+
+        add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
+        add_atype(block, ASM_ADD, rd, S1, ZERO, false, false, false);
+
+    } else {
+        add_atype(block, ASM_AND, rd, ZERO, ZERO, false, false, false);
     }
-    /* TODO:
-    		-have it branch to the right location 'div_and_mod'
-    			-possible fix: just put all the constant subrutines at the beginning and 
-    							give them constant labels that dont change.
-    							e.x. like 'LABEL01' this one never changes 
-    */
-     
-    add_btype(block, ASM_BRANCHL, strlabel_location("div_and_mod"), false, false); 
-    add_atype(block, ASM_ADD, rd, T2, ZERO, false, false, false);
+
+
 }
 
 void asm_less_than(int block, TAC* code) {
@@ -363,14 +359,6 @@ void asm_less_than(int block, TAC* code) {
     REG rs2 = get_source_register(code->y);
     REG rd = get_dest_register(code->result);
 
-    if(rs1 == NO_REGISTER) {
-
-    } else if(rs2 == NO_REGISTER) {
-
-    } else {
-        add_atype(block, I_SUB, rd, rs1, rs2, true, false, false);
-        add_atype(block, I_ADD, rd, ZERO, ZERO, false, false, PZ);
-    }
 }
 
 void asm_equal(int block, TAC* code) {
@@ -400,7 +388,7 @@ void asm_equal(int block, TAC* code) {
      }
      
      add_itype(block, ASM_ADDI, rd, ZERO, const_location(4));
-     add_atype(block, ASM_AND, rd, rd,CPSR, false, false, false);
+     add_atype(block, ASM_AND, rd, rd, CPSR, false, false, false);
      
      add_itype(block, ASM_ADDI, LINK1, ZERO, const_location(2));
      add_atype(block, ASM_LSR, rd, rd, LINK1, false, false, false);
@@ -411,7 +399,7 @@ void asm_not(int block, TAC* code) {
 
     REG rs = get_source_register(code->x);
     REG rd = get_dest_register(code->result);
-    if(rs == NO_REGISTER) {
+    if(rs == CONST_VALUE) {
         if(code->x->value.boolean) {
             add_atype(block, ASM_NOT, rd, ZERO, NO_REGISTER, false, false, false);
         } else {
@@ -425,7 +413,7 @@ void asm_not(int block, TAC* code) {
 
 void asm_conditional_branch(int block, TAC* code) {
     REG rs = get_source_register(code->x);
-    if(rs == NO_REGISTER) {
+    if(rs == CONST_VALUE) {
             /*
             Boolean constant in test case:
             If it's true, insert unconditional jump,
@@ -444,7 +432,7 @@ void asm_conditional_branch(int block, TAC* code) {
 
 void asm_conditional_branch_false(int block, TAC* code) {
     REG rs = get_source_register(code->x);
-    if(rs == NO_REGISTER) {
+    if(rs == CONST_VALUE) {
         /*
             Boolean constant in test case:
             If it's false, insert unconditional jump,
@@ -483,7 +471,7 @@ void asm_array_assign(int block, TAC* code) {
     int width = get_type_width(code->result->type->element_type);
     int dimension_spots = code->result->type->dimensions * 4;
     add_itype(block, ASM_ADDI, rd, rd, memory_location(4 + dimension_spots + (width * code->x->value.integer)));
-    if(rs1 == NO_REGISTER) {
+    if(rs1 == CONST_VALUE) {
         add_itype(block, ASM_STR, rd, ZERO, const_location(code->y->value.integer));
     } else {
         add_itype(block, ASM_STR, rd, rs1, const_location(0));
@@ -560,7 +548,7 @@ void create_assembly(int label, TAC* code) {
             asm_heap_reserve(label, code->result, code->x->value.integer);
             break;
         case I_RELEASE:
-            // Nothing
+            add_atype(label, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
             break;
         case I_TEST:
             asm_conditional_branch(label, code);
@@ -590,12 +578,15 @@ void create_assembly(int label, TAC* code) {
             asm_sub(label, code);
             break;
         case I_MULTIPLY:
+            USED_MULTIPLY = true;
             asm_multiply(label, code);
             break;
         case I_DIVIDE:
+            USED_DIVIDE = true;
             asm_divide(label, code);
             break;
         case I_MODULUS:
+            USED_DIVIDE = true;
             asm_modulus(label, code);
             break;
         case I_LESS_THAN:
@@ -608,8 +599,10 @@ void create_assembly(int label, TAC* code) {
             asm_not(label, code);
             break;
         case I_INT2REAL:
+            add_atype(label, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
             break;
         case I_REAL2INT:
+            add_atype(label, ASM_ADD, ZERO, ZERO, ZERO, false, false, false);
             break;
         default: 
             printf("Unsupported ASM translation: %d\n", code->op);
@@ -654,7 +647,7 @@ void print_asm_code(FILE* f) {
                     a->rd,
                     a->rs1);
                 if(a->rs2 >= 0) {
-                    fprintf(f, "R%d", a->rs2);
+                    fprintf(f, " R%d", a->rs2);
                 }
                 fprintf(f, "\n");
                 break;
@@ -669,7 +662,7 @@ void print_asm_code(FILE* f) {
                 break;
             }
             case IT_J:
-                fprintf(f, "\t\tJ LABEL%d\n", a->immediate->value.constant);
+                fprintf(f, "\t\tJ LABEL%02d\n", a->immediate->value.constant);
                 break;
             case IT_B:
                 fprintf(f, "\t\t%s%s%s", 
@@ -697,34 +690,36 @@ void print_asm_code(FILE* f) {
     
     //Return:
     //T2  = result 
+
+    if(USED_MULTIPLY) {
     
-    fprintf(f, "\nmultiply");
-    fprintf(f, "\t\tSUBS T2 R1 R0\n");
-    fprintf(f, "\t\t\t\tBPZ checkPos2\n");
-    fprintf(f, "\t\t\t\tADD R19 R1 R0\n");
-    fprintf(f, "\t\t\t\tADD R1 R20 R0\n");
-    fprintf(f, "\t\t\t\tADDI T3 R0 #1\n");
-    fprintf(f, "checkPos2");
-    fprintf(f, "\t\tSUBS T2 R2 R0\n");
-    fprintf(f, "\t\t\t\tBPZ doMult\n");
-    fprintf(f, "\t\t\t\tADD R19 R2 R0\n");
-    fprintf(f, "\t\t\t\tADD T1 R20 R0\n");
-    fprintf(f, "\t\t\t\tXOR T3 T3 T3\n");
-    fprintf(f, "doMult");
-    fprintf(f, "\t\t\tXOR T2 T2 T2\n");
-    fprintf(f, "\t\t\t\tADDI T4 T4 #1\n");
-    fprintf(f, "MultLoop");
-    fprintf(f, "\t\tADD T2 T2 R1\n");
-    fprintf(f, "\t\t\t\tSUBS R2 R2 T4\n");
-    fprintf(f, "\t\t\t\tBNE MultLoop\n");
-    fprintf(f, "\t\t\t\tSUBS T3 T3 R0\n");
-    fprintf(f, "\t\t\t\tBEQ multDone\n");
-    fprintf(f, "\t\t\t\tADD R19 T2 R0\n");
-    fprintf(f, "\t\t\t\tADD T2 R20 R0\n");
-    fprintf(f, "multDone");
-    fprintf(f, "\t\tADD R0 R0 R0\n");
-    fprintf(f, "\t\t\t\tBR");
-    
+        fprintf(f, "\nmultiply");
+        fprintf(f, "\t\tSUBS T2 R1 R0\n");
+        fprintf(f, "\t\t\t\tBPZ checkPos2\n");
+        fprintf(f, "\t\t\t\tADD R19 R1 R0\n");
+        fprintf(f, "\t\t\t\tADD R1 R20 R0\n");
+        fprintf(f, "\t\t\t\tADDI T3 R0 #1\n");
+        fprintf(f, "checkPos2");
+        fprintf(f, "\t\tSUBS T2 R2 R0\n");
+        fprintf(f, "\t\t\t\tBPZ doMult\n");
+        fprintf(f, "\t\t\t\tADD R19 R2 R0\n");
+        fprintf(f, "\t\t\t\tADD T1 R20 R0\n");
+        fprintf(f, "\t\t\t\tXOR T3 T3 T3\n");
+        fprintf(f, "doMult");
+        fprintf(f, "\t\t\tXOR T2 T2 T2\n");
+        fprintf(f, "\t\t\t\tADDI T4 T4 #1\n");
+        fprintf(f, "MultLoop");
+        fprintf(f, "\t\tADD T2 T2 R1\n");
+        fprintf(f, "\t\t\t\tSUBS R2 R2 T4\n");
+        fprintf(f, "\t\t\t\tBNE MultLoop\n");
+        fprintf(f, "\t\t\t\tSUBS T3 T3 R0\n");
+        fprintf(f, "\t\t\t\tBEQ multDone\n");
+        fprintf(f, "\t\t\t\tADD R19 T2 R0\n");
+        fprintf(f, "\t\t\t\tADD T2 R20 R0\n");
+        fprintf(f, "multDone");
+        fprintf(f, "\t\tADD R0 R0 R0\n");
+        fprintf(f, "\t\t\t\tBR");
+    }
     
     
 	//Arguments:
@@ -743,56 +738,58 @@ void print_asm_code(FILE* f) {
 	//R13 = S0 = quotient
 	//R14 = S1 = remainder
 	
-	fprintf(f,"\ndiv_and_mod");
-	fprintf(f,"\t\tADDI T3 R0 #0\n");
-	fprintf(f,"\t\t\t\tADDI T4 R0 #0\n");
-	fprintf(f,"\t\t\t\tSUBS T6 R1 R0\n");
-	fprintf(f,"\t\t\t\tBPZ checkDivisorNeg\n");
-	fprintf(f,"\t\t\t\tADDI T3 R0 #1\n");
-	fprintf(f,"\t\t\t\tADDI R19 R1 #0\n");
-	fprintf(f,"\t\t\t\tADDI R1 R20 #0\n");
-	fprintf(f,"checkDivisorNeg");
-	fprintf(f,"\tSUBS T6 R2 R0\n");
-	fprintf(f,"\t\t\t\tBPZ doDivision\n");
-	fprintf(f,"\t\t\t\tADDI T4 R0 #1\n");
-	fprintf(f,"\t\t\t\tADDI R19 R2 #0\n");
-	fprintf(f,"\t\t\t\tADDI T2 R20 #0\n");
-	fprintf(f,"doDivision");
-	fprintf(f,"\t\tADDI T0 R0 #15\n");
-	fprintf(f,"\t\t\t\tADDI T1 R0 #0\n");
-	fprintf(f,"\t\t\t\tLSL R2 R2 T0\n");
-	fprintf(f,"\t\t\t\tADDI T2 R1 #0\n");
-	fprintf(f,"divisionLoop");
-	fprintf(f,"\tSUBS T2 T2 R2\n");
-	fprintf(f,"\t\t\t\tBLT remainderLT0\n");
-	fprintf(f,"\t\t\t\tADDI T6 R0 #1\n");
-	fprintf(f,"\t\t\t\tLSL T1 T1 T6\n");
-	fprintf(f,"\t\t\t\tADDI T1 T1 #1\n");
-	fprintf(f,"divisorRS");
-	fprintf(f,"\t\tLSR R2 R2 T6\n");
-	fprintf(f,"\t\t\t\tSUBS T6 T0 R0\n");
-	fprintf(f,"\t\t\t\tBLE exitDivision\n");
-	fprintf(f,"\t\t\t\tSUBI T0 T0 #1\n");
-	fprintf(f,"\t\t\t\tB divisionLoop\n");
-	fprintf(f,"remainderLT0");
-	fprintf(f,"\tADD T2 T2 R2\n");
-	fprintf(f,"\t\t\t\tADDI T6 R0 #1\n");
-	fprintf(f,"\t\t\t\tLSL T1 T1 T6\n");
-	fprintf(f,"\t\t\t\tB divisorRS\n");
-	fprintf(f,"exitDivision");
-	fprintf(f,"\tOR T5 T3 T4\n");
-	fprintf(f,"\t\t\t\tSUBS T6 T5 R0\n");
-	fprintf(f,"\t\t\t\tBEQ divisionDone\n");
-	fprintf(f,"\t\t\t\tAND T5 T3 T4\n");
-	fprintf(f,"\t\t\t\tSUBS T6 T5 R0\n");
-	fprintf(f,"\t\t\t\tBEQ divisionDone\n");
-	fprintf(f,"\t\t\t\tADD R19 T1 R0\n");
-	fprintf(f,"\t\t\t\tADD T1 R20 R0\n");
-	fprintf(f,"divisionDone");
-	fprintf(f,"\tADD R13 T1 R0\n");
-	fprintf(f,"\t\t\t\tADD R14 T2 R0\n");
-	fprintf(f,"\t\t\t\tBR\n");
-	
+    if(USED_DIVIDE) {
+
+        fprintf(f,"\ndiv_and_mod");
+        fprintf(f,"\t\tADDI T3 R0 #0\n");
+        fprintf(f,"\t\t\t\tADDI T4 R0 #0\n");
+        fprintf(f,"\t\t\t\tSUBS T6 R1 R0\n");
+        fprintf(f,"\t\t\t\tBPZ checkDivisorNeg\n");
+        fprintf(f,"\t\t\t\tADDI T3 R0 #1\n");
+        fprintf(f,"\t\t\t\tADDI R19 R1 #0\n");
+        fprintf(f,"\t\t\t\tADDI R1 R20 #0\n");
+        fprintf(f,"checkDivisorNeg");
+        fprintf(f,"\tSUBS T6 R2 R0\n");
+        fprintf(f,"\t\t\t\tBPZ doDivision\n");
+        fprintf(f,"\t\t\t\tADDI T4 R0 #1\n");
+        fprintf(f,"\t\t\t\tADDI R19 R2 #0\n");
+        fprintf(f,"\t\t\t\tADDI T2 R20 #0\n");
+        fprintf(f,"doDivision");
+        fprintf(f,"\t\tADDI T0 R0 #15\n");
+        fprintf(f,"\t\t\t\tADDI T1 R0 #0\n");
+        fprintf(f,"\t\t\t\tLSL R2 R2 T0\n");
+        fprintf(f,"\t\t\t\tADDI T2 R1 #0\n");
+        fprintf(f,"divisionLoop");
+        fprintf(f,"\tSUBS T2 T2 R2\n");
+        fprintf(f,"\t\t\t\tBLT remainderLT0\n");
+        fprintf(f,"\t\t\t\tADDI T6 R0 #1\n");
+        fprintf(f,"\t\t\t\tLSL T1 T1 T6\n");
+        fprintf(f,"\t\t\t\tADDI T1 T1 #1\n");
+        fprintf(f,"divisorRS");
+        fprintf(f,"\t\tLSR R2 R2 T6\n");
+        fprintf(f,"\t\t\t\tSUBS T6 T0 R0\n");
+        fprintf(f,"\t\t\t\tBLE exitDivision\n");
+        fprintf(f,"\t\t\t\tSUBI T0 T0 #1\n");
+        fprintf(f,"\t\t\t\tB divisionLoop\n");
+        fprintf(f,"remainderLT0");
+        fprintf(f,"\tADD T2 T2 R2\n");
+        fprintf(f,"\t\t\t\tADDI T6 R0 #1\n");
+        fprintf(f,"\t\t\t\tLSL T1 T1 T6\n");
+        fprintf(f,"\t\t\t\tB divisorRS\n");
+        fprintf(f,"exitDivision");
+        fprintf(f,"\tOR T5 T3 T4\n");
+        fprintf(f,"\t\t\t\tSUBS T6 T5 R0\n");
+        fprintf(f,"\t\t\t\tBEQ divisionDone\n");
+        fprintf(f,"\t\t\t\tAND T5 T3 T4\n");
+        fprintf(f,"\t\t\t\tSUBS T6 T5 R0\n");
+        fprintf(f,"\t\t\t\tBEQ divisionDone\n");
+        fprintf(f,"\t\t\t\tADD R19 T1 R0\n");
+        fprintf(f,"\t\t\t\tADD T1 R20 R0\n");
+        fprintf(f,"divisionDone");
+        fprintf(f,"\tADD R13 T1 R0\n");
+        fprintf(f,"\t\t\t\tADD R14 T2 R0\n");
+        fprintf(f,"\t\t\t\tBR\n");
+    }
 
 }
 
