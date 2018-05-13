@@ -1,6 +1,8 @@
 %{
 #include "y.tab.h"
 #include "stack.h"
+#include "symbol_table.h"
+#include "asc.h"
 #include "intermediate_code.h"
 int handle_token(int);
 %}
@@ -115,7 +117,8 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
 
     /* Whitespace and anything else*/
 
-[ \t\r\n]                   handle_token(-1);
+[ \t\r]                     handle_token(-1);
+[\n]                        handle_token(-2);
 .                           printf("Unexpected character");
 
 %%
@@ -125,16 +128,11 @@ static int row = 1;
 static int column = 1;
 static int end_row = 1;
 static int end_column = 1;
-static FILE* asc_file = 0;
 
 int get_row() { return row; }
 int get_column() { return column; }
 
 extern STACK** get_errors();
-
-void set_asc_file(FILE* f) {
-    asc_file = f;
-}
 
 /*
     Helper function for updating the file position as lex processes
@@ -164,23 +162,22 @@ int update_location()
 */
 int handle_token(int token)
 {
-    if(asc_file) {
-        fprintf(asc_file, "%s", yytext);
-    }
+    asc_append(yytext);
+    update_location();
 
     // Returns 1 on new line
-    if(update_location()) {
+    if(token == -2) {
+        SYMBOL_TABLE* st = get_symbol_table();
+        asc_line_scope(st->current_scope);
         STACK** err = get_errors();
-
         while(*err) {
             char* e = stack_peek(*err);
-            if(asc_file) {
-                fprintf(asc_file, "%s", e);
-            }
+            asc_error(e);
             printf("%s", e);
             free(e);
             *err = stack_pop(*err);
         }
+        asc_new_line(row);
     }
 
     return token;
