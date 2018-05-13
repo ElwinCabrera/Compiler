@@ -162,7 +162,10 @@ int update_location()
 */
 int handle_token(int token)
 {
-    asc_append(yytext);
+    if(token != -2) {
+        asc_append(yytext);
+    }
+
     update_location();
 
     // Returns 1 on new line
@@ -173,7 +176,7 @@ int handle_token(int token)
         while(*err) {
             char* e = stack_peek(*err);
             asc_error(e);
-            printf("%s", e);
+            printf("%s\n", e);
             free(e);
             *err = stack_pop(*err);
         }

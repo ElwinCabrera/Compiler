@@ -11,6 +11,7 @@ static SYMBOL_TABLE* symbols;
 SYMBOL_TABLE* get_symbol_table() {
   if(!symbols) {
     symbols = malloc(sizeof(SYMBOL_TABLE));
+    symbols->current_scope = NULL;
   }
   return symbols;
 }
@@ -163,7 +164,7 @@ void print_scope(SCOPE* sc, FILE* f) {
 }
 
 void print_symbol(SYMBOL* symbol, int scope, FILE* f) {
-  if(!symbol || symbol->meta == ST_TEMPORARY) {
+  if(!symbol) {
     return;
   }
 
