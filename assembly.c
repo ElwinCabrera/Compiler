@@ -8,6 +8,7 @@
 #include "registers.h"
 #include "location.h"
 #include "types.h"
+#include "stack.h"
 
 static LINKED_LIST* assembly_code = NULL;
 
@@ -38,18 +39,65 @@ void create_assembly_block(BLOCK* block) {
     clear_temporary_registers();
 }
 
+int compute_stack_space(SCOPE* s, int base_offset) {
+
+    if(!s) {
+        return base_offset;
+    }
+
+    reorder_symbols(s);
+
+    LINKED_LIST* syms = s->symbols;
+
+    int space_needed = base_offset;
+
+    while(syms) {
+        SYMBOL* s = ll_value(syms);
+        s->stack_offset = space_needed;
+        //printf("Offset for %s: %d\n", s->name, space_needed);
+        space_needed += get_type_width(s->type);
+        syms = ll_next(syms);
+    }
+
+
+    int pad_4 = (space_needed % 4);
+
+    if(pad_4 > 0) {
+        space_needed += (4 - pad_4);
+    }
+
+    LINKED_LIST* children = s->children;
+    
+    int children_max = space_needed;
+    
+    while(children) {
+        SCOPE* child_s = ll_value(children);
+        int width = compute_stack_space(child_s, space_needed);
+        
+        if(width > children_max) {
+            children_max = width;
+        }
+
+        children = ll_next(children);
+    }
+
+    return children_max;
+}
+
 void asm_stack_variables(int block, SCOPE* s) {
     /*
         Whenever you enter a scope that has sybols, allocate
         space on the stack for those
     */
+    int space = compute_stack_space(s, 0);
+    //printf("Needed stack space for scope %d: %d\n", s->id, space);
 }
 
 void asm_function_setup(int block, SYMBOL* fn) {
 
     /*
-        Anything that needs to be done before the 
-        stack vars are declared
+        Anything that needs to be done immediately
+        before control transfers to callee
     */
 
     if(!fn) {
@@ -58,6 +106,8 @@ void asm_function_setup(int block, SYMBOL* fn) {
 
 }
 
+STACK* params = NULL;
+
 void asm_parameter(int block, ADDRESS* a) {
     /*
         Can pick the argument registers if they're empty,
@@ -65,6 +115,7 @@ void asm_parameter(int block, ADDRESS* a) {
     */
 
     //REG rs = get_parameter_register(a);
+    params = stack_push(params, a);
 }
 
 void asm_function_call(int block, TAC* code) {
@@ -85,12 +136,9 @@ void asm_function_call(int block, TAC* code) {
     }
     
     // Space for return value
-    add_itype(block, ASM_ADDI, STACK, STACK, const_location(4));
+
 
     // Write the control link
-
-    add_itype(block, ASM_ADDI, STACK, STACK, const_location(4));
-    add_itype(block, ASM_STR, STACK, PC, const_location(0));
 
 
     add_btype(block, ASM_BRANCHL, label_location(fn->label->value.label), false, 0);

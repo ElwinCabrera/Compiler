@@ -186,7 +186,6 @@ program:
         backpatch(code_table, 0, $4);
         code_table->entries[$4]->result = scope_address($6);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(1)));
-        reorder_symbols($2);
     }
     ;
 
@@ -332,7 +331,6 @@ identifier_list:
 sblock:
     L_BRACE open_scope dblock {
         add_symbols_to_scope($2, $3);
-        reorder_symbols($2);
     } check_statement_list close_scope check_r_brace {
         $$ = $2;
     }

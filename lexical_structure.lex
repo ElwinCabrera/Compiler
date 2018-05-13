@@ -180,7 +180,7 @@ int handle_token(int token)
             free(e);
             *err = stack_pop(*err);
         }
-        asc_new_line(row);
+        asc_new_line(row + 1);
     }
 
     return token;
