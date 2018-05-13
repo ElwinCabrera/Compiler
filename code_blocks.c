@@ -8,6 +8,7 @@ BLOCK* new_code_block(int i) {
     BLOCK* b = malloc(sizeof(BLOCK));
     b->code = NULL;
     b->live_on_exit = NULL;
+    b->vars = NULL;
     b->edges = NULL;
     b->label = i;
     return b;
@@ -51,16 +52,28 @@ void set_next_use_information(BLOCK* code_block) {
             */
 
             if(result) {
+                if(!ll_find(code_block->vars, c->result->value.symbol, pointer_match)) {
+                    code_block->vars = ll_insertfront(code_block->vars, c->result->value.symbol);
+                }
+
                 c->result_live = c->result->value.symbol->live;
                 c->result_next = c->result->value.symbol->next_use;
             }
 
             if(x) {
+                if(!ll_find(code_block->vars, c->x->value.symbol, pointer_match)) {
+                    code_block->vars = ll_insertfront(code_block->vars, c->x->value.symbol);
+                }
+
                 c->x_live = c->x->value.symbol->live;
                 c->x_next = c->x->value.symbol->next_use; 
             }
 
             if(y) {
+                if(!ll_find(code_block->vars, c->y->value.symbol, pointer_match)) {
+                    code_block->vars = ll_insertfront(code_block->vars, c->y->value.symbol);
+                }
+        
                 c->y_live = c->y->value.symbol->live;
                 c->y_next = c->y->value.symbol->next_use; 
             }
@@ -90,6 +103,18 @@ void set_next_use_information(BLOCK* code_block) {
         }
 
         statements = ll_next(statements);
+    }
+
+    LINKED_LIST* vars = code_block->vars;
+
+    while(vars) {
+        SYMBOL* s = ll_value(vars);
+        if(s->live) {
+            code_block->live_on_exit = ll_insertfront(code_block->live_on_exit, s);
+            printf("Live on exit: ");
+            print_symbol(s, code_block->label, stdout);
+        }
+        vars = ll_next(vars);
     }
 }
 
