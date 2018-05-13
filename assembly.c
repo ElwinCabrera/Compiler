@@ -93,6 +93,7 @@ void asm_stack_variables(int block, SCOPE* s) {
         space on the stack for those
     */
     int space = compute_stack_space(s, 0);
+    add_itype(block, ASM_ADDI, TOP_SP, SP, const_location(0));
     add_itype(block, ASM_ADDI, SP, TOP_SP, const_location(space));
     // printf("Needed stack space for scope %d: %d\n", s->id, space);
 }
