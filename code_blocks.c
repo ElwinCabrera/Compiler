@@ -3,6 +3,7 @@
 #include "linked_list.h"
 #include "address.h"
 #include "symbol_table.h"
+#include "graph.h"
 
 BLOCK* new_code_block(int i) {
     BLOCK* b = malloc(sizeof(BLOCK));
@@ -20,12 +21,11 @@ void print_blocks(LINKED_LIST* l, FILE* f) {
         BLOCK* b = ll_value(l);
         fprintf(f ? f : stdout, "Block %d\n", b->label);
         LINKED_LIST* code_list = b->code;
-
-        while(code_list) {
-            TAC* code = ll_value(code_list);
-            print_tac(code, f);
-            code_list = ll_next(code_list);
-        }
+	while(code_list) {
+		TAC *code = ll_value(code_list);
+		print_tac(code, f);	
+		code_list = ll_next(code_list);
+	}
         fprintf(f ? f : stdout, "\n");
         l = ll_next(l);
     }

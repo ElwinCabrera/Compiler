@@ -35,6 +35,9 @@ typedef enum tac_op {
     I_NOP,
     I_FN_START,
     I_STACK_VARS,
+    I_VALNUM_NODE,
+    I_VALNUM_LINKED,
+	//ADDED a new TAC OP in order to work with VALNUM
 } TAC_OP;
 
 typedef struct tac {

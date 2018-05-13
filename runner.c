@@ -9,6 +9,21 @@
 #include "linked_list.h"
 #include "assembly.h"
 #include "asc.h"
+#include "graph.h"
+
+enum OPT {
+    L_SUBEXP = 1,
+    L_DEAD = 2,
+    CONST_FOLD = 4,
+    LOAD_STORE = 8,
+    UNREACHABLE = 16,
+    CONTROL_FLOW = 32,
+    G_SUBEXP = 64,
+    COPY_PROP = 128,
+    G_DEAD = 256,
+    CODE_MOTION = 512,
+    INDUCTION_VARS = 1024,
+};
 
 extern int yyparse();
 extern void yyset_in(FILE *);
@@ -29,6 +44,7 @@ int main(int argc, char* argv[])
         bool ir = false;
         bool blocks = false;
         bool read_program = false;
+	    int optimize = 0;
 
         for(int i = 1;i< argc;i++) {
             if(strcmp(argv[i], "-asc") == 0) {
@@ -43,6 +59,19 @@ int main(int argc, char* argv[])
             } else if(strcmp(argv[i],"-bl") == 0) {
                 blocks = true;
                 //Print blocks
+            } else if(strcmp(argv[i],"-opt") == 0) {
+                if(i < (argc - 1)) {
+                    char* choice = argv[++i];
+                    if(strcmp(choice, "grading") == 0 || strcmp(choice, "supported") == 0) {
+                        printf("%s optimizations: %d", choice, L_SUBEXP | L_DEAD);
+                        return 1;
+                    } else {
+                        optimize = atoi(choice);
+                    }
+                } else {
+                    printf("Specify an optimization style");
+                    return 1;
+                }
             } else {
                 program = argv[i];
                 read_program = true;
@@ -94,6 +123,11 @@ int main(int argc, char* argv[])
         
         INTERMEDIATE_CODE* code_table = get_intermediate_code();
 
+        if(optimize) {
+            // They apparently want the optimizations printed in the
+            // IR, so do it here
+        }
+
         if(ir) { //specify to print ir
             char* ir_file_path = malloc(strlen(program) + 4);
             sprintf(ir_file_path, "%s%s", program, ".ir");
@@ -130,7 +164,6 @@ int main(int argc, char* argv[])
             }
             free(output_file_path);
             print_asm_code(output_file);
-            //print_asm_code(NULL);
             fclose(output_file);
         }
 

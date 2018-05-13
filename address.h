@@ -46,5 +46,6 @@ ADDRESS* null_address();
 ADDRESS* scope_address(struct scope*);
 int get_width(ADDRESS*);
 char* create_address_string(ADDRESS*);
+bool is_same_address(ADDRESS *, ADDRESS *);
 
 #endif

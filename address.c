@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "address.h"
 #include "symbol_table.h"
@@ -6,6 +7,7 @@
 #include "assignable.h"
 #include "linked_list.h"
 #include "data_block.h"
+
 
 static int temporary_count = 0;
 
@@ -181,4 +183,25 @@ char* create_address_string(ADDRESS* a) {
         default:
             return NULL;
     }
+}
+
+bool is_same_address(ADDRESS *a, ADDRESS *b){
+	if(a == NULL && b!=NULL)
+		return false;
+	if(a!=NULL && b == NULL)
+		return false;
+	if(a==b)
+		return true;
+	if(a->meta != b->meta)
+		return false;
+	if(a->meta == AT_SYMBOL){
+		return (a->value.symbol == b->value.symbol);
+		}
+	if(a->meta == AT_INT){
+		return (a->value.integer == b->value.integer);
+		}
+	if(a->meta == AT_REAL){
+		return (a->value.real == b->value.real);
+		}
+	return false;
 }
