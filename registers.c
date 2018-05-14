@@ -13,6 +13,7 @@ static REGISTER_DESCRIPTORS* _reg;
 LINKED_LIST** get_register_descriptor(REG r) {
     if(!_reg) {
         _reg = malloc(sizeof(REGISTER_DESCRIPTORS));
+        memset(_reg, 0, sizeof(REGISTER_DESCRIPTORS));
         for(int i = 0; i <= 31; i++) {
             _reg->registers[i] = NULL;
         }
@@ -51,7 +52,7 @@ void clear_temporary_registers() {
 }
 
 void remove_register_from_addresses(REG r) {
-   /* if(r > 31 || r < 0) {
+   if(r > 31 || r < 0) {
         printf("Tried to access a register that doesn't exist.\n");
         return;
     }
@@ -63,8 +64,8 @@ void remove_register_from_addresses(REG r) {
         adr->value.symbol->registers = adr->value.symbol->registers & ~(1 << r);
         dsc = ll_next(dsc);
     }
-	*/
-   // ll_free(descriptor_ptr, false);
+	
+    ll_free(descriptor_ptr, false);
 }
 
 void add_address_to_descriptor(REG r, ADDRESS* a) {

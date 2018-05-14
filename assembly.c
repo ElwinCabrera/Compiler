@@ -42,8 +42,8 @@ void create_assembly_block(BLOCK* block) {
     LINKED_LIST* live_vars = block->vars;
 
     while(live_vars) {
-        SYMBOL* a = ll_value(live_vars);
-        spill_var_to_stack(block->label, a);
+        SYMBOL* s = ll_value(live_vars);
+        spill_var_to_stack(block->label, s);
         live_vars = ll_next(live_vars);
     }
 
@@ -51,7 +51,7 @@ void create_assembly_block(BLOCK* block) {
 }
 
 void spill_var_to_stack(int block, SYMBOL* s) {
-/*
+
     int stack_offset = s->stack_offset;
 
     int where = s->registers;
@@ -83,11 +83,11 @@ void spill_var_to_stack(int block, SYMBOL* s) {
         add_itype(block, ASM_STR, LINK3, r, const_location(0));
     }
 
-*/
+
 }
 
 void load_into_register(int block, REG r, ADDRESS* a) {
-/*
+
 	if(a->meta != AT_SYMBOL || a->meta != AT_TEMPORARY) {
 		return;
 	}
@@ -110,7 +110,7 @@ void load_into_register(int block, REG r, ADDRESS* a) {
 	
 	int x = 1;
     a->value.symbol->registers |= (x << r);
-*/
+
 }
 
 void asm_stack_variables(int block, SCOPE* s) {
@@ -154,7 +154,7 @@ void asm_function_call(int block, TAC* code) {
         Params have been pushed, this just needs to adjust
         the stack (write link, etc) and jump
 
-        Anything
+    */
 
     SYMBOL* fn = code->x->value.symbol;
 

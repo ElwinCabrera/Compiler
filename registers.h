@@ -6,7 +6,7 @@
 #include "intermediate_code.h"
 
 typedef struct register_destricptors {
-    struct linked_list* registers[31];
+    struct linked_list* registers[32];
 } REGISTER_DESCRIPTORS;
 
 typedef enum reg {
