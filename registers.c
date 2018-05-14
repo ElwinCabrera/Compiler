@@ -51,7 +51,7 @@ void clear_temporary_registers() {
 }
 
 void remove_register_from_addresses(REG r) {
-    if(r > 31 || r < 0) {
+   /* if(r > 31 || r < 0) {
         printf("Tried to access a register that doesn't exist.\n");
         return;
     }
@@ -63,8 +63,8 @@ void remove_register_from_addresses(REG r) {
         adr->value.symbol->registers = adr->value.symbol->registers & ~(1 << r);
         dsc = ll_next(dsc);
     }
-
-    ll_free(descriptor_ptr, false);
+	*/
+   // ll_free(descriptor_ptr, false);
 }
 
 void add_address_to_descriptor(REG r, ADDRESS* a) {

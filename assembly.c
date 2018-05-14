@@ -51,11 +51,11 @@ void create_assembly_block(BLOCK* block) {
 }
 
 void spill_var_to_stack(int block, SYMBOL* s) {
-
+/*
     int stack_offset = s->stack_offset;
 
     int where = s->registers;
-
+	
     if(!where) {
         printf("Warning: attempting to spill address that's not in a register\n");
         return;
@@ -82,9 +82,15 @@ void spill_var_to_stack(int block, SYMBOL* s) {
     } else {
         add_itype(block, ASM_STR, LINK3, r, const_location(0));
     }
+
+*/
 }
 
 void load_into_register(int block, REG r, ADDRESS* a) {
+/*
+	if(a->meta != AT_SYMBOL || a->meta != AT_TEMPORARY) {
+		return;
+	}
 
     int stack_offset = a->value.symbol->stack_offset;
     
@@ -101,8 +107,10 @@ void load_into_register(int block, REG r, ADDRESS* a) {
     } else {
         add_itype(block, ASM_LDR, r, r, const_location(0));
     }
-
-    a->value.symbol->registers |= (1 << r);
+	
+	int x = 1;
+    a->value.symbol->registers |= (x << r);
+*/
 }
 
 void asm_stack_variables(int block, SCOPE* s) {
@@ -119,7 +127,7 @@ void asm_function_setup(int block, SYMBOL* fn) {
 
     /*
         Anything that needs to be done immediately
-        before control transfers to callee
+       before control transfers to callee
     */
 
     if(!fn) {
@@ -146,10 +154,7 @@ void asm_function_call(int block, TAC* code) {
         Params have been pushed, this just needs to adjust
         the stack (write link, etc) and jump
 
-        Anything that can be done here in terms of setup 
-        instead of callee (asm_function_setup) saves instruction 
-        space
-    */
+        Anything
 
     SYMBOL* fn = code->x->value.symbol;
 
