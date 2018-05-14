@@ -42,7 +42,7 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
     /* Primitive Values */
 
 {INTEGER}                   yylval.integer = atoi(yytext); return handle_token(C_INTEGER);
-{REAL}                      yylval.real = atof_wrapper(yytext); return handle_token(C_REAL);
+{REAL}                      yylval.real = atof(yytext); return handle_token(C_REAL);
 {CHAR}                      yylval.character = yytext[1]; return handle_token(C_CHARACTER);
 {STRING}                    yylval.string = strdup(yytext); return handle_token(C_STRING);
 "true"                      yylval.boolean = 1; return handle_token(C_TRUE);
@@ -187,7 +187,7 @@ int handle_token(int token)
 
     return token;
 }
-double power(double a,int b){
+/*double power(double a,int b){
 	double result = 1;
 	for (int i=1;i<=b;i++)
 		result = result * a;
@@ -214,4 +214,4 @@ double atof_wrapper(const char *str){
 	if(e == length -1)
 		exponent = 0;
 	return value * power(10.0,exponent);
-}
+}*/
