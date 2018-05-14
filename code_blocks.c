@@ -105,17 +105,16 @@ void set_next_use_information(BLOCK* code_block) {
         statements = ll_next(statements);
     }
 
-    LINKED_LIST* vars = code_block->vars;
+    // LINKED_LIST* vars = code_block->vars;
 
-    while(vars) {
-        SYMBOL* s = ll_value(vars);
-        if(s->live) {
-            code_block->live_on_exit = ll_insertfront(code_block->live_on_exit, s);
-            printf("Live on exit: ");
-            print_symbol(s, code_block->label, stdout);
-        }
-        vars = ll_next(vars);
-    }
+    // while(vars) {
+    //     SYMBOL* s = ll_value(vars);
+    //     if(s->live) {
+    //         code_block->live_on_exit = ll_insertfront(code_block->live_on_exit, s);
+    //         print_symbol(s, code_block->label, stdout);
+    //     }
+    //     vars = ll_next(vars);
+    // }
 }
 
 LINKED_LIST* make_blocks(INTERMEDIATE_CODE* code_table) {
