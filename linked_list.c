@@ -180,7 +180,7 @@ void* ll_remove(LINKED_LIST** ref, void* match, bool accessor(LINKED_LIST*, void
     }
     
     LINKED_LIST* cur = *ref;
-    LINKED_LIST* prev;
+    LINKED_LIST* prev = NULL;
     while(cur) {
         if(accessor(cur, match)) {
             void* val = ll_value(cur);
@@ -207,7 +207,7 @@ int ll_length(LINKED_LIST* l) {
     return i;
 }
 
-void ll_free(LINKED_LIST** ref) {
+void ll_free(LINKED_LIST** ref, bool free_node) {
     if(!ref) {
         return;
     }
@@ -217,7 +217,11 @@ void ll_free(LINKED_LIST** ref) {
     while(cur) {
         LINKED_LIST* temp = cur;
         cur = ll_next(cur);
+        if(free_node) {
+            free(ll_value(temp));
+        }
         free(temp);
+        temp = cur;
     }
 
     *ref = NULL;

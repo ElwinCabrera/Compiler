@@ -41,7 +41,7 @@ void* ll_value(LINKED_LIST*);
 void ll_mergesort(LINKED_LIST**, void*);
 void ll_reverse(LINKED_LIST** ref);
 int ll_length(LINKED_LIST*);
-void ll_free(LINKED_LIST**);
+void ll_free(LINKED_LIST**, bool);
 void* ll_remove(LINKED_LIST**, void*, bool(LINKED_LIST*, void*));
 
 #endif

@@ -96,6 +96,8 @@ SYMBOL* new_symbol(SYMTYPE* type, char* name, int meta, char* extra) {
   insertNew->meta = meta;
   insertNew->type = type;
   insertNew->stack_offset = 0;
+  insertNew->registers = 0;
+  insertNew->on_stack = false;
   insertNew->scope = NULL;
 
   return insertNew;
@@ -177,3 +179,89 @@ void print_symbol(SYMBOL* symbol, int scope, FILE* f) {
 
 }
 
+int pad_4(int original) {
+    int mod = original % 4;
+    if(mod > 0) {
+        original += (4 - mod);
+    }
+    return original;
+}
+
+int compute_stack_space(SCOPE* s, int base_offset) {
+
+    if(!s) {
+        return base_offset;
+    }
+
+    reorder_symbols(s);
+
+    LINKED_LIST* syms = s->symbols;
+
+    int space_needed = base_offset;
+
+    while(syms) {
+        SYMBOL* s = ll_value(syms);
+        s->stack_offset = space_needed;
+        //printf("Offset for %s: %d\n", s->name, space_needed);
+        space_needed += get_type_width(s->type);
+        syms = ll_next(syms);
+    }
+
+    space_needed = pad_4(space_needed);
+
+    LINKED_LIST* children = s->children;
+    
+    int children_max = space_needed;
+    
+    while(children) {
+        SCOPE* child_s = ll_value(children);
+        int width = compute_stack_space(child_s, space_needed);
+        
+        if(width > children_max) {
+            children_max = width;
+        }
+
+        children = ll_next(children);
+    }
+
+    s->stack_space = children_max;
+    // printf("Stack space for %d is: %d\n", s->id, children_max);
+    return children_max;
+}
+
+int compute_param_space(SCOPE* s, SYMBOL* ret) {
+
+    if(!s) {
+        return 0;
+    }
+
+    LINKED_LIST* symbols = s->symbols;
+
+    int end = 0;
+
+    while(symbols) {
+        SYMBOL* s = ll_value(symbols);
+        s->stack_offset = end;
+        end += get_type_width(s->type);
+        end = pad_4(end);
+        symbols = ll_next(symbols);
+    }
+
+    // RETURN, CONTROL, ACCESS, PC
+    int ret_width = pad_4(get_type_width(ret->type));
+    ret->stack_offset = -12 - ret_width;
+    end += ret_width;
+
+    symbols = s->symbols;
+
+    while(symbols) {
+        SYMBOL* s = ll_value(symbols);
+        s->stack_offset -= (end + 12);
+        // printf("%s offset is %d\n", s->name, s->stack_offset);
+        symbols = ll_next(symbols);
+    }
+
+    s->stack_space = end;
+
+    return end;
+}

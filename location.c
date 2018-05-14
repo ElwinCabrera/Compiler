@@ -71,7 +71,7 @@ char* create_location_str(LOCATION* l) {
             break;
         case W_LABEL:
             str = malloc(16 * sizeof(char));
-            sprintf(str, "LABEL%d", l->value.constant);
+            sprintf(str, "LABEL%02d", l->value.constant);
             break;
         case W_CONSTANT:
             str = malloc(12 * sizeof(char));

@@ -108,5 +108,7 @@ void add_btype(int, ASM_OP, struct location*, bool, CONDITION);
 void process_code_blocks(LINKED_LIST*);
 void print_asm_code(FILE*);
 
+void load_into_register(int, REG, struct address*);
+void spill_var_to_stack(int,  struct symbol*);
 
 #endif

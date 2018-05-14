@@ -28,8 +28,10 @@ typedef struct symbol {
     struct address* label;
     struct symtype* type;
     struct scope* scope;
+    int registers;
     struct linked_list* address_descriptor;
     int stack_offset;
+    bool on_stack;
 } SYMBOL;
 
 typedef enum sc_type {
@@ -39,7 +41,7 @@ typedef enum sc_type {
 
 typedef struct scope {
     int id;
-    
+    int stack_space;
     struct linked_list* symbols;
     struct linked_list* children;
     struct scope* parent;
@@ -57,5 +59,7 @@ void reorder_symbols(SCOPE*);
 void print_symbol(SYMBOL*, int, FILE*);
 void print_scope(SCOPE*, FILE*);
 void print_symbol_table(SYMBOL_TABLE*, FILE*);
+int compute_stack_space(SCOPE*, int);
+int compute_param_space(SCOPE*, SYMBOL*);
 
 #endif

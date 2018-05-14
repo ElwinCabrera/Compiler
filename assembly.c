@@ -39,52 +39,70 @@ void create_assembly_block(BLOCK* block) {
         code_list = ll_next(code_list);
     }
 
+    LINKED_LIST* live_vars = block->vars;
+
+    while(live_vars) {
+        SYMBOL* a = ll_value(live_vars);
+        spill_var_to_stack(block->label, a);
+        live_vars = ll_next(live_vars);
+    }
+
     clear_temporary_registers();
 }
 
-int compute_stack_space(SCOPE* s, int base_offset) {
+void spill_var_to_stack(int block, SYMBOL* s) {
 
-    if(!s) {
-        return base_offset;
+    int stack_offset = s->stack_offset;
+
+    int where = s->registers;
+
+    if(!where) {
+        printf("Warning: attempting to spill address that's not in a register\n");
+        return;
     }
 
-    reorder_symbols(s);
+    s->on_stack = true;
 
-    LINKED_LIST* syms = s->symbols;
+    REG r = NO_REGISTER;
 
-    int space_needed = base_offset;
-
-    while(syms) {
-        SYMBOL* s = ll_value(syms);
-        s->stack_offset = space_needed;
-        // printf("Offset for %s: %d\n", s->name, space_needed);
-        space_needed += get_type_width(s->type);
-        syms = ll_next(syms);
-    }
-
-
-    int pad_4 = (space_needed % 4);
-
-    if(pad_4 > 0) {
-        space_needed += (4 - pad_4);
-    }
-
-    LINKED_LIST* children = s->children;
-    
-    int children_max = space_needed;
-    
-    while(children) {
-        SCOPE* child_s = ll_value(children);
-        int width = compute_stack_space(child_s, space_needed);
-        
-        if(width > children_max) {
-            children_max = width;
+    for(int i = 0; i < 31; i++) {
+        if(where & 1) {
+            r = i;
+            break;
         }
-
-        children = ll_next(children);
+        where = where >> 1;
     }
 
-    return children_max;
+    int width = get_type_width(s->type);
+
+    add_itype(block, ASM_ADDI, LINK3, TOP_SP, const_location(stack_offset));
+
+    if(width == 1) {
+        add_itype(block, ASM_STRB, LINK3, r, const_location(0));
+    } else {
+        add_itype(block, ASM_STR, LINK3, r, const_location(0));
+    }
+}
+
+void load_into_register(int block, REG r, ADDRESS* a) {
+
+    int stack_offset = a->value.symbol->stack_offset;
+    
+    if(stack_offset < 0) {
+        add_itype(block, ASM_SUBI, r, TOP_SP, const_location(-stack_offset));
+    } else {
+        add_itype(block, ASM_ADDI, r, TOP_SP, const_location(stack_offset));
+    }
+
+    int width = get_type_width(a->type);
+
+    if(width == 1) {
+        add_itype(block, ASM_LDRB, r, r, const_location(0));
+    } else {
+        add_itype(block, ASM_LDR, r, r, const_location(0));
+    }
+
+    a->value.symbol->registers |= (1 << r);
 }
 
 void asm_stack_variables(int block, SCOPE* s) {
@@ -92,9 +110,8 @@ void asm_stack_variables(int block, SCOPE* s) {
         Whenever you enter a scope that has sybols, allocate
         space on the stack for those
     */
-    int space = compute_stack_space(s, 0);
-    add_itype(block, ASM_ADDI, TOP_SP, SP, const_location(0));
-    add_itype(block, ASM_ADDI, SP, TOP_SP, const_location(space));
+    add_atype(block, ASM_ADD, TOP_SP, ZERO, SP, false, false, false);
+    add_itype(block, ASM_ADDI, SP, TOP_SP, const_location(s->stack_space));
     // printf("Needed stack space for scope %d: %d\n", s->id, space);
 }
 
@@ -111,7 +128,7 @@ void asm_function_setup(int block, SYMBOL* fn) {
 
 }
 
-STACK* params = NULL;
+STACK* param_stack = NULL;
 
 void asm_parameter(int block, ADDRESS* a) {
     /*
@@ -120,7 +137,7 @@ void asm_parameter(int block, ADDRESS* a) {
     */
 
     //REG rs = get_parameter_register(a);
-    params = stack_push(params, a);
+    param_stack = stack_push(param_stack, a);
 }
 
 void asm_function_call(int block, TAC* code) {
@@ -139,14 +156,49 @@ void asm_function_call(int block, TAC* code) {
     if(!fn) {
         return;
     }
-    
-    // Space for return value
 
+    SCOPE* params = fn->type->parameters;
+
+    int count = ll_length(params->symbols);
+
+    add_atype(block, ASM_ADD, LINK3, ZERO, TOP_SP, false, false, false);
+    add_itype(block, ASM_ADDI, TOP_SP, SP, const_location(params->stack_space));
+    
+    for(int i = 0; i < count; i++) {
+        ADDRESS* a = stack_peek(param_stack);
+        //spill_address(a);
+        param_stack = stack_pop(param_stack);
+    }
+
+    add_itype(block, ASM_STR, TOP_SP, LINK3, const_location(0));
+    add_itype(block, ASM_ADDI, TOP_SP, TOP_SP, const_location(4));
+    add_itype(block, ASM_STR, TOP_SP, SP, const_location(0));
+    add_itype(block, ASM_ADDI, TOP_SP, TOP_SP, const_location(4));
+    add_itype(block, ASM_STR, TOP_SP, LINK0, const_location(0));
+    add_itype(block, ASM_ADDI, TOP_SP, TOP_SP, const_location(4));
+    add_atype(block, ASM_ADD, SP, ZERO, TOP_SP, false, false, false);
 
     // Write the control link
 
-
     add_btype(block, ASM_BRANCHL, label_location(fn->label->value.label), false, 0);
+
+    REG rd = get_dest_register(block, code->result);
+
+    // RD temporarily is TOP_SP - Return offset
+    // Load RD into itself
+    add_itype(block, ASM_SUBI, rd, TOP_SP, const_location(-fn->type->ret->stack_offset));
+    add_itype(block, ASM_LDR, rd, rd, const_location(0));
+
+    // TOP_SP - 4 is the old control link
+    add_itype(block, ASM_SUBI, TOP_SP, TOP_SP, const_location(4));
+    add_itype(block, ASM_LDR, LINK0, TOP_SP, const_location(0));
+    // TOP_SP - 8 is the old SP
+    add_itype(block, ASM_SUBI, TOP_SP, TOP_SP, const_location(4));
+    add_itype(block, ASM_LDR, SP, TOP_SP, const_location(0));
+    // TOP_SP - 12 is the old TOP_SP
+    add_itype(block, ASM_SUBI, TOP_SP, TOP_SP, const_location(4));
+    add_itype(block, ASM_LDR, TOP_SP, TOP_SP, const_location(0));
+    
 
     /*
         Next instruction is executed on return from the function:
@@ -162,13 +214,9 @@ void asm_function_return(int block, SYMBOL* fn) {
         return;
     }
 
-    LINKED_LIST* ret_location = fn->address_descriptor;
+    int reg = fn->registers;
 
-    if(!ret_location) {
-        return;
-    }
-
-    add_btype(block, ASM_BRANCHR, 0, false, 0);
+    add_btype(block, ASM_BRANCHR, const_location(0), false, 0);
 }
 
 void asm_heap_reserve(int block, ADDRESS* a, int size) {
@@ -178,7 +226,7 @@ void asm_heap_reserve(int block, ADDRESS* a, int size) {
         by reverse amount.
     */
     
-    REG r = get_dest_register(a);
+    REG r = get_dest_register(block, a);
     add_atype(block, ASM_ADD, r, HEAP, ZERO, false, false, false);
     add_itype(block, ASM_SUBI, HEAP, HEAP, const_location(size));
 }
@@ -191,14 +239,15 @@ void asm_assignment(int block, TAC* code) {
         RD = constant
     */
 
-    REG rs1 = get_source_register(code->x);
+    REG rs1 = get_source_register(block, code->x);
 
     if(rs1 == CONST_VALUE) {
-        REG rd = get_dest_register(code->result);
+        code->result->value.symbol->registers = 0;
+        REG rd = get_dest_register(block, code->result);
         add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
     } else {
-        LOCATION* l = register_location(rs1);
-        code->result->value.symbol->address_descriptor = ll_insertfront(code->result->value.symbol->address_descriptor, l);
+        code->result->value.symbol->registers = (1 << rs1);
+        ll_free(&code->result->value.symbol->address_descriptor, true);
     }
 }
 
@@ -206,9 +255,9 @@ void asm_add(int block, TAC* code) {
     /*
         RD = RS1 + RS2
     */
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rs2 = get_source_register(block, code->y);
+    REG rd = get_dest_register(block, code->result);
     
     if(check_typename(code->result->type, "integer")) {
         if(rs1 == CONST_VALUE) {
@@ -224,6 +273,7 @@ void asm_add(int block, TAC* code) {
         /*
             Floating point arithmetic
         */
+        add_atype(block, ASM_AND, ZERO, ZERO, ZERO, false, false, false);
     }
 
 }
@@ -234,9 +284,9 @@ void asm_sub(int block, TAC* code) {
     */
    
 
-     REG rs1 = get_source_register(code->x);
-     REG rs2 = get_source_register(code->y);
-     REG rd = get_dest_register(code->result);
+     REG rs1 = get_source_register(block, code->x);
+     REG rs2 = get_source_register(block, code->y);
+     REG rd = get_dest_register(block, code->result);
 
      if(check_typename(code->result->type, "integer")) {
 
@@ -257,6 +307,7 @@ void asm_sub(int block, TAC* code) {
          /*
              Floating point arithmetic
          */
+        add_atype(block, ASM_AND, ZERO, ZERO, ZERO, false, false, false);
      }
      
      
@@ -266,9 +317,9 @@ void asm_multiply(int block, TAC* code) {
     /*
         JMP to multiply routine
     */
-    REG rd = get_dest_register(code->result);
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
+    REG rd = get_dest_register(block, code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rs2 = get_source_register(block, code->y);
     
     if(check_typename(code->result->type, "integer")) {
         if(rs1 == CONST_VALUE) {
@@ -297,9 +348,9 @@ void asm_divide(int block, TAC* code) {
         JMP to divide routine
     */
     
-    REG rd = get_dest_register(code->result);
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
+    REG rd = get_dest_register(block, code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rs2 = get_source_register(block, code->y);
     
     if(check_typename(code->result->type, "integer")) {
         if(rs1 == CONST_VALUE) {
@@ -327,9 +378,9 @@ void asm_modulus(int block, TAC* code) {
         JMP to modulus routine
     */
     
-    REG rd = get_dest_register(code->result);
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
+    REG rd = get_dest_register(block, code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rs2 = get_source_register(block, code->y);
     
     if(check_typename(code->result->type, "integer")) {
         if(rs1 == CONST_VALUE) {
@@ -356,50 +407,46 @@ void asm_modulus(int block, TAC* code) {
 
 void asm_less_than(int block, TAC* code) {
 
-    REG rs1 = get_source_register(code->x);
-    REG rs2 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rs2 = get_source_register(block, code->y);
+    REG rd = get_dest_register(block, code->result);
 
 }
 
 void asm_equal(int block, TAC* code) {
     
-     REG rs1 = get_source_register(code->x);
-     REG rs2 = get_source_register(code->y);
-     REG rd = get_dest_register(code->result);
+     REG rs1 = get_source_register(block, code->x);
+     REG rs2 = get_source_register(block, code->y);
+     REG rd = get_dest_register(block, code->result);
      
+     add_atype(block, ASM_ADD, COUNTER_P, ZERO, ZERO, false, false, false);
      add_itype(block, ASM_ADDI, rd, ZERO, const_location(0));
      
      if (rs1 == CONST_VALUE) {
-     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
-     	add_atype(block, ASM_SUB, rd, rd, rs2, true, false, false);
-     	
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->x->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, LINK3, rs2, true, true, false);
      	 
      } else if (rs2 == CONST_VALUE){
-     	add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->y->value.integer));
-     	add_atype(block, ASM_SUB, rd, rs1, rd, true, false, false);
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, rs1, LINK3, true, true, false);
      	 
-     } else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE){
-     	add_itype(block, ASM_ADDI, LINK1, ZERO, const_location(code->x->value.integer));
-     	add_itype(block, ASM_ADDI, LINK2, ZERO, const_location(code->y->value.integer));
-     	add_atype(block, ASM_SUB, rd, LINK1, LINK2, true, false, false);
+     } else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE) {
+     	add_itype(block, ASM_ADDI, LINK2, ZERO, const_location(code->x->value.integer));
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, LINK2, LINK3, true, true, false);
      	
      } else {
-     	add_atype(block, ASM_SUB, rd, rs1, rs2, true, false, false);
+     	add_atype(block, ASM_SUB, LINK3, rs1, rs2, true, true, false);
      }
      
-     add_itype(block, ASM_ADDI, rd, ZERO, const_location(4));
-     add_atype(block, ASM_AND, rd, rd, CPSR, false, false, false);
-     
-     add_itype(block, ASM_ADDI, LINK1, ZERO, const_location(2));
-     add_atype(block, ASM_LSR, rd, rd, LINK1, false, false, false);
-  
+     // If the subtraction is equal, set rd to 1 from the counter
+     add_atype(block, ASM_ADD, rd, ZERO, COUNTER_P, false, false, EQ);
 }
 
 void asm_not(int block, TAC* code) {
 
-    REG rs = get_source_register(code->x);
-    REG rd = get_dest_register(code->result);
+    REG rs = get_source_register(block, code->x);
+    REG rd = get_dest_register(block, code->result);
     if(rs == CONST_VALUE) {
         if(code->x->value.boolean) {
             add_atype(block, ASM_NOT, rd, ZERO, NO_REGISTER, false, false, false);
@@ -413,7 +460,7 @@ void asm_not(int block, TAC* code) {
 }
 
 void asm_conditional_branch(int block, TAC* code) {
-    REG rs = get_source_register(code->x);
+    REG rs = get_source_register(block, code->x);
     if(rs == CONST_VALUE) {
             /*
             Boolean constant in test case:
@@ -432,7 +479,7 @@ void asm_conditional_branch(int block, TAC* code) {
 }
 
 void asm_conditional_branch_false(int block, TAC* code) {
-    REG rs = get_source_register(code->x);
+    REG rs = get_source_register(block, code->x);
     if(rs == CONST_VALUE) {
         /*
             Boolean constant in test case:
@@ -451,24 +498,24 @@ void asm_conditional_branch_false(int block, TAC* code) {
 }
 
 void asm_conditional_branch_not_equal(int block, TAC* code) {
-    REG rs1 = get_source_register(code->x);
-    REG rd = get_dest_register(code->x);
+    REG rs1 = get_source_register(block, code->x);
+    REG rd = get_dest_register(block, code->result);
     add_itype(block, ASM_ADDI, rd, ZERO, label_location(code->y->value.integer));
     add_atype(block, ASM_SUB, rd, rs1, rd, true, false, false);
     add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, EQ);
 }
 
 void asm_array_access(int block, TAC* code) {
-    REG rs1 = get_source_register(code->x);
-    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rd = get_dest_register(block, code->result);
     int width = get_type_width(code->x->type->element_type);
     int dimension_spots = code->x->type->dimensions * 4;
     add_itype(block, ASM_LDR, rd, rs1, memory_location(12 + dimension_spots + (width * code->y->value.integer)));
 }
 
 void asm_array_assign(int block, TAC* code) {
-    REG rs1 = get_source_register(code->y);
-    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(block, code->y);
+    REG rd = get_dest_register(block, code->result);
     int width = get_type_width(code->result->type->element_type);
     int dimension_spots = code->result->type->dimensions * 4;
     add_itype(block, ASM_ADDI, rd, rd, memory_location(4 + dimension_spots + (width * code->x->value.integer)));
@@ -480,8 +527,8 @@ void asm_array_assign(int block, TAC* code) {
 }
 
 void asm_record_access(int block, TAC* code) {
-    REG rs1 = get_source_register(code->x);
-    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rd = get_dest_register(block, code->result);
 
     LINKED_LIST* symbols = code->x->type->members ? code->x->type->members->symbols : NULL;
     int offset = 0;
@@ -499,8 +546,8 @@ void asm_record_access(int block, TAC* code) {
 }
 
 void asm_record_assign(int block, TAC* code) {
-    REG rs1 = get_source_register(code->x);
-    REG rd = get_dest_register(code->result);
+    REG rs1 = get_source_register(block, code->x);
+    REG rd = get_dest_register(block, code->result);
 
     LINKED_LIST* symbols = code->result->type->members ? code->result->type->members->symbols : NULL;
     int offset = 0;
@@ -656,6 +703,8 @@ void print_asm_code(FILE* f) {
                 char* immediate = create_location_str(a->immediate);
                 fprintf(f, "\t\t%s R%d R%d %s\n", 
                     get_asm_mnemonic(a->op),
+
+                    // STR IS BACKWARDS. SWITCH THIS IF IT'S FIXED
                     a->rd,
                     a->rs1,
                     immediate);
@@ -881,6 +930,7 @@ void add_atype(int label, ASM_OP op, REG rd, REG rs1, REG rs2, bool s, bool c, C
     a->rs2 = rs2;
     a->cond = cond;
     a->s = s;
+    a->c = c;
     assembly_code = ll_insertfront(assembly_code, a);
 }
 
