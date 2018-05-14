@@ -176,7 +176,7 @@ int handle_token(int token)
         while(*err) {
             char* e = stack_peek(*err);
             asc_error(e);
-            printf("%s\n", e);
+            printf("%s", e);
             free(e);
             *err = stack_pop(*err);
         }

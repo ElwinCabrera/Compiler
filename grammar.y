@@ -186,6 +186,7 @@ program:
         backpatch(code_table, 0, $4);
         code_table->entries[$4]->result = scope_address($6);
         add_code(code_table, new_tac(I_GOTO, NULL, NULL, label_address(1)));
+        compute_stack_space($6, 0);
     }
     ;
 
@@ -242,6 +243,8 @@ definition:
         ADDRESS* a = symbol_address($4->ret);
         add_code(code_table, new_tac(I_RETURN, NULL, NULL, a));
         function_context = stack_pop(function_context); 
+        compute_param_space($4->parameters, $4->ret);
+        compute_stack_space($7, 0);
     }
     | check_type_literal identifier COLON open_scope {
         new_type(MT_RECORD, $2, 4);

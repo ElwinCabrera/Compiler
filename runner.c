@@ -122,10 +122,17 @@ int main(int argc, char* argv[])
         }
         
         INTERMEDIATE_CODE* code_table = get_intermediate_code();
+        LINKED_LIST* code_blocks = make_blocks(code_table);
 
         if(optimize) {
             // They apparently want the optimizations printed in the
             // IR, so do it here
+            if(optimize%2 == 1){
+				common_expression_optimize(code_blocks);
+			}
+			if((optimize/2)%2 == 1){
+				dead_code_optimize(code_blocks);
+			}
         }
 
         if(ir) { //specify to print ir
@@ -140,7 +147,6 @@ int main(int argc, char* argv[])
             fclose(ir_file);
         }
 
-        LINKED_LIST* code_blocks = make_blocks(code_table);
 
         if(blocks) {
             char* bl_file_path = malloc(strlen(program) + 4);

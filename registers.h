@@ -52,7 +52,10 @@ void clear_temporary_registers();
 void add_variable_to_register(REG, struct symbol*);
 void remove_variable_from_register(REG, struct symbol*);
 void get_reg(struct tac*, int*, int*, int*);
-REG get_dest_register(struct address*);
-REG get_source_register(struct address*);
+REG get_dest_register(int, struct address*);
+REG get_source_register(int, struct address*);
+void remove_register_from_addresses(REG);
+
+bool match_same_register(LINKED_LIST* l, void* reg);
 
 #endif
