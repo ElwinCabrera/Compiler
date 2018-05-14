@@ -47,9 +47,7 @@ void add_to_graph(GRAPH *gr,VALNUM *node){
 		gr->current = node;
 	}
 	else{
-		printf("ADDING TO GRAPH ERROR FUNCTION\n");
 		gr->head = ll_insertback(gr->head,node);
-		printf("ADDING TO GRAPH ERROR FUNCTION2\n");
 		gr->current = node;
 	}
 }
@@ -75,7 +73,7 @@ void process_tac(GRAPH *gr, TAC *code){
 	}
 	VALNUM *rr = find_node_with_address(gr,right);
 	if (rr == NULL && right !=NULL){
-		// create a new ll node
+		// create a new rr node
 		rr = newNode(I_VALNUM_NODE,gr->current->number + 1,NULL,NULL,NULL,right);
 		add_to_graph(gr,rr);
 	}
@@ -109,9 +107,9 @@ void optimize_common_exp(GRAPH *gr){
 			}
 			else{
 				TAC *code = node->code;
-				code->y = node->left->result;
+				code->x = node->left->result;
 				if(node->right)
-					code->x = node->right->result;
+					code->y = node->right->result;
 			}
 		}	
 		head = ll_next(head);
