@@ -1,0 +1,16 @@
+Block 0
+[000]	 goto L2
+DONE THS BLOCK
+Block 1
+[001]	 NOP
+DONE THS BLOCK
+Block 2
+[002]	 x = 0
+[003]	 t0 = x + y
+[004]	 x = t0
+[005]	 t1 = y + z
+[006]	 y = t1
+DONE THS BLOCK
+Block 7
+[007]	 goto L1
+DONE THS BLOCK

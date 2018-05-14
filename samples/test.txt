@@ -1,0 +1,10 @@
+(* Empty Definition List *)
+
+(* Empty S Block *)
+{
+    [integer: x,y,z]
+    (* Empty Statement List Is A Syntax Error *)
+    x := 0;
+    x := x + y;
+    y := y+z;
+}

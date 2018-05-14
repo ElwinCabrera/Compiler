@@ -12,6 +12,7 @@ BLOCK* new_code_block(int i) {
     b->vars = NULL;
     b->edges = NULL;
     b->label = i;
+    b->optimizer = newGraph();
     return b;
 }
 
@@ -154,7 +155,40 @@ LINKED_LIST* make_blocks(INTERMEDIATE_CODE* code_table) {
         }
     }
     ll_reverse(&blocks);
+    LINKED_LIST *head = blocks;
+    while(head){
+		BLOCK *cb = head->value;
+		cb->optimizer = create_optimize_graph(cb);
+		head = ll_next(head); 
+	}
     return blocks;
+}
+
+GRAPH *create_optimize_graph(BLOCK *code_block){
+	GRAPH *gr = newGraph();
+	LINKED_LIST *code_list = code_block->code;
+	while(code_list){
+		TAC *code = ll_value(code_list);
+		process_tac(gr,code);
+		code_list = ll_next(code_list);
+	}
+	return gr;
+}
+
+void common_expression_optimize(LINKED_LIST *code_list){
+	while(code_list){
+		BLOCK *code_block = code_list->value;
+     	optimize_common_exp(code_block->optimizer);
+     	code_list = ll_next(code_list);
+     }
+}
+
+void dead_code_optimize(LINKED_LIST *code_list){
+	while(code_list){
+		BLOCK *code_block = code_list->value;
+     	optimize_dead_code(code_block->optimizer);
+     	code_list = ll_next(code_list);
+     }
 }
 
 void mark_leaders(INTERMEDIATE_CODE* code_table) {
