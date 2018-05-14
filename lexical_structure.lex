@@ -19,7 +19,7 @@ DIGIT                       [0-9]
 /* Has either a plus or minus sign, or not, with a sequence of digits */                                     
 INTEGER                     {DIGIT}+                              
 /*Basically INTEGER, followed with "." and a number of digits, followed by e|E with an interger*/       
-REAL                        {INTEGER}+"."{DIGIT}+(("e"|"E")" "?{INTEGER}+)?           
+REAL                        {INTEGER}+"."{DIGIT}+(("e"|"E")" "?"-"?{INTEGER}+)?           
 /*single ascii character enclosed in single quotations, may or may not be backslashed*/             
 CHAR                        "\'"\\?(.|" ")"\'"                                       
 /*An arbitrary sequence of characters length >0, not inclusing newline*/
@@ -42,7 +42,7 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
     /* Primitive Values */
 
 {INTEGER}                   yylval.integer = atoi(yytext); return handle_token(C_INTEGER);
-{REAL}                      yylval.real = atof(yytext); return handle_token(C_REAL);
+{REAL}                      yylval.real = atof_wrapper(yytext); return handle_token(C_REAL);
 {CHAR}                      yylval.character = yytext[1]; return handle_token(C_CHARACTER);
 {STRING}                    yylval.string = strdup(yytext); return handle_token(C_STRING);
 "true"                      yylval.boolean = 1; return handle_token(C_TRUE);
@@ -187,7 +187,7 @@ int handle_token(int token)
 
     return token;
 }
-/*double power(double a,int b){
+double power(double a,int b){
 	double result = 1;
 	for (int i=1;i<=b;i++)
 		result = result * a;
@@ -196,7 +196,7 @@ int handle_token(int token)
 double atof_wrapper(const char *str){
 	int i;
 	int e;
-	int length = sizeof(str)/(sizeof(const char *));
+	int length = strlen(str);
 	double value;
 	int exponent = 0;
 	for (i = 0;i<length;i++){
@@ -205,13 +205,27 @@ double atof_wrapper(const char *str){
 			break;		
 		}
 	}
-	char *value_part;
+	char *value_part = malloc(length);
 	memcpy(value_part,str,e);
 	value = atof(value_part);
-	char *exponent_part;
-	memcpy(exponent_part,str+e,length-e-1);	
+	char *exponent_part = malloc(length);
+	memcpy(exponent_part,str+e+1,length-e-1);	
+    
+    printf("%s, %s", value_part, exponent_part);
 	exponent = atoi(exponent_part);
-	if(e == length -1)
+
+	if(e == length - 1) {
 		exponent = 0;
-	return value * power(10.0,exponent);
-}*/
+    }
+
+    free(value_part);
+    free(exponent_part);
+    
+    if(exponent < 0) {
+	    return value / power(10.0, -exponent);
+    } else if(exponent > 0) {
+        return value * power(10.0, exponent);
+    }
+
+    return value;
+}
