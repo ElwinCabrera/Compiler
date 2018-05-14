@@ -210,8 +210,7 @@ double atof_wrapper(const char *str){
 	value = atof(value_part);
 	char *exponent_part = malloc(length);
 	memcpy(exponent_part,str+e+1,length-e-1);	
-    
-    printf("%s, %s", value_part, exponent_part);
+
 	exponent = atoi(exponent_part);
 
 	if(e == length - 1) {
