@@ -57,7 +57,7 @@ void spill_var_to_stack(int block, SYMBOL* s) {
     int where = s->registers;
 	
     if(!where) {
-        printf("Warning: attempting to spill address that's not in a register\n");
+        //printf("Warning: attempting to spill address that's not in a register\n");
         return;
     }
 
@@ -232,8 +232,8 @@ void asm_heap_reserve(int block, ADDRESS* a, int size) {
     */
     
     REG r = get_dest_register(block, a);
-    add_atype(block, ASM_ADD, r, HEAP, ZERO, false, false, false);
     add_itype(block, ASM_SUBI, HEAP, HEAP, const_location(size));
+    add_atype(block, ASM_ADD, r, HEAP, ZERO, false, false, false);
 }
 
 
@@ -249,7 +249,14 @@ void asm_assignment(int block, TAC* code) {
     if(rs1 == CONST_VALUE) {
         code->result->value.symbol->registers = 0;
         REG rd = get_dest_register(block, code->result);
-        add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+        if(check_typename(code->result->type, "integer") ||
+           check_typename(code->result->type, "Boolean") ||
+           check_typename(code->result->type, "character")
+        ) {
+            add_itype(block, ASM_ADDI, rd, ZERO, const_location(code->x->value.integer));
+        } else {
+            add_itype(block, ASM_ADDI, rd, ZERO, const_location(0));
+        }
     } else {
         code->result->value.symbol->registers = (1 << rs1);
         ll_free(&code->result->value.symbol->address_descriptor, true);
@@ -415,7 +422,28 @@ void asm_less_than(int block, TAC* code) {
     REG rs1 = get_source_register(block, code->x);
     REG rs2 = get_source_register(block, code->y);
     REG rd = get_dest_register(block, code->result);
+     
+     add_atype(block, ASM_ADD, COUNTER_P, ZERO, ZERO, false, false, false);
+     add_itype(block, ASM_ADDI, rd, ZERO, const_location(0));
+     
+     if (rs1 == CONST_VALUE) {
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->x->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, LINK3, rs2, true, true, false);
+     	 
+     } else if (rs2 == CONST_VALUE){
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, rs1, LINK3, true, true, false);
+     	 
+     } else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE) {
+     	add_itype(block, ASM_ADDI, LINK2, ZERO, const_location(code->x->value.integer));
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, LINK2, LINK3, true, true, false);
+     	
+     } else {
+     	add_atype(block, ASM_SUB, LINK3, rs1, rs2, true, true, false);
+     }
 
+     add_atype(block, ASM_ADD, rd, ZERO, COUNTER_P, false, false, NG);
 }
 
 void asm_equal(int block, TAC* code) {
@@ -452,6 +480,7 @@ void asm_not(int block, TAC* code) {
 
     REG rs = get_source_register(block, code->x);
     REG rd = get_dest_register(block, code->result);
+
     if(rs == CONST_VALUE) {
         if(code->x->value.boolean) {
             add_atype(block, ASM_NOT, rd, ZERO, NO_REGISTER, false, false, false);
@@ -535,39 +564,22 @@ void asm_record_access(int block, TAC* code) {
     REG rs1 = get_source_register(block, code->x);
     REG rd = get_dest_register(block, code->result);
 
-    LINKED_LIST* symbols = code->x->type->members ? code->x->type->members->symbols : NULL;
-    int offset = 0;
-    while(symbols) {
-        SYMBOL* s = ll_value(symbols);
-        if(s == code->y->value.symbol) {
-            break;
-        } else {
-            offset += get_type_width(s->type);
-        }
-        symbols = ll_next(symbols);
-    }
-
-    add_itype(block, ASM_LDR, rd, rs1, memory_location(offset));
+    add_itype(block, ASM_LDR, rd, rs1, memory_location(code->y->value.symbol->stack_offset));
 }
 
 void asm_record_assign(int block, TAC* code) {
-    REG rs1 = get_source_register(block, code->x);
-    REG rd = get_dest_register(block, code->result);
+    REG rs1 = get_source_register(block, code->y);
+    REG rd = get_source_register(block, code->result);
 
-    LINKED_LIST* symbols = code->result->type->members ? code->result->type->members->symbols : NULL;
-    int offset = 0;
-    while(symbols) {
-        SYMBOL* s = ll_value(symbols);
-        if(s == code->y->value.symbol) {
-            break;
-        } else {
-            offset += get_type_width(s->type);
-        }
-        symbols = ll_next(symbols);
+    add_itype(block, ASM_ADDI, LINK3, rd, memory_location(code->x->value.symbol->stack_offset));
+
+    if(rs1 == CONST_VALUE) {
+        add_itype(block, ASM_ADD, LINK2, ZERO, const_location(code->y->value.integer));
+        add_itype(block, ASM_STR, LINK3, LINK2, const_location(0));
+    } else {
+        add_itype(block, ASM_STR, LINK3, rs1, const_location(0));
     }
 
-    add_itype(block, ASM_ADDI, rd, rd, memory_location(offset));
-    add_itype(block, ASM_STR, rd, rs1, memory_location(0));
 }
 
 void create_assembly(int label, TAC* code) {
