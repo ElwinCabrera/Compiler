@@ -5,3 +5,8 @@ y.tab.c
 *.exe
 lex.yy.c
 *.stackdump
+*.ir
+*.bl
+*.stackdump
+*.asc
+*.s
