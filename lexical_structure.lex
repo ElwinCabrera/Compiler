@@ -5,6 +5,8 @@
 #include "asc.h"
 #include "intermediate_code.h"
 int handle_token(int);
+double power(double,int);
+double atof_wrapper(const char *);
 %}
 
 %option yylineno
@@ -40,7 +42,7 @@ ID                          [a-zA-Z_][a-zA-Z0-9_]*
     /* Primitive Values */
 
 {INTEGER}                   yylval.integer = atoi(yytext); return handle_token(C_INTEGER);
-{REAL}                      yylval.real = atof(yytext); return handle_token(C_REAL);
+{REAL}                      yylval.real = atof_wrapper(yytext); return handle_token(C_REAL);
 {CHAR}                      yylval.character = yytext[1]; return handle_token(C_CHARACTER);
 {STRING}                    yylval.string = strdup(yytext); return handle_token(C_STRING);
 "true"                      yylval.boolean = 1; return handle_token(C_TRUE);
@@ -184,4 +186,32 @@ int handle_token(int token)
     }
 
     return token;
+}
+double power(double a,int b){
+	double result = 1;
+	for (int i=1;i<=b;i++)
+		result = result * a;
+	return result;
+}
+double atof_wrapper(const char *str){
+	int i;
+	int e;
+	int length = sizeof(str)/(sizeof(const char *));
+	double value;
+	int exponent = 0;
+	for (i = 0;i<length;i++){
+		e = i;
+		if(str[i]=='e' || str[i] == 'E'){
+			break;		
+		}
+	}
+	char *value_part;
+	memcpy(value_part,str,e);
+	value = atof(value_part);
+	char *exponent_part;
+	memcpy(exponent_part,str+e,length-e-1);	
+	exponent = atoi(exponent_part);
+	if(e == length -1)
+		exponent = 0;
+	return value * power(10.0,exponent);
 }
