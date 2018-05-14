@@ -167,13 +167,39 @@ void asm_function_call(int block, TAC* code) {
     int count = ll_length(params->symbols);
 
     add_atype(block, ASM_ADD, LINK3, ZERO, TOP_SP, false, false, false);
-    add_itype(block, ASM_ADDI, TOP_SP, SP, const_location(params->stack_space));
-    
+
     for(int i = 0; i < count; i++) {
         ADDRESS* a = stack_peek(param_stack);
-        //spill_address(a);
+        int width = get_type_width(a->type);
+        REG rs = get_source_register(block, a);
+
+        if(rs == CONST_VALUE) {
+            if(check_typename(a->type, "integer") ||
+               check_typename(a->type, "Boolean") ||
+               check_typename(a->type, "character")
+            ) {
+                add_itype(block, ASM_ADDI, LINK2, ZERO, const_location(a->value.integer));
+                add_itype(block, ASM_STR, TOP_SP, LINK2, const_location(0));
+            }
+            else {
+                // String or Real constant, unhandled
+                add_atype(block, ASM_ADDI, LINK2, ZERO, ZERO, false, false, false);
+                add_itype(block, ASM_STR, TOP_SP, LINK2, const_location(0));
+            }
+        } else {
+
+            if(width == 1) {
+                add_itype(block, ASM_STRB, TOP_SP, rs, const_location(0));
+            } else {
+                add_itype(block, ASM_STR, TOP_SP, rs, const_location(0));
+            }
+
+        }
+        add_itype(block, ASM_ADDI, TOP_SP, SP, const_location(width));
         param_stack = stack_pop(param_stack);
     }
+
+    add_itype(block, ASM_ADDI, TOP_SP, SP, const_location(params->stack_space));
 
     add_itype(block, ASM_STR, TOP_SP, LINK3, const_location(0));
     add_itype(block, ASM_ADDI, TOP_SP, TOP_SP, const_location(4));
@@ -219,7 +245,7 @@ void asm_function_return(int block, SYMBOL* fn) {
         return;
     }
 
-    int reg = fn->registers;
+    //int reg = fn->registers;
 
     add_btype(block, ASM_BRANCHR, const_location(0), false, 0);
 }
@@ -532,11 +558,29 @@ void asm_conditional_branch_false(int block, TAC* code) {
 }
 
 void asm_conditional_branch_not_equal(int block, TAC* code) {
-    REG rs1 = get_source_register(block, code->x);
-    REG rd = get_dest_register(block, code->result);
-    add_itype(block, ASM_ADDI, rd, ZERO, label_location(code->y->value.integer));
-    add_atype(block, ASM_SUB, rd, rs1, rd, true, false, false);
-    add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, EQ);
+     REG rs1 = get_source_register(block, code->x);
+     REG rs2 = get_source_register(block, code->y);
+     
+     add_atype(block, ASM_ADD, COUNTER_P, ZERO, ZERO, false, false, false);
+     
+     if (rs1 == CONST_VALUE) {
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->x->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, LINK3, rs2, true, true, false);
+     	 
+     } else if (rs2 == CONST_VALUE){
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, rs1, LINK3, true, true, false);
+     	 
+     } else if (rs1 == CONST_VALUE && rs2 == CONST_VALUE) {
+     	add_itype(block, ASM_ADDI, LINK2, ZERO, const_location(code->x->value.integer));
+     	add_itype(block, ASM_ADDI, LINK3, ZERO, const_location(code->y->value.integer));
+     	add_atype(block, ASM_SUB, LINK3, LINK2, LINK3, true, true, false);
+     	
+     } else {
+     	add_atype(block, ASM_SUB, LINK3, rs1, rs2, true, true, false);
+    }
+
+    add_btype(block, ASM_BRANCH, label_location(code->result->value.label), false, NE);
 }
 
 void asm_array_access(int block, TAC* code) {

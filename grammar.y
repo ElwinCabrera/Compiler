@@ -251,7 +251,7 @@ definition:
     } dblock close_scope  {
         SYMTYPE* t = lookup_type($2);
         add_symbols_to_scope($4, $6);
-        reorder_symbols($4);
+        compute_stack_space($4, 0);
         t->members = $4;
         insert_new_symbol(t, $2, ST_TYPE, "rtype");
     }
